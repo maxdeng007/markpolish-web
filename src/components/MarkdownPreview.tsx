@@ -11,6 +11,9 @@ import {
 import { getTheme } from "@/lib/themes";
 import { aiImageGen } from "@/lib/ai-image-generation";
 
+// Unique separator for storing image data (avoid issues with URLs containing |)
+const RATIO_SEPARATOR = "|||RATIO|||";
+
 // Helper to adjust hex color brightness
 function adjustColor(hex: string, percent: number): string {
   const num = parseInt(hex.replace('#', ''), 16);
@@ -112,7 +115,7 @@ export default function MarkdownPreview({
         if (result.success && result.imageUrl) {
           setGeneratedImages((prev) => ({
             ...prev,
-            [description]: `${result.imageUrl}|${ratio}`,
+          [description]: `${result.imageUrl}${RATIO_SEPARATOR}${ratio}`,
           }));
         }
       } catch (error) {
@@ -239,8 +242,11 @@ export default function MarkdownPreview({
 
     buttons.forEach((btn) => {
       const description = btn.dataset.description || "";
-      btn.disabled = generatingImages.has(description);
-      if (generatingImages.has(description)) {
+      const unescapedDesc = description
+        .replace(/&#34;/g, '"')
+        .replace(/&#39;/g, "'");
+      btn.disabled = generatingImages.has(unescapedDesc);
+      if (generatingImages.has(unescapedDesc)) {
         btn.textContent = "⏳ Generating...";
       } else {
         btn.textContent = "✨ Generate Image";
@@ -252,7 +258,7 @@ export default function MarkdownPreview({
     if (!previewRef.current) return;
 
     Object.entries(generatedImages).forEach(([description, imageData]) => {
-      const [imageUrl, ratio] = imageData.split("|");
+      const [imageUrl, ratio] = imageData.split(RATIO_SEPARATOR);
 
       const aspectClass: Record<string, string> = {
         "1:1": "aspect-square",
