@@ -264,7 +264,7 @@ function App() {
   };
 
   const handleExportHTML = () => {
-    exportToHTML(markdown, "github", "wechat-article.html");
+    exportToHTML(markdown, theme, {}, "wechat-article.html");
   };
 
   const handleExportWeChat = () => {
