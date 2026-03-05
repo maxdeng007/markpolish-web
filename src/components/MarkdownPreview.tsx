@@ -11,12 +11,9 @@ import {
 import { getTheme } from "@/lib/themes";
 import { aiImageGen } from "@/lib/ai-image-generation";
 
-// Unique separator for storing image data (avoid issues with URLs containing |)
-const RATIO_SEPARATOR = "|||RATIO|||";
-
 // Helper to adjust hex color brightness
 function adjustColor(hex: string, percent: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
+  const num = parseInt(hex.replace("#", ""), 16);
   const amt = Math.round(2.55 * percent);
   const R = Math.max(0, Math.min(255, (num >> 16) + amt));
   const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
@@ -24,206 +21,188 @@ function adjustColor(hex: string, percent: number): string {
   return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
 }
 
+// Clean AI Image State Interface
+interface AIImageState {
+  description: string;
+  ratio: string;
+  imageUrl: string | null;
+  status: "idle" | "generating" | "done" | "error";
+}
+
 interface MarkdownPreviewProps {
   markdown: string;
   theme?: string;
 }
+
 
 export default function MarkdownPreview({
   markdown,
   theme = "wechat-classic",
 }: MarkdownPreviewProps) {
   const [processedMarkdown, setProcessedMarkdown] = useState("");
-  const [generatedImages, setGeneratedImages] = useState<
-    Record<string, string>
+  const [aiImageStates, setAIImageStates] = useState<
+    Record<string, AIImageState>
   >({});
-  const [generatingImages, setGeneratingImages] = useState<Set<string>>(
-    new Set(),
-  );
   const previewRef = useRef<HTMLDivElement>(null);
-  const generatingRef = useRef<Set<string>>(new Set());
   const currentTheme = getTheme(theme);
 
-  const getCurrentAIDescriptions = useCallback(() => {
-    const components = parseCustomComponents(markdown);
-    return components
-      .filter((c) => c.type === "ai-image")
-      .map((c) => ({ content: c.content, index: c.startIndex }));
-  }, [markdown]);
-
+  // Parse markdown and initialize AI image states
   useEffect(() => {
     const processed = convertMarkdownWithComponents(markdown);
     setProcessedMarkdown(processed);
+
+    // Extract ai-image blocks and initialize states
+    const components = parseCustomComponents(markdown);
+    const aiImages = components.filter((c) => c.type === "ai-image");
+
+
+    setAIImageStates((prev) => {
+      const newState: Record<string, AIImageState> = {};
+      aiImages.forEach((img, index) => {
+        const id = `ai-img-${index}`;
+        // Preserve state by position (index-based matching)
+        const prevKeys = Object.keys(prev);
+        const existingState = prevKeys[index] ? prev[prevKeys[index]] : null;
+
+        if (existingState) {
+          // Keep ratio and status, but always use NEW description from markdown
+          newState[id] = {
+            ...existingState,
+            description: img.content,
+          };
+        } else {
+          newState[id] = {
+            description: img.content,
+            ratio: "1:1",
+            imageUrl: null,
+            status: "idle",
+          };
+        }
+      });
+      return newState;
+    });
   }, [markdown]);
 
+  // Handle ratio selection
+  const handleSelectRatio = useCallback((imageId: string, ratio: string) => {
+    setAIImageStates((prev) => ({
+      ...prev,
+      [imageId]: { ...prev[imageId], ratio },
+    }));
+  }, []);
+
+  // Handle image generation
   const handleGenerateImage = useCallback(
-    async (description: string, forcedRatio?: string) => {
-      if (generatingRef.current.has(description)) return;
+    async (imageId: string) => {
+      setAIImageStates((prev) => {
+        const state = prev[imageId];
+        if (!state || state.status === "generating") return prev;
+        return {
+          ...prev,
+          [imageId]: { ...state, status: "generating" },
+        };
+      });
 
-      let ratio = forcedRatio;
-      if (!ratio) {
-        const placeholders = document.querySelectorAll(".ai-image-placeholder");
-        for (const p of placeholders) {
-          const btn = p.querySelector(
-            ".ai-image-generate-btn",
-          ) as HTMLButtonElement;
-          const btnDesc = btn?.dataset.description || "";
-          const btnDescUnescaped = btnDesc
-            .replace(/&#34;/g, '"')
-            .replace(/&#39;/g, "'");
-          if (
-            btn &&
-            (btnDesc === description || btnDescUnescaped === description)
-          ) {
-            ratio = p.getAttribute("data-ratio") || "1:1";
-            break;
-          }
-        }
-        if (!ratio) ratio = "1:1";
-      }
+      const currentState = aiImageStates[imageId];
+      if (!currentState) return;
 
-      generatingRef.current.add(description);
-      setGeneratingImages((prev) => new Set(prev).add(description));
+      const { description, ratio } = currentState;
 
       try {
         const result = await aiImageGen.generateImageAndWait(
           { prompt: description, aspectRatio: ratio },
           (status) => {
-            const placeholders = document.querySelectorAll(
-              ".ai-image-placeholder",
+            const statusEl = previewRef.current?.querySelector(
+              `[data-ai-id="${imageId}"] .ai-image-status`,
             );
-            for (const p of placeholders) {
-              const btn = p.querySelector(
-                ".ai-image-generate-btn",
-              ) as HTMLButtonElement;
-              const btnDesc = btn?.dataset.description || "";
-              const btnDescUnescaped = btnDesc
-                .replace(/&#34;/g, '"')
-                .replace(/&#39;/g, "'");
-              if (
-                btn &&
-                (btnDesc === description || btnDescUnescaped === description)
-              ) {
-                const statusEl = p.querySelector(".ai-image-status");
-                if (statusEl) statusEl.textContent = status;
-                break;
-              }
-            }
+            if (statusEl) statusEl.textContent = status;
           },
         );
 
         if (result.success && result.imageUrl) {
-          setGeneratedImages((prev) => ({
+          setAIImageStates((prev) => ({
             ...prev,
-          [description]: `${result.imageUrl}${RATIO_SEPARATOR}${ratio}`,
+            [imageId]: {
+              ...prev[imageId],
+              imageUrl: result.imageUrl!,
+              status: "done",
+            },
+          }));
+        } else {
+          setAIImageStates((prev) => ({
+            ...prev,
+            [imageId]: { ...prev[imageId], status: "error" },
           }));
         }
       } catch (error) {
         console.error("Image generation error:", error);
-      } finally {
-        generatingRef.current.delete(description);
-        setGeneratingImages((prev) => {
-          const next = new Set(prev);
-          next.delete(description);
-          return next;
-        });
+        setAIImageStates((prev) => ({
+          ...prev,
+          [imageId]: { ...prev[imageId], status: "error" },
+        }));
       }
     },
-    [],
+    [aiImageStates],
   );
 
+
+
+  // Handle clear - keeps ratio, removes image
+  const handleClear = useCallback((imageId: string) => {
+    setAIImageStates((prev) => ({
+      ...prev,
+      [imageId]: { ...prev[imageId], imageUrl: null, status: "idle" },
+    }));
+  }, []);
+
+  // Click handler delegation
   useEffect(() => {
     if (!previewRef.current) return;
 
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
+      // Ratio button click
       const ratioBtn = target.closest(".ai-image-ratio-btn");
       if (ratioBtn) {
-        const button = ratioBtn as HTMLButtonElement;
-        const ratio = button.dataset.ratio || "1:1";
-        const placeholder = button.closest(".ai-image-placeholder");
+        const placeholder = ratioBtn.closest(".ai-image-placeholder");
         if (placeholder) {
-          placeholder.setAttribute("data-ratio", ratio);
-          const siblings = placeholder.querySelectorAll(".ai-image-ratio-btn");
-          siblings.forEach((btn) => btn.classList.remove("active"));
-          button.classList.add("active");
+          const ratio = (ratioBtn as HTMLElement).dataset.ratio;
+          const imageId = placeholder.getAttribute("data-ai-id");
+          if (ratio && imageId && aiImageStates[imageId]) {
+            handleSelectRatio(imageId, ratio);
+            // Update active state visually
+            placeholder.querySelectorAll(".ai-image-ratio-btn").forEach(btn => {
+              btn.classList.remove("active");
+            });
+            ratioBtn.classList.add("active");
+            placeholder.setAttribute("data-ratio", ratio);
+          }
         }
         return;
       }
 
+      // Generate button click
       const generateBtn = target.closest(".ai-image-generate-btn");
       if (generateBtn) {
-        const button = generateBtn as HTMLButtonElement;
-        const buttonDesc = button.dataset.description || "";
-        const unescapedDesc = buttonDesc
-          .replace(/&#34;/g, '"')
-          .replace(/&#39;/g, "'");
-        const placeholder = button.closest(".ai-image-placeholder");
-        const ratio = placeholder?.getAttribute("data-ratio") || "1:1";
-
-        if (!generatingRef.current.has(unescapedDesc)) {
-          handleGenerateImage(unescapedDesc, ratio);
+        const imageId = (generateBtn as HTMLElement).dataset.generate;
+        if (imageId && aiImageStates[imageId]) {
+          handleGenerateImage(imageId);
         }
         return;
       }
 
-      const actionBtn = target.closest(".ai-image-action-btn");
-      if (actionBtn) {
-        const button = actionBtn as HTMLButtonElement;
-        const action = button.dataset.action;
-        const wrapper = button.closest(".ai-image-wrapper");
-        if (!wrapper) return;
 
-        const ratio = wrapper.getAttribute("data-ratio") || "1:1";
 
-        if (action === "regenerate") {
-          const currentDescriptions = getCurrentAIDescriptions();
-          let description = currentDescriptions[0]?.content || "";
-          if (!description) {
-            const escapedDesc = wrapper.getAttribute("data-description") || "";
-            description = escapedDesc
-              .replace(/&#34;/g, '"')
-              .replace(/&#39;/g, "'");
+      // Clear button click
+      const clearBtn = target.closest("[data-clear]");
+      if (clearBtn) {
+        const wrapper = clearBtn.closest(".ai-image-wrapper");
+        if (wrapper) {
+          const imageId = (clearBtn as HTMLElement).dataset.clear;
+          if (imageId) {
+            handleClear(imageId);
           }
-          if (generatingRef.current.has(description)) return;
-
-          const escapedDesc = description
-            .replace(/"/g, "&#34;")
-            .replace(/'/g, "&#39;");
-          wrapper.outerHTML = `<div class="ai-image-placeholder" data-description="${escapedDesc}" data-ratio="${ratio}"><div class="ai-image-icon">🎨</div><div class="ai-image-ratio-selector"><button class="ai-image-ratio-btn ${ratio === "1:1" ? "active" : ""}" data-ratio="1:1">1:1</button><button class="ai-image-ratio-btn ${ratio === "16:9" ? "active" : ""}" data-ratio="16:9">16:9</button><button class="ai-image-ratio-btn ${ratio === "9:16" ? "active" : ""}" data-ratio="9:16">9:16</button><button class="ai-image-ratio-btn ${ratio === "4:3" ? "active" : ""}" data-ratio="4:3">4:3</button><button class="ai-image-ratio-btn ${ratio === "3:4" ? "active" : ""}" data-ratio="3:4">3:4</button></div><button class="ai-image-generate-btn" data-description="${escapedDesc}" disabled>⏳ Generating...</button><div class="ai-image-status">Regenerating...</div></div>`;
-
-          setGeneratedImages((prev) => {
-            const next = { ...prev };
-            Object.keys(next).forEach((k) => {
-              if (k === description) delete next[k];
-            });
-            return next;
-          });
-
-          setTimeout(() => handleGenerateImage(description, ratio), 50);
-        } else if (action === "clear") {
-          const rawDesc = wrapper.getAttribute("data-description") || "";
-          const description = rawDesc
-            .replace(/&#34;/g, '"')
-            .replace(/&#39;/g, "'");
-
-          setGeneratedImages((prev) => {
-            const next = { ...prev };
-            delete next[description];
-            return next;
-          });
-          setGeneratingImages((prev) => {
-            const next = new Set(prev);
-            next.delete(description);
-            return next;
-          });
-          generatingRef.current.delete(description);
-
-          const escapedDesc = description
-            .replace(/"/g, "&#34;")
-            .replace(/'/g, "&#39;");
-          wrapper.outerHTML = `<div class="ai-image-placeholder" data-description="${escapedDesc}" data-ratio="${ratio}"><div class="ai-image-icon">🎨</div><div class="ai-image-ratio-selector"><button class="ai-image-ratio-btn ${ratio === "1:1" ? "active" : ""}" data-ratio="1:1">1:1</button><button class="ai-image-ratio-btn ${ratio === "16:9" ? "active" : ""}" data-ratio="16:9">16:9</button><button class="ai-image-ratio-btn ${ratio === "9:16" ? "active" : ""}" data-ratio="9:16">9:16</button><button class="ai-image-ratio-btn ${ratio === "4:3" ? "active" : ""}" data-ratio="4:3">4:3</button><button class="ai-image-ratio-btn ${ratio === "3:4" ? "active" : ""}" data-ratio="3:4">3:4</button></div><button class="ai-image-generate-btn" data-description="${escapedDesc}">✨ Generate Image</button><div class="ai-image-status"></div></div>`;
         }
         return;
       }
@@ -231,115 +210,100 @@ export default function MarkdownPreview({
 
     previewRef.current.addEventListener("click", handleClick);
     return () => previewRef.current?.removeEventListener("click", handleClick);
-  }, [handleGenerateImage, getCurrentAIDescriptions]);
+  }, [aiImageStates, handleSelectRatio, handleGenerateImage, handleClear]);
 
+  // Render AI image placeholders and images based on state
   useEffect(() => {
     if (!previewRef.current) return;
 
-    const buttons = previewRef.current.querySelectorAll<HTMLButtonElement>(
-      ".ai-image-generate-btn",
-    );
+    // Small delay to ensure DOM is ready after ReactMarkdown renders
+    const timer = setTimeout(() => {
+      if (!previewRef.current) return;
 
-    buttons.forEach((btn) => {
-      const description = btn.dataset.description || "";
-      const unescapedDesc = description
-        .replace(/&#34;/g, '"')
-        .replace(/&#39;/g, "'");
-      btn.disabled = generatingImages.has(unescapedDesc);
-      if (generatingImages.has(unescapedDesc)) {
-        btn.textContent = "⏳ Generating...";
-      } else {
-        btn.textContent = "✨ Generate Image";
-      }
-    });
-  }, [generatingImages]);
-
-  useEffect(() => {
-    if (!previewRef.current) return;
-
-    Object.entries(generatedImages).forEach(([description, imageData]) => {
-      const [imageUrl, ratio] = imageData.split(RATIO_SEPARATOR);
-
-      const aspectClass: Record<string, string> = {
-        "1:1": "aspect-square",
-        "16:9": "aspect-video",
-        "9:16": "aspect-9-16",
-        "4:3": "aspect-4-3",
-        "3:4": "aspect-3-4",
-      };
-      const imgClass = aspectClass[ratio] || "";
-
-      const allWrappers =
-        previewRef.current!.querySelectorAll(".ai-image-wrapper");
-      let existingWrapper: Element | null = null;
-
-      for (const wrapper of allWrappers) {
-        const wrapperDesc = wrapper.getAttribute("data-description") || "";
-        const unescapedWrapperDesc = wrapperDesc
-          .replace(/&#34;/g, '"')
-          .replace(/&#39;/g, "'");
-        if (unescapedWrapperDesc === description) {
-          existingWrapper = wrapper;
-          break;
-        }
-      }
-
-      if (existingWrapper) {
-        const escapedDesc = description
-          .replace(/"/g, "&#34;")
-          .replace(/'/g, "&#39;");
-        existingWrapper.setAttribute("data-description", escapedDesc);
-        const img = existingWrapper.querySelector("img");
-        if (img) {
-          img.src = imageUrl;
-          img.className = imgClass
-            ? `ai-image-result ${imgClass}`
-            : "ai-image-result";
-        }
-        existingWrapper.setAttribute("data-image-url", imageUrl);
-        existingWrapper.setAttribute("data-ratio", ratio);
-
-        const generatingIndicator = existingWrapper.querySelector(
-          ".ai-image-generating",
-        );
-        if (generatingIndicator) {
-          generatingIndicator.remove();
-        }
-        return;
-      }
-
-      let placeholder: Element | null = null;
-      const allPlaceholders = previewRef.current!.querySelectorAll(
-        ".ai-image-placeholder",
-      );
-
-      for (const p of allPlaceholders) {
-        const btn = p.querySelector(
-          ".ai-image-generate-btn",
-        ) as HTMLButtonElement;
-        if (btn) {
-          const btnDesc = btn.dataset.description || "";
-          const unescapedBtnDesc = btnDesc
-            .replace(/&#34;/g, '"')
-            .replace(/&#39;/g, "'");
-          if (unescapedBtnDesc === description) {
-            placeholder = p;
-            break;
+      Object.entries(aiImageStates).forEach(([imageId, state]) => {
+        // Find existing placeholder or wrapper for this ID
+        let container = previewRef.current?.querySelector(`[data-ai-id="${imageId}"]`);
+        
+        // If not found, try to find an uninitialized placeholder
+        if (!container) {
+          const uninitPlaceholder = previewRef.current?.querySelector(".ai-image-placeholder:not([data-ai-id])");
+          if (uninitPlaceholder) {
+            uninitPlaceholder.setAttribute("data-ai-id", imageId);
+            uninitPlaceholder.setAttribute("data-ratio", state.ratio);
+            container = uninitPlaceholder;
           }
         }
-      }
+        
+        if (!container) return;
 
-      if (placeholder && !placeholder.querySelector("img")) {
-        const escapedDesc = description
-          .replace(/"/g, "&#34;")
-          .replace(/'/g, "&#39;");
-        placeholder.outerHTML = `<div class="ai-image-wrapper" data-description="${escapedDesc}" data-ratio="${ratio}" data-image-url="${imageUrl}"><img src="${imageUrl}" alt="AI generated image" class="ai-image-result ${imgClass}" /><div class="ai-image-overlay"><button class="ai-image-action-btn ai-image-regenerate" data-description="${escapedDesc}" data-action="regenerate" title="Regenerate image">🔄</button><button class="ai-image-action-btn ai-image-clear" data-description="${escapedDesc}" data-action="clear" title="Clear image">✕</button></div></div>`;
-      }
-    });
-  }, [generatedImages]);
+        const aspectClassMap: Record<string, string> = {
+          "1:1": "aspect-square",
+          "16:9": "aspect-video",
+          "9:16": "aspect-9-16",
+          "4:3": "aspect-4-3",
+          "3:4": "aspect-3-4",
+        };
+        const aspectClass = aspectClassMap[state.ratio] || "aspect-square";
+
+        if (state.imageUrl && state.status === "done") {
+          // Only update if not already showing image
+          if (!container.classList.contains("ai-image-wrapper")) {
+            container.outerHTML = `
+              <div class="ai-image-wrapper ${aspectClass}" data-ai-id="${imageId}" data-ratio="${state.ratio}">
+                <img src="${state.imageUrl}" alt="AI generated image" class="ai-image-result" />
+                <div class="ai-image-overlay">
+                  <button class="ai-image-action-btn" data-clear="${imageId}" title="Clear image">✕</button>
+                </div>
+              </div>
+            `;
+          }
+        } else {
+          // Render placeholder
+          const isGenerating = state.status === "generating";
+          const ratioBtns = ["1:1", "16:9", "9:16", "4:3", "3:4"]
+            .map(
+              (r) =>
+                `<button class="ai-image-ratio-btn ${state.ratio === r ? "active" : ""}" data-ratio="${r}">${r}</button>`,
+            )
+            .join("");
+
+          // Only update if content has changed
+          const expectedContent = `data-generate="${imageId}"`;
+          if (
+            !container.outerHTML.includes(expectedContent) ||
+            container.classList.contains("ai-image-wrapper")
+          ) {
+            container.outerHTML = `
+              <div class="ai-image-placeholder" data-ai-id="${imageId}" data-ratio="${state.ratio}">
+                <div class="ai-image-icon">🎨</div>
+                <div class="ai-image-ratio-selector">${ratioBtns}</div>
+                <button class="ai-image-generate-btn" data-generate="${imageId}" ${isGenerating ? "disabled" : ""}>
+                  ${isGenerating ? "⏳ Generating..." : "✨ Generate Image"}
+                </button>
+                <div class="ai-image-status">${isGenerating ? "Starting..." : ""}</div>
+              </div>
+            `;
+          }
+        }
+      });
+    }, 100); // 100ms delay to ensure DOM is ready
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [aiImageStates, processedMarkdown]);
+
 
   return (
-    <div className={`preview-container theme-${currentTheme.category}`} style={{ '--hero-bg': `linear-gradient(135deg, ${currentTheme.styles.accent} 0%, ${adjustColor(currentTheme.styles.accent, -30)} 100%)`, '--hero-text': 'white' } as React.CSSProperties}>
+    <div
+      className={`preview-container theme-${currentTheme.category}`}
+      style={
+        {
+          "--hero-bg": `linear-gradient(135deg, ${currentTheme.styles.accent} 0%, ${adjustColor(currentTheme.styles.accent, -30)} 100%)`,
+          "--hero-text": "white",
+        } as React.CSSProperties
+      }
+    >
       <style>{currentTheme.css}</style>
       <style>{`
         /* ========================
@@ -380,781 +344,37 @@ export default function MarkdownPreview({
         .preview-content .hljs-variable,
         .preview-content .hljs-variable-language,
         .preview-content .hljs-params { color: #ffa657; }
-        .preview-content .hljs-comment,
-        .preview-content .hljs-quote { color: #8b949e; font-style: italic; }
-        .preview-content .hljs-doctag { color: #ff7b72; }
-        .preview-content .hljs-function { color: #d2a8ff; }
-        .preview-content .hljs-tag { color: #7ee787; }
-        .preview-content .hljs-name { color: #7ee787; }
-        .preview-content .hljs-regexp { color: #7ee787; }
-        .preview-content .hljs-symbol { color: #ffa657; }
-        .preview-content .hljs-bullet { color: #ffab70; }
-        .preview-content .hljs-link { color: #a5d6ff; text-decoration: underline; }
-        .preview-content .hljs-meta { color: #79c0ff; }
-        .preview-content .hljs-meta-keyword { color: #ff7b72; }
-        .preview-content .hljs-addition { color: #7ee787; background: rgba(126, 231, 135, 0.15); }
-        .preview-content .hljs-deletion { color: #ffa198; background: rgba(255, 161, 152, 0.15); }
-        .preview-content .hljs-emphasis { font-style: italic; }
-        .preview-content .hljs-strong { font-weight: bold; }
-        .preview-content .hljs-property { color: #79c0ff; }
-        .preview-content .hljs-attribute { color: #a5d6ff; }
-        .preview-content .hljs-selector-id { color: #79c0ff; }
-        .preview-content .hljs-selector-class { color: #7ee787; }
-        .preview-content .hljs-section { color: #d2a8ff; font-weight: 600; }
 
-        /* Light Theme Code Syntax Highlighting - High Contrast */
-        .theme-light .preview-content pre code { color: #24292e; font-size: 0.875em; }
-        .theme-light .preview-content .hljs-keyword,
-        .theme-light .preview-content .hljs-keyword,
-        .theme-light .preview-content .hljs-selector-tag,
-        .theme-light .preview-content .hljs-built_in { color: #d73a49; font-weight: 600; }
-        .theme-light .preview-content .hljs-type,
-        .theme-light .preview-content .hljs-title,
-        .theme-light .preview-content .hljs-title.class_,
-        .theme-light .preview-content .hljs-title.function_ { color: #6f42c1; font-weight: 600; }
-        .theme-light .preview-content .hljs-string,
-        .theme-light .preview-content .hljs-attr,
-        .theme-light .preview-content .hljs-template-variable,
-        .theme-light .preview-content .hljs-meta-string { color: #032f62; }
-        .theme-light .preview-content .hljs-number,
-        .theme-light .preview-content .hljs-literal { color: #005cc5; }
-        .theme-light .preview-content .hljs-variable,
-        .theme-light .preview-content .hljs-variable-language,
-        .theme-light .preview-content .hljs-params { color: #e36209; }
-        .theme-light .preview-content .hljs-comment,
-        .theme-light .preview-content .hljs-quote { color: #6a737d; font-style: italic; }
-        .theme-light .preview-content .hljs-doctag { color: #d73a49; }
-        .theme-light .preview-content .hljs-function { color: #6f42c1; }
-        .theme-light .preview-content .hljs-tag { color: #22863a; }
-        .theme-light .preview-content .hljs-name { color: #22863a; }
-        .theme-light .preview-content .hljs-regexp { color: #032f62; }
-        .theme-light .preview-content .hljs-symbol { color: #e36209; }
-        .theme-light .preview-content .hljs-bullet { color: #005cc5; }
-        .theme-light .preview-content .hljs-link { color: #032f62; text-decoration: underline; }
-        .theme-light .preview-content .hljs-meta { color: #005cc5; }
-        .theme-light .preview-content .hljs-meta-keyword { color: #d73a49; }
-        .theme-light .preview-content .hljs-addition { color: #22863a; background: rgba(34, 134, 58, 0.1); }
-        .theme-light .preview-content .hljs-deletion { color: #b31d28; background: rgba(179, 29, 40, 0.1); }
-        .theme-light .preview-content .hljs-emphasis { font-style: italic; }
-        .theme-light .preview-content .hljs-strong { font-weight: bold; }
-        .theme-light .preview-content .hljs-property { color: #005cc5; }
-        .theme-light .preview-content .hljs-attribute { color: #6f42c1; }
-        .theme-light .preview-content .hljs-selector-id { color: #6f42c1; }
-        .theme-light .preview-content .hljs-selector-class { color: #22863a; }
-        .theme-light .preview-content .hljs-section { color: #6f42c1; font-weight: 600; }
-        .preview-content blockquote { border-left: 4px solid #667eea; padding: 0.75em 1.25em; margin: 1.5em 0; background: linear-gradient(90deg, rgba(102,126,234,0.08) 0%, transparent 100%); border-radius: 0 8px 8px 0; font-style: italic; color: #4a5568; }
-        .preview-content hr { border: none; height: 2px; background: linear-gradient(90deg, transparent, #e2e8f0, transparent); margin: 2em 0; }
-        .preview-content img { max-width: 100%; height: auto; border-radius: 12px; margin: 1.5em 0; }
-        .preview-content table { width: 100%; border-collapse: collapse; margin: 1.5em 0; }
-        .preview-content th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; text-align: left; font-weight: 600; }
-        .preview-content td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
-        .preview-content tr:hover td { background: #f8fafc; }
-        
         /* ========================
-           AI IMAGE - Refined Elegant
+           AI IMAGE STYLES
            ======================== */
-        .ai-image-placeholder { 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          justify-content: center; 
-          padding: 56px 32px; 
-          border: 2px dashed #cbd5e1; 
-          border-radius: 24px; 
-          margin: 32px 0; 
-          background: linear-gradient(145deg, #fafbfc 0%, #f1f5f9 100%); 
-          min-height: 280px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .ai-image-placeholder:hover { border-color: #667eea; background: linear-gradient(145deg, #f0f4ff 0%, #e8eef5 100%); transform: translateY(-2px); box-shadow: 0 20px 40px rgba(102, 126, 234, 0.1); }
-        .ai-image-icon { font-size: 64px; margin-bottom: 20px; animation: float 3.5s ease-in-out infinite; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); }
-        @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(3deg); } }
-        .ai-image-ratio-selector { display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 6px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .ai-image-ratio-btn { 
-          padding: 10px 20px; 
-          border: none; 
-          border-radius: 50px; 
-          background: transparent; 
-          cursor: pointer; 
-          font-size: 13px;
-          font-weight: 500;
-          color: #64748b;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .ai-image-ratio-btn:hover { color: #667eea; background: rgba(102, 126, 234, 0.08); transform: scale(1.05); }
-        .ai-image-ratio-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35); }
-        .ai-image-generate-btn { 
-          padding: 16px 40px; 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-          color: white; 
-          border: none; 
-          border-radius: 50px; 
-          cursor: pointer; 
-          font-size: 15px; 
-          font-weight: 600;
-          letter-spacing: 0.02em;
-          box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        .ai-image-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; border: 2px solid #e2e8f0; border-radius: 16px; margin: 32px 0; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); min-height: 200px; transition: all 0.3s ease; }
+        .ai-image-placeholder:hover { border-color: #cbd5e1; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); }
+        .ai-image-icon { font-size: 56px; margin-bottom: 16px; filter: grayscale(20%); }
+        .ai-image-ratio-selector { display: flex; gap: 8px; margin-bottom: 20px; }
+        .ai-image-ratio-btn { padding: 8px 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; font-weight: 600; color: #64748b; transition: all 0.2s ease; }
+        .ai-image-ratio-btn:hover { border-color: #667eea; color: #667eea; }
+        .ai-image-ratio-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+        .ai-image-generate-btn { padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; letter-spacing: 0.02em; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .ai-image-generate-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(102, 126, 234, 0.45); }
         .ai-image-generate-btn:disabled { background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); cursor: not-allowed; box-shadow: none; transform: none; }
         .ai-image-status { margin-top: 16px; font-size: 13px; color: #94a3b8; font-weight: 500; }
-        .ai-image-wrapper { position: relative; display: inline-block; margin: 32px 0; width: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.12); }
-        .ai-image-wrapper img { width: 100%; height: auto; display: block; transition: transform 0.5s ease; }
-        .ai-image-wrapper:hover img { transform: scale(1.02); }
-        .ai-image-wrapper .aspect-square { aspect-ratio: 1/1; }
-        .ai-image-wrapper .aspect-video { aspect-ratio: 16/9; }
-        .ai-image-wrapper .aspect-9-16 { aspect-ratio: 9/16; }
-        .ai-image-wrapper .aspect-4-3 { aspect-ratio: 4/3; }
-        .ai-image-wrapper .aspect-3-4 { aspect-ratio: 3/4; }
-        .ai-image-overlay { position: absolute; top: 16px; right: 16px; display: flex; gap: 10px; opacity: 0; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(-10px); }
+        .ai-image-wrapper { position: relative; display: block; margin: 32px 0; width: 100%; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.12); background: transparent; }
+        .ai-image-wrapper img { position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; display: block; object-fit: cover; object-position: center; transform: translate(-50%, -50%) scale(1.12); transition: transform 0.5s ease; }
+        .ai-image-wrapper:hover img { transform: translate(-50%, -50%) scale(1.16); }
+        .ai-image-wrapper.aspect-square { aspect-ratio: 1/1; }
+        .ai-image-wrapper.aspect-video { aspect-ratio: 16/9; }
+        .ai-image-wrapper.aspect-9-16 { aspect-ratio: 9/16; }
+        .ai-image-wrapper.aspect-4-3 { aspect-ratio: 4/3; }
+        .ai-image-wrapper.aspect-3-4 { aspect-ratio: 3/4; }
+        .ai-image-overlay { position: absolute; bottom: 16px; right: 16px; display: flex; gap: 10px; opacity: 0; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(10px); }
         .ai-image-wrapper:hover .ai-image-overlay { opacity: 1; transform: translateY(0); }
         .ai-image-action-btn { width: 44px; height: 44px; border: none; border-radius: 50%; background: rgba(255,255,255,0.98); color: #1e293b; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.15); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .ai-image-action-btn:hover { transform: scale(1.15) rotate(5deg); background: white; }
-        .ai-image-generating { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; font-weight: 500; backdrop-filter: blur(8px); }
-        .ai-image-generating::before { content: ''; width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 12px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* ========================
 
-        
         /* ========================
-           COLUMNS - Modern Grid
+           COMPONENT STYLES
            ======================== */
-        .columns-component { display: grid; gap: 28px; margin: 36px 0; }
-        .columns-component.col-2 { grid-template-columns: repeat(2, 1fr); }
-        .columns-component.col-3 { grid-template-columns: repeat(3, 1fr); }
-        .columns-component.col-4 { grid-template-columns: repeat(4, 1fr); }
-        .column-item { 
-          padding: 28px; 
-          border: 1px solid rgba(0,0,0,0.06); 
-          border-radius: 20px; 
-          background: white;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.03);
-        }
-        .column-item:hover { transform: translateY(-8px); box-shadow: 0 24px 48px rgba(0,0,0,0.08); border-color: rgba(102,126,234,0.2); }
-        
-        /* ========================
-           STEPS - Connected Journey
-           ======================== */
-        .steps-component { 
-          margin: 36px 0; 
-          padding: 0; 
-          list-style: none; 
-          counter-reset: step;
-        }
-        .step-item { 
-          display: flex; 
-          gap: 24px; 
-          margin-bottom: 28px; 
-          padding: 28px; 
-          border: none; 
-          border-radius: 20px; 
-          background: white;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-        }
-        .step-item:hover { transform: translateX(12px); box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
-        .step-item::before { content: ''; position: absolute; left: 74px; top: 100%; width: 2px; height: 28px; background: linear-gradient(180deg, #667eea, #e2e8f0); }
-        .step-item:last-child::before { display: none; }
-        .step-number { 
-          width: 56px; 
-          height: 56px; 
-          min-width: 56px; 
-          border-radius: 50%; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          font-weight: 800; 
-          color: white;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          font-size: 20px;
-          box-shadow: 0 8px 20px rgba(102, 126, 234, 0.35);
-        }
-        .step-content { flex: 1; padding-top: 6px; }
-        .step-title { font-weight: 700; margin-bottom: 10px; font-size: 1.125em; color: #0f172a; }
-        .step-description { font-size: 0.9375em; color: #64748b; line-height: 1.7; }
-        
-        /* ========================
-           TIMELINE - Flowing Path
-           ======================== */
-        .timeline-component { 
-          margin: 36px 0; 
-          padding: 24px 0 24px 40px; 
-          border-left: 3px solid #e2e8f0;
-          position: relative;
-        }
-        .timeline-component::before { content: ''; position: absolute; left: -3px; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #667eea 0%, #764ba2 50%, #e2e8f0 100%); }
-        .timeline-item { 
-          position: relative; 
-          padding: 24px 28px;
-          margin-bottom: 28px;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .timeline-item:hover { transform: translateX(8px); box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
-        .timeline-item::before { 
-          content: ''; 
-          position: absolute; 
-          left: -49px; 
-          top: 28px; 
-          width: 18px; 
-          height: 18px; 
-          border-radius: 50%; 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border: 4px solid white;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
-        }
-        .timeline-title { font-weight: 700; margin-bottom: 10px; font-size: 1.125em; color: #0f172a; }
-        .timeline-body { font-size: 0.9375em; color: #64748b; line-height: 1.7; }
-        
-        /* ========================
-           CARD - Elevated Content
-           ======================== */
-        .card-component { 
-          padding: 32px; 
-          border: none; 
-          border-radius: 24px; 
-          margin: 28px 0; 
-          background: white;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.06);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-        }
-        .card-component::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #667eea, #764ba2, #f093fb); }
-        .card-component:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(0,0,0,0.1); }
-        .card-component p { margin: 0 !important; line-height: 1.8; color: #334155; }
-        
-        /* ========================
-           VIDEO - Cinematic
-           ======================== */
-        .video-component { 
-          margin: 28px 0; 
-          border-radius: 20px; 
-          overflow: hidden;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-        }
-        .video-player { width: 100%; max-width: 100%; border-radius: 20px; }
-        .video-caption { 
-          text-align: center; 
-          font-size: 0.875em; 
-          color: #64748b; 
-          margin-top: 14px; 
-          padding: 14px;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          border-radius: 0 0 12px 12px;
-        }
-        
-        /* ========================
-           LOCAL IMAGE - Gallery
-           ======================== */
-        .local-image-wrapper { 
-          margin: 28px 0; 
-          border-radius: 20px; 
-          overflow: hidden;
-          box-shadow: 0 16px 48px rgba(0,0,0,0.1);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .local-image-wrapper:hover { transform: scale(1.01); box-shadow: 0 24px 64px rgba(0,0,0,0.15); }
-        .local-image { width: 100%; border-radius: 20px; display: block; }
-        .local-image-caption { 
-          text-align: center; 
-          font-size: 0.875em; 
-          color: #64748b; 
-          margin-top: 14px; 
-          font-style: italic;
-          padding: 18px;
-          background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
-        }
-        
-        /* ========================
-           CALLOUT - Vibrant Notices
-           ======================== */
-        .callout-component { 
-          padding: 24px 28px; 
-          border-radius: 16px; 
-          margin: 24px 0; 
-          position: relative;
-          overflow: hidden;
-        }
-        .callout-component::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 5px; border-radius: 16px 0 0 16px; }
-        .callout-component.callout-info { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
-        .callout-component.callout-info::before { background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%); }
-        .callout-component.callout-warning { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); }
-        .callout-component.callout-warning::before { background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%); }
-        .callout-component.callout-error { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
-        .callout-component.callout-error::before { background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); }
-        .callout-component.callout-success { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); }
-        .callout-component.callout-success::before { background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%); }
-        .callout-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-        .callout-icon { font-size: 24px; }
-        .callout-title { font-weight: 700; font-size: 1em; }
-        .callout-content { font-size: 0.9375em; line-height: 1.7; }
-        
-        /* ========================
-           QUOTE - Editorial
-           ======================== */
-        .quote-component { 
-          padding: 36px 40px; 
-          margin: 32px 0; 
-          border: none;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          border-radius: 20px;
-          position: relative;
-        }
-        .quote-component::before { 
-          content: '"'; 
-          position: absolute; 
-          top: 0px; 
-          left: 24px; 
-          font-size: 120px; 
-          color: rgba(255,255,255,0.06); 
-          font-family: Georgia, serif;
-          line-height: 1;
-        }
-        .quote-content { 
-          font-size: 1.25em; 
-          line-height: 1.85; 
-          color: white;
-          font-style: italic;
-          position: relative;
-        }
-        .quote-attribution { 
-          margin-top: 20px; 
-          font-size: 0.875em; 
-          color: rgba(255,255,255,0.6);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .quote-attribution::before { content: ''; width: 32px; height: 2px; background: rgba(255,255,255,0.2); }
-        .quote-author { font-weight: 600; color: white; }
-        
-        /* ========================
-           TABS - Modern Pills
-           ======================== */
-        .tabs-component { 
-          margin: 28px 0; 
-          border: none; 
-          border-radius: 20px; 
-          overflow: hidden;
-          background: white;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.06);
-        }
-        .tab-item { border-bottom: 1px solid #f1f5f9; }
-        .tab-item:last-child { border-bottom: none; }
-        .tab-title { 
-          padding: 20px 28px; 
-          cursor: pointer; 
-          font-weight: 600; 
-          background: white;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          font-size: 1em;
-          color: #334155;
-        }
-        .tab-title:hover { background: #f8fafc; }
-        .tab-title::after { content: '+'; font-size: 20px; color: #94a3b8; transition: all 0.3s ease; font-weight: 400; }
-        .tab-item.active .tab-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .tab-item.active .tab-title::after { transform: rotate(45deg); color: white; }
-        .tab-content { 
-          padding: 0 28px 24px; 
-          display: none; 
-          line-height: 1.8;
-          color: #475569;
-        }
-        .tab-item.active .tab-content { display: block; }
-        
-        /* ========================
-           ACCORDION - Smooth Expand
-           ======================== */
-        .accordion-component { margin: 28px 0; }
-        .accordion-item { 
-          border: none; 
-          border-radius: 16px; 
-          margin-bottom: 14px; 
-          overflow: hidden;
-          background: white;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-        }
-        .accordion-title { 
-          padding: 20px 28px; 
-          cursor: pointer; 
-          font-weight: 600; 
-          background: white;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          font-size: 1em;
-          color: #334155;
-        }
-        .accordion-title:hover { background: #f8fafc; }
-        .accordion-title::after { content: '+'; font-size: 22px; color: #667eea; transition: all 0.3s ease; font-weight: 400; }
-        .accordion-item[open] .accordion-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .accordion-item[open] .accordion-title::after { transform: rotate(45deg); }
-        .accordion-content { 
-          padding: 0 28px 24px; 
-          line-height: 1.8;
-          color: #475569;
-        }
-      `}</style>
-    <div>
-      <style>{currentTheme.css}</style>
-      <style>{`
-        /* AI Image Styles - Modern & Clean */
-        .ai-image-placeholder { 
-          display: flex; 
-          flex-direction: column; 
-          align-items: center; 
-          justify-content: center; 
-          padding: 48px 24px; 
-          border: 2px dashed #e0e0e0; 
-          border-radius: 16px; 
-          margin: 24px 0; 
-          background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%); 
-          min-height: 240px;
-          transition: all 0.3s ease;
-        }
-        .ai-image-placeholder:hover { border-color: #4a90d9; background: linear-gradient(135deg, #f0f7ff 0%, #fff 100%); }
-        .ai-image-icon { font-size: 56px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        .ai-image-ratio-selector { display: flex; gap: 8px; margin-bottom: 16px; }
-        .ai-image-ratio-btn { 
-          padding: 8px 16px; 
-          border: 1px solid #ddd; 
-          border-radius: 20px; 
-          background: white; 
-          cursor: pointer; 
-          font-size: 13px;
-          transition: all 0.2s ease;
-        }
-        .ai-image-ratio-btn:hover { border-color: #4a90d9; color: #4a90d9; transform: translateY(-2px); }
-        .ai-image-ratio-btn.active { background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%); color: white; border-color: transparent; box-shadow: 0 4px 12px rgba(74, 144, 217, 0.3); }
-        .ai-image-generate-btn { 
-          padding: 14px 32px; 
-          background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%); 
-          color: white; 
-          border: none; 
-          border-radius: 25px; 
-          cursor: pointer; 
-          font-size: 15px; 
-          font-weight: 600;
-          box-shadow: 0 4px 15px rgba(74, 144, 217, 0.4);
-          transition: all 0.3s ease;
-        }
-        .ai-image-generate-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 144, 217, 0.5); }
-        .ai-image-generate-btn:disabled { background: linear-gradient(135deg, #bbb 0%, #999 100%); cursor: not-allowed; box-shadow: none; transform: none; }
-        .ai-image-status { margin-top: 12px; font-size: 13px; color: #888; }
-        .ai-image-wrapper { position: relative; display: inline-block; margin: 24px 0; width: 100%; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
-        .ai-image-wrapper img { width: 100%; height: auto; display: block; }
-        .ai-image-wrapper .aspect-square { aspect-ratio: 1/1; }
-        .ai-image-wrapper .aspect-video { aspect-ratio: 16/9; }
-        .ai-image-wrapper .aspect-9-16 { aspect-ratio: 9/16; }
-        .ai-image-wrapper .aspect-4-3 { aspect-ratio: 4/3; }
-        .ai-image-wrapper .aspect-3-4 { aspect-ratio: 3/4; }
-        .ai-image-overlay { position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; opacity: 0; transition: all 0.3s ease; transform: translateY(-10px); }
-        .ai-image-wrapper:hover .ai-image-overlay { opacity: 1; transform: translateY(0); }
-        .ai-image-action-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: rgba(255,255,255,0.95); color: #333; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.2s ease; }
-        .ai-image-action-btn:hover { transform: scale(1.1); background: white; }
-        .ai-image-generating { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; backdrop-filter: blur(4px); }
-        .ai-image-generating::after { content: ''; width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; margin-left: 12px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-
-        
-        /* Columns Component - Modern Grid */
-        .columns-component { display: grid; gap: 24px; margin: 32px 0; }
-        .columns-component.col-2 { grid-template-columns: repeat(2, 1fr); }
-        .columns-component.col-3 { grid-template-columns: repeat(3, 1fr); }
-        .columns-component.col-4 { grid-template-columns: repeat(4, 1fr); }
-        .column-item { 
-          padding: 24px; 
-          border: 1px solid #eee; 
-          border-radius: 16px; 
-          background: white;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .column-item:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); border-color: #4a90d9; }
-        
-        /* Steps Component - Connected Flow */
-        .steps-component { 
-          margin: 32px 0; 
-          padding: 0; 
-          list-style: none; 
-          counter-reset: step;
-        }
-        .step-item { 
-          display: flex; 
-          gap: 20px; 
-          margin-bottom: 24px; 
-          padding: 24px; 
-          border: none; 
-          border-radius: 16px; 
-          background: white;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-          transition: all 0.3s ease;
-          position: relative;
-        }
-        .step-item:hover { transform: translateX(8px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-        .step-number { 
-          width: 48px; 
-          height: 48px; 
-          min-width: 48px; 
-          border-radius: 50%; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          font-weight: 700; 
-          color: white;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          font-size: 18px;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        .step-content { flex: 1; padding-top: 4px; }
-        .step-title { font-weight: 700; margin-bottom: 8px; font-size: 17px; color: #1a1a2e; }
-        .step-description { font-size: 14px; color: #666; line-height: 1.6; }
-        
-        /* Timeline Component - Elegant Line */
-        .timeline-component { 
-          margin: 32px 0; 
-          padding: 20px 0 20px 30px; 
-          border-left: 3px solid linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-          background: linear-gradient(90deg, rgba(102,126,234,0.05) 0%, transparent 100%);
-        }
-        .timeline-item { 
-          position: relative; 
-          padding-left: 28px; 
-          margin-bottom: 32px; 
-          padding: 20px 24px;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-          transition: all 0.3s ease;
-        }
-        .timeline-item:hover { transform: translateX(4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-        .timeline-item::before { 
-          content: ''; 
-          position: absolute; 
-          left: -39px; 
-          top: 24px; 
-          width: 16px; 
-          height: 16px; 
-          border-radius: 50%; 
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border: 3px solid white;
-          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-        }
-        .timeline-title { font-weight: 700; margin-bottom: 8px; font-size: 17px; color: #1a1a2e; }
-        .timeline-body { font-size: 14px; color: #666; line-height: 1.7; }
-        
-        /* Card Component - Modern Elevated */
-        .card-component { 
-          padding: 28px; 
-          border: none; 
-          border-radius: 20px; 
-          margin: 24px 0; 
-          background: white;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-          transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-        .card-component::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); }
-        .card-component:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
-        .card-component p { margin: 0 !important; line-height: 1.8; color: #444; }
-        
-        /* Video Component - Cinema Style */
-        .video-component { 
-          margin: 24px 0; 
-          border-radius: 16px; 
-          overflow: hidden;
-          box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-        }
-        .video-player { width: 100%; max-width: 100%; border-radius: 16px; }
-        .video-caption { 
-          text-align: center; 
-          font-size: 14px; 
-          color: #666; 
-          margin-top: 12px; 
-          padding: 12px;
-          background: #f8f9fa;
-          border-radius: 0 0 8px 8px;
-        }
-        
-        /* Local Image - Framed */
-        .local-image-wrapper { 
-          margin: 24px 0; 
-          border-radius: 16px; 
-          overflow: hidden;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-          transition: all 0.3s ease;
-        }
-        .local-image-wrapper:hover { transform: scale(1.01); box-shadow: 0 16px 48px rgba(0,0,0,0.15); }
-        .local-image { width: 100%; border-radius: 16px; display: block; }
-        .local-image-caption { 
-          text-align: center; 
-          font-size: 14px; 
-          color: #666; 
-          margin-top: 12px; 
-          font-style: italic;
-          background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
-          padding: 16px;
-        }
-        
-        /* Callout Component - Vibrant & Modern */
-        .callout-component { 
-          padding: 20px 24px; 
-          border-radius: 12px; 
-          margin: 20px 0; 
-          border-left: none;
-          position: relative;
-          overflow: hidden;
-        }
-        .callout-component::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; }
-        .callout-component.callout-info { background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 100%); }
-        .callout-component.callout-info::before { background: linear-gradient(180deg, #2196f3 0%, #1976d2 100%); }
-        .callout-component.callout-warning { background: linear-gradient(135deg, #fff3e0 0%, #fff8e1 100%); }
-        .callout-component.callout-warning::before { background: linear-gradient(180deg, #ff9800 0%, #f57c00 100%); }
-        .callout-component.callout-error { background: linear-gradient(135deg, #ffebee 0%, #fff5f5 100%); }
-        .callout-component.callout-error::before { background: linear-gradient(180deg, #f44336 0%, #d32f2f 100%); }
-        .callout-component.callout-success { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); }
-        .callout-component.callout-success::before { background: linear-gradient(180deg, #4caf50 0%, #388e3c 100%); }
-        .callout-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-        .callout-icon { font-size: 22px; }
-        .callout-title { font-weight: 700; font-size: 16px; }
-        .callout-content { font-size: 14px; line-height: 1.7; }
-        
-        /* Quote Component - Editorial Style */
-        .quote-component { 
-          padding: 28px 32px; 
-          margin: 24px 0; 
-          border: none;
-          background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-          border-radius: 16px;
-          position: relative;
-        }
-        .quote-component::before { 
-          content: '"'; 
-          position: absolute; 
-          top: 8px; 
-          left: 20px; 
-          font-size: 80px; 
-          color: rgba(255,255,255,0.1); 
-          font-family: Georgia, serif;
-          line-height: 1;
-        }
-        .quote-content { 
-          font-size: 18px; 
-          line-height: 1.8; 
-          color: white;
-          font-style: italic;
-          position: relative;
-        }
-        .quote-attribution { 
-          margin-top: 16px; 
-          font-size: 14px; 
-          color: rgba(255,255,255,0.7);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .quote-attribution::before { content: ''; width: 24px; height: 2px; background: rgba(255,255,255,0.3); }
-        .quote-author { font-weight: 600; }
-        
-        /* Tabs Component - Modern Pills */
-        .tabs-component { 
-          margin: 24px 0; 
-          border: none; 
-          border-radius: 16px; 
-          overflow: hidden;
-          background: white;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-        .tab-item { border-bottom: 1px solid #f0f0f0; }
-        .tab-item:last-child { border-bottom: none; }
-        .tab-title { 
-          padding: 18px 24px; 
-          cursor: pointer; 
-          font-weight: 600; 
-          background: white;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .tab-title:hover { background: #f8f9fa; }
-        .tab-title::after { content: '+'; font-size: 18px; color: #999; transition: transform 0.2s ease; }
-        .tab-item.active .tab-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .tab-item.active .tab-title::after { transform: rotate(45deg); color: white; }
-        .tab-content { 
-          padding: 0 24px 24px; 
-          display: none; 
-          line-height: 1.7;
-          color: #444;
-        }
-        .tab-item.active .tab-content { display: block; }
-        
-        /* Accordion Component - Smooth Expand */
-        .accordion-component { margin: 24px 0; }
-        .accordion-item { 
-          border: none; 
-          border-radius: 12px; 
-          margin-bottom: 12px; 
-          overflow: hidden;
-          background: white;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        .accordion-title { 
-          padding: 18px 24px; 
-          cursor: pointer; 
-          font-weight: 600; 
-          background: white;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .accordion-title:hover { background: #f8f9fa; }
-        .accordion-title::after { content: '+'; font-size: 20px; color: #667eea; transition: transform 0.3s ease; }
-        .accordion-item[open] .accordion-title::after { transform: rotate(45deg); }
-        .accordion-item[open] .accordion-title { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .accordion-content { 
-          padding: 0 24px 20px; 
-          line-height: 1.7;
-          color: #444;
-        }
-      `}</style>
-      <style>{`
-        /* AI Image Styles */
-        .ai-image-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; border: 2px dashed #ccc; border-radius: 8px; margin: 16px 0; background: #fafafa; min-height: 200px; }
-        .ai-image-icon { font-size: 48px; margin-bottom: 12px; }
-        .ai-image-ratio-selector { display: flex; gap: 8px; margin-bottom: 12px; }
-        .ai-image-ratio-btn { padding: 4px 12px; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer; font-size: 12px; }
-        .ai-image-ratio-btn.active { background: #4a90d9; color: white; border-color: #4a90d9; }
-        .ai-image-generate-btn { padding: 10px 24px; background: #4a90d9; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
-        .ai-image-generate-btn:disabled { background: #ccc; cursor: not-allowed; }
-        .ai-image-status { margin-top: 8px; font-size: 12px; color: #666; }
-        .ai-image-wrapper { position: relative; display: inline-block; margin: 16px 0; width: 100%; }
-        .ai-image-wrapper img { width: 100%; height: auto; border-radius: 8px; }
-        .ai-image-wrapper .aspect-square { aspect-ratio: 1/1; }
-        .ai-image-wrapper .aspect-video { aspect-ratio: 16/9; }
-        .ai-image-wrapper .aspect-9-16 { aspect-ratio: 9/16; }
-        .ai-image-wrapper .aspect-4-3 { aspect-ratio: 4/3; }
-        .ai-image-wrapper .aspect-3-4 { aspect-ratio: 3/4; }
-        .ai-image-overlay { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
-        .ai-image-wrapper:hover .ai-image-overlay { opacity: 1; }
-        .ai-image-action-btn { width: 32px; height: 32px; border: none; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
-        .ai-image-action-btn:hover { background: rgba(0,0,0,0.8); }
-        .ai-image-generating { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; }
         
         /* Hero Component */
         .preview-content .hero-component { 
@@ -1307,6 +527,73 @@ export default function MarkdownPreview({
         .accordion-title:hover { background: #f0f0f0; }
         .accordion-content { padding: 16px; }
       `}</style>
+      
+      {/* Dark Theme Overrides */}
+      <style>{`
+        /* ========================
+           DARK THEME OVERRIDES
+           ======================== */
+        .theme-dark .preview-content strong { color: #f0f0f0; }
+        .theme-dark .preview-content code { background: rgba(255,255,255,0.1); color: #e0e0e0; }
+        .theme-dark .preview-content pre { background: rgba(0,0,0,0.4); }
+        .theme-dark .preview-content pre code { color: #e0e0e0; }
+        
+        /* Dark AI Image Styles */
+        .theme-dark .ai-image-placeholder { border-color: rgba(255,255,255,0.15); background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.08) 100%); }
+        .theme-dark .ai-image-placeholder:hover { border-color: rgba(255,255,255,0.25); background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.12) 100%); }
+        .theme-dark .ai-image-ratio-btn { border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #a0a0a0; }
+        .theme-dark .ai-image-ratio-btn:hover { border-color: #a78bfa; color: #c4b5fd; }
+        .theme-dark .ai-image-generate-btn:disabled { background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.15) 100%); }
+        .theme-dark .ai-image-status { color: #707070; }
+        .theme-dark .ai-image-wrapper { box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .theme-dark .ai-image-action-btn { background: rgba(30,30,30,0.95); color: #e0e0e0; }
+        .theme-dark .ai-image-action-btn:hover { background: rgba(40,40,40,1); }
+        
+        /* Dark Columns */
+        .theme-dark .column-item { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+        
+        /* Dark Steps */
+        .theme-dark .step-item { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+        .theme-dark .step-description { color: #a0a0a0; }
+        
+        /* Dark Timeline */
+        .theme-dark .timeline-component { border-left-color: rgba(255,255,255,0.2); }
+        .theme-dark .timeline-item::before { background: #a78bfa; }
+        .theme-dark .timeline-body { color: #a0a0a0; }
+        
+        /* Dark Card */
+        .theme-dark .card-component { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+        
+        /* Dark Video & Image Captions */
+        .theme-dark .video-caption { color: #a0a0a0; }
+        .theme-dark .local-image-caption { color: #a0a0a0; }
+        
+        /* Dark Callout - darker backgrounds with proper contrast */
+        .theme-dark .callout-component.callout-info { background: rgba(33, 150, 243, 0.15); border-left-color: #64b5f6; }
+        .theme-dark .callout-component.callout-warning { background: rgba(255, 152, 0, 0.15); border-left-color: #ffb74d; }
+        .theme-dark .callout-component.callout-error { background: rgba(244, 67, 54, 0.15); border-left-color: #ef5350; }
+        .theme-dark .callout-component.callout-success { background: rgba(76, 175, 80, 0.15); border-left-color: #81c784; }
+        .theme-dark .callout-content { color: #d0d0d0; }
+        
+        /* Dark Quote */
+        .theme-dark .quote-component { background: rgba(255,255,255,0.03); border-left-color: #a78bfa; }
+        .theme-dark .quote-attribution { color: #a0a0a0; }
+        
+        /* Dark Tabs */
+        .theme-dark .tabs-component { border-color: rgba(255,255,255,0.12); }
+        .theme-dark .tab-item { border-bottom-color: rgba(255,255,255,0.08); }
+        .theme-dark .tab-title { background: rgba(255,255,255,0.03); }
+        .theme-dark .tab-title:hover { background: rgba(255,255,255,0.08); }
+        
+        /* Dark Accordion */
+        .theme-dark .accordion-item { border-color: rgba(255,255,255,0.12); }
+        .theme-dark .accordion-title { background: rgba(255,255,255,0.03); }
+        .theme-dark .accordion-title:hover { background: rgba(255,255,255,0.08); }
+        
+        /* Dark List Markers */
+        .theme-dark .preview-content ul li::marker { color: #a78bfa; }
+        .theme-dark .preview-content ol li::marker { color: #a78bfa; }
+      `}</style>
       <div ref={previewRef} className="preview-content">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
@@ -1325,7 +612,5 @@ export default function MarkdownPreview({
         </ReactMarkdown>
       </div>
     </div>
-    </div>
-);
+  );
 }
-

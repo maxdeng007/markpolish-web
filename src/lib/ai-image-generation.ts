@@ -1,6 +1,25 @@
 // AI Image Generation using ModelScope Z-Image-Turbo API
 import { settingsManager } from "./settings";
 
+// Helper to convert aspect ratio string to width/height
+function getDimensionsFromRatio(aspectRatio: string): { width: number; height: number } {
+  switch (aspectRatio) {
+    case "1:1":
+      return { width: 1024, height: 1024 };
+    case "16:9":
+      return { width: 1024, height: 576 };
+    case "9:16":
+      return { width: 576, height: 1024 };
+    case "4:3":
+      return { width: 1024, height: 768 };
+    case "3:4":
+      return { width: 768, height: 1024 };
+    default:
+      return { width: 1024, height: 1024 };
+  }
+}
+
+
 export interface ImageGenerationOptions {
   prompt: string;
   width?: number;
@@ -87,6 +106,8 @@ class AIImageGeneration {
     }
 
     try {
+      const dimensions = getDimensionsFromRatio(options.aspectRatio || "1:1");
+      console.log("[API] Generating image with aspectRatio:", options.aspectRatio, "dimensions:", dimensions);
       const response = await fetch(`${this.API_BASE}/images/generations`, {
         method: "POST",
         headers: {
@@ -97,8 +118,10 @@ class AIImageGeneration {
         body: JSON.stringify({
           model: this.MODEL,
           prompt: options.prompt,
-          // Use aspect_ratio instead of width/height for correct ratio
+          // Send both aspect_ratio and width/height for compatibility
           aspect_ratio: options.aspectRatio || "1:1",
+          width: dimensions.width,
+          height: dimensions.height,
           num_inference_steps: options.numInferenceSteps || 9,
           guidance_scale: options.guidanceScale || 0.0,
         }),

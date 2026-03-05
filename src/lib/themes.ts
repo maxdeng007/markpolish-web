@@ -430,7 +430,7 @@ export const themes: Record<string, Theme> = {
       heading: "#eceff4",
       link: "#88c0d0",
       code: "#3b4252",
-      blockquote: "#4c566a",
+      blockquote: "#a8b4c4",
     },
     css: `
       .preview-content {
@@ -449,7 +449,7 @@ export const themes: Record<string, Theme> = {
       .preview-content a { color: #88c0d0; text-decoration: none; }
       .preview-content code { background: #3b4252; padding: 2px 6px; border-radius: 4px; color: #81a1c1; }
       .preview-content pre { background: #3b4252; padding: 16px; border-radius: 8px; overflow-x: auto; }
-      .preview-content blockquote { border-left: 4px solid #88c0d0; padding: 16px 20px; margin: 20px 0; color: #4c566a; font-style: italic; }
+      .preview-content blockquote { border-left: 4px solid #88c0d0; padding: 16px 20px; margin: 20px 0; color: #a8b4c4; font-style: italic; }
     `,
   },
 
