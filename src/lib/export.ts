@@ -46,28 +46,31 @@ export async function exportToHTML(
   const theme = getTheme(themeId);
   const isDark = theme.category === "dark";
   const sharedStyles = getExportStyles(isDark);
-
-  // Process AI images: convert to base64 and replace placeholders
-  const processedMarkdown = await processAIImagesForExport(
-    markdown,
-    aiImageStates,
-  );
-
-  // Convert markdown to HTML
-  const contentHtml = convertMarkdownToHTML(processedMarkdown);
-
+  
+  // Convert markdown to HTML with proper component handling
+  let contentHtml = convertMarkdownToHTML(markdown);
+  
+  // Process AI images in the HTML - replace placeholders with actual images
+  contentHtml = await processAIImagesInHTML(contentHtml, aiImageStates);
+  
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exported Document</title>
   <style>
+    /* Reset and base styles */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
     /* Base container styles */
     body {
       margin: 0;
       padding: 20px;
       background: ${theme.styles.background};
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
     .preview-container {
       max-width: 800px;
@@ -109,67 +112,69 @@ export async function exportToHTML(
   downloadBlob(blob, filename);
 }
 
-// Process AI images in markdown for export
-async function processAIImagesForExport(
-  markdown: string,
+// Process AI images in HTML (after markdown conversion)
+async function processAIImagesInHTML(
+  html: string,
   aiImageStates: Record<string, AIImageExportState>,
 ): Promise<string> {
-  // Find all [IMG: description] patterns
-  const imgRegex = /\[IMG:\s*([^\]]+)\]/g;
-  let result = markdown;
-  let match;
-  let index = 0;
+  let result = html;
 
-  const replacements: { original: string; replacement: string }[] = [];
+  // Process each AI image state
+  for (const [imageId, state] of Object.entries(aiImageStates)) {
+    if (state.status === "done" && state.imageUrl) {
+      try {
+        // Convert image URL to base64
+        const base64 = await imageUrlToBase64(state.imageUrl);
 
-  while ((match = imgRegex.exec(markdown)) !== null) {
-    const originalMatch = match[0];
-    const description = match[1];
-    const imageId = `ai-img-${index}`;
-    const state = aiImageStates[imageId];
+        if (base64) {
+          const aspectClass = getAspectClass(state.ratio);
 
-    if (state && state.imageUrl && state.status === "done") {
-      // Convert image to base64
-      const base64 = await imageUrlToBase64(state.imageUrl);
-
-      if (base64) {
-        // Get aspect ratio class
-        const aspectClass = getAspectClass(state.ratio);
-
-        // Create export-friendly image HTML
-        const replacement = `<div class="ai-image-export ${aspectClass}" data-description="${escapeHtml(description)}">
-          <img src="${base64}" alt="${escapeHtml(description)}" />
-        </div>`;
-
-        replacements.push({ original: originalMatch, replacement });
-      } else {
-        // Fallback: keep placeholder text
-        replacements.push({
-          original: originalMatch,
-          replacement: `<div class="ai-image-placeholder" style="padding: 32px; text-align: center; border: 2px dashed #ccc; border-radius: 8px; margin: 16px 0;">
-            <p style="color: #666; margin: 0;">🖼️ AI Image: ${escapeHtml(description)}</p>
-          </div>`,
-        });
-      }
-    } else {
-      // No image generated, show placeholder
-      replacements.push({
-        original: originalMatch,
-        replacement: `<div class="ai-image-placeholder" style="padding: 32px; text-align: center; border: 2px dashed #ccc; border-radius: 8px; margin: 16px 0;">
-          <p style="color: #666; margin: 0;">🖼️ AI Image: ${escapeHtml(description)}</p>
+          // Replace ai-image-wrapper with export-friendly version
+          // Pattern 1: Full wrapper with overlay
+          const wrapperRegex1 = new RegExp(
+            `<div[^>]*class="ai-image-wrapper[^"]*"[^>]*data-ai-id="${escapeRegex(imageId)}"[^>]*>[\\s\\S]*?<\\/div>\\s*<\\/div>\\s*<\\/div>`,
+            "g",
+          );
+          result = result.replace(
+            wrapperRegex1,
+            `<div class="ai-image-export ${aspectClass}">
+          <img src="${base64}" alt="${escapeHtml(state.description)}" />
         </div>`,
-      });
+          );
+
+          // Pattern 2: Simple wrapper
+          const wrapperRegex2 = new RegExp(
+            `<div[^>]*class="ai-image-wrapper[^"]*"[^>]*data-ai-id="${escapeRegex(imageId)}"[^>]*>[\\s\\S]*?<\\/div>`,
+            "g",
+          );
+          result = result.replace(
+            wrapperRegex2,
+            `<div class="ai-image-export ${aspectClass}">
+          <img src="${base64}" alt="${escapeHtml(state.description)}" />
+        </div>`,
+          );
+        }
+      } catch (e) {
+        console.error(`Failed to process AI image ${imageId}:`, e);
+      }
     }
-
-    index++;
   }
 
-  // Apply all replacements
-  for (const { original, replacement } of replacements) {
-    result = result.replace(original, replacement);
-  }
+  // Replace remaining placeholders (not generated) with simple styled divs
+  // Match the entire placeholder including nested divs by anchoring on the status div at the end
+  const placeholderRegex =
+    /<div[^>]*class="ai-image-placeholder[^"]*"[^>]*data-description="([^"]+)"[^>]*>[\s\S]*?<div class="ai-image-status"><\/div><\/div>/g;
+  result = result.replace(placeholderRegex, (_match, description) => {
+    return `<div class="ai-image-export-static" style="padding: 32px; text-align: center; border: 2px dashed #cbd5e1; border-radius: 16px; margin: 32px 0; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+      <p style="color: #64748b; margin: 0; font-size: 15px; font-weight: 500;">🎨 AI Image: ${description}</p>
+    </div>`;
+  });
 
   return result;
+}
+
+function escapeRegex(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function getAspectClass(ratio: string): string {
@@ -314,15 +319,131 @@ export async function exportForWeChat(
       width: 100%;
       border-radius: 8px;
     }
+    /* Component styles for WeChat */
+    .hero-component {
+      padding: 40px 24px;
+      border-radius: 16px;
+      text-align: center;
+      margin: 24px 0;
+      color: white !important;
+    }
+    .hero-component h1 {
+      color: white !important;
+      font-size: 28px !important;
+      margin-bottom: 12px !important;
+      text-align: center;
+    }
+    .hero-component p {
+      color: white !important;
+      font-size: 16px !important;
+    }
+    .columns-component {
+      display: flex;
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .column-item {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+    }
+    .steps-component {
+      margin: 16px 0;
+      padding: 0;
+      list-style: none;
+    }
+    .step-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 12px;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .step-number {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 50%;
+      background: #576b95;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .step-content {
+      flex: 1;
+    }
+    .step-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .step-description {
+      font-size: 14px;
+      color: #666;
+    }
+    .timeline-component {
+      margin: 16px 0;
+      padding-left: 16px;
+      border-left: 2px solid #e5e5e5;
+    }
+    .timeline-item {
+      position: relative;
+      padding-left: 16px;
+      margin-bottom: 16px;
+    }
+    .timeline-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .timeline-body {
+      font-size: 14px;
+      color: #666;
+    }
+    .card-component {
+      padding: 16px;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      margin: 12px 0;
+      background: #fafafa;
+    }
+    .callout-component {
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+    }
+    .callout-component.callout-info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+    .callout-component.callout-warning { background: #fff3e0; border-left: 4px solid #ff9800; }
+    .callout-component.callout-error { background: #ffebee; border-left: 4px solid #f44336; }
+    .callout-component.callout-success { background: #e8f5e9; border-left: 4px solid #4caf50; }
+    .quote-component {
+      padding: 12px 16px;
+      margin: 12px 0;
+      border-left: 4px solid #576b95;
+      background: #fafafa;
+      border-radius: 0 8px 8px 0;
+    }
+    .quote-content {
+      font-style: italic;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .quote-attribution {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #666;
+    }
   `;
 
-  // Process AI images for WeChat export
-  const processedMarkdown = await processAIImagesForExport(
-    markdown,
-    aiImageStates,
-  );
-  const wechatHTML = `<section style="font-size: 16px; color: #333;">
-${convertMarkdownToHTML(processedMarkdown)}
+  // Convert markdown to HTML and process AI images
+  let wechatHTML = convertMarkdownToHTML(markdown);
+  wechatHTML = await processAIImagesInHTML(wechatHTML, aiImageStates);
+  wechatHTML = `<section style="font-size: 16px; color: #333;">
+${wechatHTML}
 </section>`;
 
   // Copy to clipboard for pasting into WeChat editor
@@ -353,75 +474,216 @@ ${convertMarkdownToHTML(processedMarkdown)}
   document.body.removeChild(tempDiv);
 }
 
+// Improved markdown to HTML converter that preserves component HTML
 function convertMarkdownToHTML(markdown: string): string {
-  // First, process custom components
-  const processedMarkdown = convertMarkdownWithComponents(markdown);
+  // First, process custom components - this converts ::: blocks to HTML
+  let html = convertMarkdownWithComponents(markdown);
 
-  // Then convert markdown to HTML
-  let html = processedMarkdown;
-
-  // Headers
-  html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
-  html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
-  html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
-
-  // Bold
-  html = html.replace(/\*\*(.*?)\*\*/gim, "<strong>$1</strong>");
-
-  // Italic
-  html = html.replace(/\*(.*?)\*/gim, "<em>$1</em>");
-
-  // Strikethrough
-  html = html.replace(/~~(.*?)~~/gim, "<del>$1</del>");
-
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2">$1</a>');
-
-  // Images (regular markdown images)
-  html = html.replace(
-    /!\[([^\]]*)\]\(([^)]+)\)/gim,
-    '<img src="$2" alt="$1" />',
-  );
-
-  // Code blocks
-  html = html.replace(
-    /```(\w+)?\n([\s\S]*?)```/gim,
-    "<pre><code>$2</code></pre>",
-  );
-
-  // Inline code
-  html = html.replace(/`([^`]+)`/gim, "<code>$1</code>");
-
-  // Unordered lists
-  html = html.replace(/^- (.*$)/gim, "<li>$1</li>");
-  html = html.replace(/(<li>.*<\/li>\n?)+/gim, "<ul>$&</ul>");
-
-  // Ordered lists
-  html = html.replace(/^\d+\. (.*$)/gim, "<li>$1</li>");
-
-  // Blockquotes
-  html = html.replace(/^> (.*$)/gim, "<blockquote>$1</blockquote>");
-
-  // Horizontal rules
-  html = html.replace(/^---$/gim, "<hr />");
-
-  // Paragraphs (avoid wrapping divs and block elements)
-  const lines = html.split("\n\n");
-  html = lines
-    .map((line) => {
-      const trimmed = line.trim();
-      if (!trimmed) return "";
-      // Don't wrap if it starts with a block element
-      if (
-        /^<(h[1-6]|ul|ol|li|div|p|blockquote|pre|hr|section)/i.test(trimmed)
-      ) {
-        return trimmed;
-      }
-      return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
-    })
-    .join("\n");
+  // Now process remaining markdown while preserving existing HTML
+  html = processBlockMarkdown(html);
+  html = processInlineMarkdown(html);
+  html = wrapOrphanText(html);
 
   return html;
+}
+
+// Process block-level markdown (headers, lists, code, blockquotes)
+function processBlockMarkdown(html: string): string {
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inCodeBlock = false;
+  let codeBlockContent: string[] = [];
+  let inList = false;
+  let listItems: string[] = [];
+  let listType: 'ul' | 'ol' = 'ul';
+  let inBlockquote = false;
+  let blockquoteContent: string[] = [];
+
+  const closeList = () => {
+    if (inList && listItems.length > 0) {
+      result.push(`<${listType}>`);
+      listItems.forEach(item => result.push(item));
+      result.push(`</${listType}>`);
+      listItems = [];
+      inList = false;
+    }
+  };
+
+  const closeBlockquote = () => {
+    if (inBlockquote && blockquoteContent.length > 0) {
+      result.push(`<blockquote>${blockquoteContent.join('<br />')}</blockquote>`);
+      blockquoteContent = [];
+      inBlockquote = false;
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Skip lines that are already HTML (contain tags but not markdown)
+    // Check if line starts with HTML tag (not just contains one)
+    if (trimmed.match(/^<(div|span|p|h[1-6]|ul|ol|li|blockquote|pre|code|table|img|a|strong|em|br|hr|section|article|header|footer|main|nav)/i)) {
+      closeList();
+      closeBlockquote();
+      result.push(line);
+      continue;
+    }
+    
+    // Also skip closing tags and lines with class attributes (component output)
+    if (trimmed.match(/^<\//) || trimmed.includes('class="')) {
+      closeList();
+      closeBlockquote();
+      result.push(line);
+      continue;
+    }
+
+    // Code blocks
+    if (trimmed.startsWith('```')) {
+      if (inCodeBlock) {
+        result.push(`<pre><code>${escapeHtml(codeBlockContent.join('\n'))}</code></pre>`);
+        codeBlockContent = [];
+        inCodeBlock = false;
+      } else {
+        closeList();
+        closeBlockquote();
+        inCodeBlock = true;
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBlockContent.push(line);
+      continue;
+    }
+
+    // Headers
+    const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (headerMatch) {
+      closeList();
+      closeBlockquote();
+      const level = headerMatch[1].length;
+      result.push(`<h${level}>${headerMatch[2]}</h${level}>`);
+      continue;
+    }
+
+    // Horizontal rule
+    if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+      closeList();
+      closeBlockquote();
+      result.push('<hr />');
+      continue;
+    }
+
+    // Unordered list
+    const ulMatch = trimmed.match(/^-\s+(.+)$/);
+    if (ulMatch) {
+      closeBlockquote();
+      if (!inList || listType !== 'ul') {
+        closeList();
+        inList = true;
+        listType = 'ul';
+      }
+      listItems.push(`<li>${ulMatch[1]}</li>`);
+      continue;
+    }
+
+    // Ordered list
+    const olMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    if (olMatch) {
+      closeBlockquote();
+      if (!inList || listType !== 'ol') {
+        closeList();
+        inList = true;
+        listType = 'ol';
+      }
+      listItems.push(`<li>${olMatch[2]}</li>`);
+      continue;
+    }
+
+    // Blockquote
+    if (trimmed.startsWith('> ')) {
+      closeList();
+      if (!inBlockquote) {
+        inBlockquote = true;
+      }
+      blockquoteContent.push(trimmed.substring(2));
+      continue;
+    }
+
+    // Empty line - close open blocks
+    if (trimmed === '') {
+      closeList();
+      closeBlockquote();
+      result.push('');
+      continue;
+    }
+
+    // Regular text line
+    closeList();
+    closeBlockquote();
+    result.push(line);
+  }
+
+  // Close any open elements
+  if (inCodeBlock && codeBlockContent.length > 0) {
+    result.push(`<pre><code>${escapeHtml(codeBlockContent.join('\n'))}</code></pre>`);
+  }
+  closeList();
+  closeBlockquote();
+
+  return result.join('\n');
+}
+
+// Process inline markdown while preserving HTML structure
+function processInlineMarkdown(html: string): string {
+  // Process bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  // Process italic (avoid matching inside bold)
+  html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+  
+  // Process inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // Process links - markdown style (only if not already an HTML link)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  
+  // Process images - markdown style
+  html = html.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    '<img src="$2" alt="$1" style="max-width: 100%; border-radius: 8px; margin: 16px 0;" />',
+  );
+  
+  return html;
+}
+
+// Wrap text that's not inside block elements with <p> tags
+function wrapOrphanText(html: string): string {
+  const blockElementRegex =
+    /^<(div|p|h[1-6]|ul|ol|li|blockquote|pre|hr|section|table|thead|tbody|tr|td|th|article|aside|header|footer|main|nav|img)[\s>]/i;
+
+  const parts = html.split(/\n\n+/);
+
+  return parts
+    .map((part) => {
+      const trimmed = part.trim();
+      if (!trimmed) return '';
+
+      // Don't wrap if it starts with a block element
+      if (blockElementRegex.test(trimmed)) {
+        return trimmed;
+      }
+
+      // Don't wrap if it looks like it's already complete HTML
+      if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+        return trimmed;
+      }
+
+      // Wrap in paragraph, converting single newlines to <br>
+      return `<p>${trimmed.replace(/\n/g, '<br />')}</p>`;
+    })
+    .join('\n');
 }
 
 export async function exportToPDF(

@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsListPill, TabsTriggerPill } from "@/components/ui/tabs";
-import MarkdownPreview from "@/components/MarkdownPreview";
+import MarkdownPreview, { AIImageState } from "@/components/MarkdownPreview";
 import AIPanel from "@/components/AIPanel";
 import TemplatesPanel from "@/components/TemplatesPanel";
 import ComponentsPanel from "@/components/ComponentsPanel";
@@ -136,6 +136,7 @@ function App() {
   const [sidebarTab, setSidebarTab] = useState("ai");
   const [autoSaveEnabled] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [aiImageStates, setAIImageStates] = useState<Record<string, AIImageState>>({});
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -264,11 +265,11 @@ function App() {
   };
 
   const handleExportHTML = () => {
-    exportToHTML(markdown, theme, {}, "wechat-article.html");
+    exportToHTML(markdown, theme, aiImageStates, "wechat-article.html");
   };
 
   const handleExportWeChat = () => {
-    exportForWeChat(markdown);
+    exportForWeChat(markdown, aiImageStates);
   };
 
   const handleLoadProject = (project: Project) => {
@@ -504,7 +505,12 @@ function App() {
             <h3 className="text-sm font-medium">Preview</h3>
             <span className="text-xs text-muted-foreground">{theme}</span>
           </div>
-          <MarkdownPreview markdown={markdown} theme={theme} />
+          <MarkdownPreview
+            markdown={markdown}
+            theme={theme}
+            aiImageStates={aiImageStates}
+            onAIImageStatesChange={setAIImageStates}
+          />
         </div>
       </div>
 

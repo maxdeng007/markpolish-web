@@ -10,7 +10,7 @@ import {
 } from "@/lib/markdown-components";
 import { getTheme } from "@/lib/themes";
 import { aiImageGen } from "@/lib/ai-image-generation";
-import { getAllPreviewStyles, from "@/lib/preview-styles";
+import { getAllPreviewStyles } from "@/lib/preview-styles";
 
 import { cn } from "@/lib/utils";
 
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 function adjustColor(hex: string, percent: number): string {
   const num = parseInt(hex.replace("#", ""), 16);
   const amt = Math.round(2.55 * percent);
-  const R = Math.max(0, Math.min(255, (num >> 16) + amt);
+  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
   const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
   const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
   return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
@@ -35,9 +35,10 @@ export interface AIImageState {
 interface MarkdownPreviewProps {
   markdown: string;
   theme?: string;
-  aiImageStates: Record<string, AIImageState>
-  onAIImageStatesChange: (states: Record<string, AIImageState) => void;
+  aiImageStates: Record<string, AIImageState>;
+  onAIImageStatesChange: (states: Record<string, AIImageState>) => void;
 }
+
 export default function MarkdownPreview({
   markdown,
   theme = "wechat-classic",
@@ -45,7 +46,7 @@ export default function MarkdownPreview({
   onAIImageStatesChange,
 }: MarkdownPreviewProps) {
   const [processedMarkdown, setProcessedMarkdown] = useState("");
-  const previewRef = useRef<HTMLDivElement>(null)
+  const previewRef = useRef<HTMLDivElement>(null);
   const currentTheme = getTheme(theme);
 
   // Parse markdown and initialize AI image states
@@ -62,7 +63,10 @@ export default function MarkdownPreview({
       const id = `ai-img-${index}`;
       // Preserve state by position (index-based matching)
       const prevKeys = Object.keys(aiImageStates);
-      const existingState = prevKeys[index] ? aiImageStates[prevKeys[index]] : null;
+      const existingState = prevKeys[index]
+        ? aiImageStates[prevKeys[index]]
+        : null;
+
       if (existingState) {
         // Keep ratio and status, but always use NEW description from markdown
         newState[id] = {
@@ -79,147 +83,178 @@ export default function MarkdownPreview({
       }
     });
     onAIImageStatesChange(newState);
-  }, [markdown, aiImageStates])
+  }, [markdown]);
+
   // Handle ratio selection
-  const handleSelectRatio = useCallback((imageId: string, ratio: string) => {
-    onAIImageStatesChange((prev) => ({
-      ...prev,
-      [imageId]: { ...prev[imageId], ratio },
-    }));
-  }, [])
+  const handleSelectRatio = useCallback(
+    (imageId: string, ratio: string) => {
+      onAIImageStatesChange({
+        ...aiImageStates,
+        [imageId]: { ...aiImageStates[imageId], ratio },
+      });
+    },
+    [aiImageStates, onAIImageStatesChange],
+  );
+
   // Handle image generation
   const handleGenerateImage = useCallback(
     async (imageId: string) => {
-    onAIImageStatesChange((prev) => {
-      const state = prev[imageId];
-      if (!state || state.status === "generating") return prev;
-      return {
-        ...prev,
-        [imageId]: { ...state, status: "generating" },
-      }
-    })
-    const currentState = aiImageStates[imageId];
-    if (!currentState) return
-    const { description, ratio } = currentState
-    try {
-      const result = await aiImageGen.generateImageAndWait(
-        { prompt: description, aspectRatio: ratio },
-        (status) => {
-          const statusEl = previewRef.current?.querySelector(
-          `[data-ai-id="${imageId}"] .ai-image-status`
-          )
-          if (statusEl) statusEl.textContent = status
-        }
-      )
-      if (result.success && result.imageUrl) {
-        onAIImageStatesChange((prev) => ({
-          ...prev,
-          [imageId]: {
-            ...prev[imageId],
-            imageUrl: result.imageUrl,
-            status: "done",
+      const currentState = aiImageStates[imageId];
+      if (!currentState || currentState.status === "generating") return;
+
+      onAIImageStatesChange({
+        ...aiImageStates,
+        [imageId]: { ...currentState, status: "generating" },
+      });
+
+      const { description, ratio } = currentState;
+
+      try {
+        const result = await aiImageGen.generateImageAndWait(
+          { prompt: description, aspectRatio: ratio },
+          (status) => {
+            const statusEl = previewRef.current?.querySelector(
+              `[data-ai-id="${imageId}"] .ai-image-status`,
+            );
+            if (statusEl) statusEl.textContent = status;
           },
-        }))
-      } else {
-        onAIImageStatesChange((prev) => ({
-          ...prev,
-          [imageId]: { ...prev[imageId], status: "error" },
-        }))
+        );
+
+        if (result.success && result.imageUrl) {
+          onAIImageStatesChange({
+            ...aiImageStates,
+            [imageId]: {
+              ...aiImageStates[imageId],
+              imageUrl: result.imageUrl!,
+              status: "done",
+            },
+          });
+        } else {
+          onAIImageStatesChange({
+            ...aiImageStates,
+            [imageId]: { ...aiImageStates[imageId], status: "error" },
+          });
+        }
+      } catch (error) {
+        console.error("Image generation error:", error);
+        onAIImageStatesChange({
+          ...aiImageStates,
+          [imageId]: { ...aiImageStates[imageId], status: "error" },
+        });
       }
-    } catch (error) {
-      console.error("Image generation error:", error)
-      onAIImageStatesChange((prev) => ({
-        ...prev,
-        [imageId]: { ...prev[imageId], status: "error" },
-      })
-    }
-  }, [aiImageStates])
-  const handleClear = useCallback((imageId: string) => {
-    onAIImageStatesChange((prev) => ({
-      ...prev,
-      [imageId]: { ...prev[imageId], imageUrl: null, status: "idle" },
-    }))
-  }, [])
+    },
+    [aiImageStates, onAIImageStatesChange],
+  );
+
+  // Handle clear - keeps ratio, removes image
+  const handleClear = useCallback(
+    (imageId: string) => {
+      onAIImageStatesChange({
+        ...aiImageStates,
+        [imageId]: {
+          ...aiImageStates[imageId],
+          imageUrl: null,
+          status: "idle",
+        },
+      });
+    },
+    [aiImageStates, onAIImageStatesChange],
+  );
+
   // Click handler delegation
   useEffect(() => {
-    if (!previewRef.current) return
+    if (!previewRef.current) return;
+
     const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
+      const target = e.target as HTMLElement;
+
       // Ratio button click
-      const ratioBtn = target.closest(".ai-image-ratio-btn")
+      const ratioBtn = target.closest(".ai-image-ratio-btn");
       if (ratioBtn) {
-        const placeholder = ratioBtn.closest(".ai-image-placeholder")
+        const placeholder = ratioBtn.closest(".ai-image-placeholder");
         if (placeholder) {
-          const ratio = (ratioBtn as HTMLElement).dataset.ratio
-          const imageId = placeholder.getAttribute("data-ai-id")
+          const ratio = (ratioBtn as HTMLElement).dataset.ratio;
+          const imageId = placeholder.getAttribute("data-ai-id");
           if (ratio && imageId && aiImageStates[imageId]) {
-            handleSelectRatio(imageId, ratio)
+            handleSelectRatio(imageId, ratio);
             // Update active state visually
-            placeholder.querySelectorAll(".ai-image-ratio-btn").forEach(btn => {
-              btn.classList.remove("active")
-            })
-            ratioBtn.classList.add("active")
-            placeholder.setAttribute("data-ratio", ratio)
+            placeholder
+              .querySelectorAll(".ai-image-ratio-btn")
+              .forEach((btn) => {
+                btn.classList.remove("active");
+              });
+            ratioBtn.classList.add("active");
+            placeholder.setAttribute("data-ratio", ratio);
           }
         }
-        return
+        return;
       }
+
       // Generate button click
-      const generateBtn = target.closest(".ai-image-generate-btn")
+      const generateBtn = target.closest(".ai-image-generate-btn");
       if (generateBtn) {
-        const placeholder = generateBtn.closest(".ai-image-placeholder")
-        if (placeholder) {
-          const imageId = (generateBtn as HTMLElement).dataset.generate
-          if (imageId && aiImageStates[imageId]) {
-            handleGenerateImage(imageId)
-          }
+        const imageId = (generateBtn as HTMLElement).dataset.generate;
+        if (imageId && aiImageStates[imageId]) {
+          handleGenerateImage(imageId);
         }
-        return
+        return;
       }
+
       // Clear button click
-      const clearBtn = target.closest("[data-clear]")
+      const clearBtn = target.closest("[data-clear]");
       if (clearBtn) {
-        const wrapper = clearBtn.closest(".ai-image-wrapper")
+        const wrapper = clearBtn.closest(".ai-image-wrapper");
         if (wrapper) {
-          const imageId = (clearBtn as HTMLElement).dataset.clear
+          const imageId = (clearBtn as HTMLElement).dataset.clear;
           if (imageId) {
-            handleClear(imageId)
+            handleClear(imageId);
           }
         }
-        return
+        return;
       }
     };
-    previewRef.current.addEventListener("click", handleClick)
-    return () => previewRef.current?.removeEventListener("click", handleClick)
-  }, [aiImageStates, handleSelectRatio, handleGenerateImage, handleClear])
+
+    previewRef.current.addEventListener("click", handleClick);
+    return () => previewRef.current?.removeEventListener("click", handleClick);
+  }, [aiImageStates, handleSelectRatio, handleGenerateImage, handleClear]);
+
   // Render AI image placeholders and images based on state
   useEffect(() => {
-    if (!previewRef.current) return
+    if (!previewRef.current) return;
+
     // Small delay to ensure DOM is ready after ReactMarkdown renders
     const timer = setTimeout(() => {
-      if (!previewRef.current) return
+      if (!previewRef.current) return;
+
       Object.entries(aiImageStates).forEach(([imageId, state]) => {
         // Find existing placeholder or wrapper for this ID
-        let container = previewRef.current?.querySelector(`[data-ai-id="${imageId}"]`)
+        let container = previewRef.current?.querySelector(
+          `[data-ai-id="${imageId}"]`,
+        );
+
         // If not found, try to find an uninitialized placeholder
         if (!container) {
-          const uninitPlaceholder = previewRef.current?.querySelector(".ai-image-placeholder:not([data-ai-id])")
+          const uninitPlaceholder = previewRef.current?.querySelector(
+            ".ai-image-placeholder:not([data-ai-id])",
+          );
           if (uninitPlaceholder) {
-            uninitPlaceholder.setAttribute("data-ai-id", imageId)
-            uninitPlaceholder.setAttribute("data-ratio", state.ratio)
-            container = uninitPlaceholder
+            uninitPlaceholder.setAttribute("data-ai-id", imageId);
+            uninitPlaceholder.setAttribute("data-ratio", state.ratio);
+            container = uninitPlaceholder;
           }
         }
-        
-        if (!container) return
+
+        if (!container) return;
+
         const aspectClassMap: Record<string, string> = {
           "1:1": "aspect-square",
-          "16:9": "aspect-video"
+          "16:9": "aspect-video",
           "9:16": "aspect-9-16",
           "4:3": "aspect-4-3",
           "3:4": "aspect-3-4",
-        }
-        const aspectClass = aspectClassMap[state.ratio] || "aspect-square"
+        };
+        const aspectClass = aspectClassMap[state.ratio] || "aspect-square";
+
         if (state.imageUrl && state.status === "done") {
           // Only update if not already showing image
           if (!container.classList.contains("ai-image-wrapper")) {
@@ -230,19 +265,20 @@ export default function MarkdownPreview({
                   <button class="ai-image-action-btn" data-clear="${imageId}" title="Clear image">✕</button>
                 </div>
               </div>
-            `
+            `;
           }
         } else {
           // Render placeholder
-          const isGenerating = state.status === "generating"
+          const isGenerating = state.status === "generating";
           const ratioBtns = ["1:1", "16:9", "9:16", "4:3", "3:4"]
             .map(
               (r) =>
-                `<button class="ai-image-ratio-btn ${state.ratio === r ? "active" : ""}" data-ratio="${r}">${r}</button>`
-              `,
+                `<button class="ai-image-ratio-btn ${state.ratio === r ? "active" : ""}" data-ratio="${r}">${r}</button>`,
             )
-            .join("")
-          const expectedContent = `data-generate="${imageId}"`
+            .join("");
+
+          // Only update if content has changed
+          const expectedContent = `data-generate="${imageId}"`;
           if (
             !container.outerHTML.includes(expectedContent) ||
             container.classList.contains("ai-image-wrapper")
@@ -256,17 +292,22 @@ export default function MarkdownPreview({
                 </button>
                 <div class="ai-image-status">${isGenerating ? "Starting..." : ""}</div>
               </div>
-            `
+            `;
           }
         }
-      })
-    }, 100) // 100ms delay to ensure DOM is ready
-  }, [aiImageStates])
+      });
+    }, 100); // 100ms delay to ensure DOM is ready
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [aiImageStates, processedMarkdown]);
+
   return (
     <div
       className={cn(
         "preview-container",
-        currentTheme.category === "dark" ? "theme-dark" : ""
+        currentTheme.category === "dark" ? "theme-dark" : "",
       )}
       style={
         {
@@ -287,7 +328,7 @@ export default function MarkdownPreview({
                 <div style={{ overflowX: "auto" }}>
                   <table>{children}</table>
                 </div>
-              )
+              );
             },
           }}
         >
