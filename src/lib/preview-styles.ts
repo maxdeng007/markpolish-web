@@ -567,3 +567,144 @@ export function getExportStyles(isDark: boolean): string {
   }
   return styles;
 }
+
+// ========================================
+// WECHAT/WECOM SIMPLIFIED STYLES
+// ========================================
+
+export const wechatStyles = `
+/* WECHAT/WECOM SIMPLIFIED STYLES */
+.preview-content { font-family: -apple-system-font, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif; font-size: 16px; line-height: 1.75; color: #333; }
+.preview-content h1 { font-size: 24px; font-weight: 600; margin: 24px 0 16px; text-align: center; color: #333; }
+.preview-content h2 { font-size: 20px; font-weight: 600; margin: 20px 0 12px; border-left: 4px solid #576b95; padding-left: 12px; color: #333; }
+.preview-content h3 { font-size: 18px; font-weight: 600; margin: 16px 0 8px; color: #333; }
+.preview-content p { margin: 12px 0; line-height: 1.7; }
+.preview-content a { color: #576b95; text-decoration: none; }
+
+/* Lists - WeChat Native Style */
+.preview-content ul, .preview-content ol { padding-left: 0; margin: 16px 0; list-style: none; }
+.preview-content li { margin: 8px 0; line-height: 1.7; }
+.preview-content ul > li { position: relative; padding-left: 20px; }
+.preview-content ul > li::before { content: ''; position: absolute; left: 4px; top: 10px; width: 6px; height: 6px; background-color: #333; border-radius: 50%; }
+.preview-content ol { counter-reset: wechat-ol; }
+.preview-content ol > li { position: relative; padding-left: 24px; }
+.preview-content ol > li::before { content: counter(wechat-ol) "."; counter-increment: wechat-ol; position: absolute; left: 4px; top: 0; color: #333; font-weight: 500; }
+.preview-content ul ul, .preview-content ol ol { margin: 8px 0; }
+.preview-content ul ul > li::before { background-color: #666; }
+.preview-content ol ol > li::before { color: #666; }
+
+/* Blockquote */
+.preview-content blockquote { margin: 16px 0; padding: 12px 16px; border-left: 4px solid #576b95; background-color: #fafafa; color: #666; font-style: italic; }
+
+/* Code */
+.preview-content code { background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; }
+.preview-content pre { background-color: #f0f0f0; padding: 12px 16px; border-radius: 8px; overflow-x: auto; }
+.preview-content pre code { background: none; padding: 0; }
+
+/* Table */
+.preview-content table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.preview-content th, .preview-content td { padding: 10px 14px; border: 1px solid #e5e5e5; text-align: left; }
+.preview-content th { background-color: #f5f5f5; font-weight: 600; }
+
+/* Horizontal Rule */
+.preview-content hr { border: none; height: 1px; background-color: #e5e5e5; margin: 20px 0; }
+
+/* Image */
+.preview-content img { max-width: 100%; display: block; margin: 16px auto; border-radius: 4px; }
+
+/* Hero Component - Simple gradient, WeChat compatible */
+.preview-content .hero-component { padding: 40px 24px; background: linear-gradient(135deg, #576b95 0%, #3d5a80 100%); text-align: center; margin: 24px 0; border-radius: 16px; color: white; position: relative; overflow: hidden; }
+.preview-content .hero-component::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%); pointer-events: none; }
+.preview-content .hero-component > * { position: relative; z-index: 1; }
+.preview-content .hero-component h1, .preview-content .hero-component h2, .preview-content .hero-component h3, .preview-content .hero-component p { color: white !important; margin: 8px 0; }
+
+/* Columns Table */
+.preview-content .columns-table { width: 100%; border-collapse: separate; border-spacing: 12px 0; margin: 16px 0; }
+.preview-content .columns-table td { padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; vertical-align: top; background-color: #fafafa; }
+
+/* Steps Component */
+.preview-content .steps-component { margin: 16px 0; padding: 0; list-style: none; }
+.preview-content .step-item { display: flex; margin-bottom: 16px; padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; }
+.preview-content .step-number { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: linear-gradient(135deg, #576b95 0%, #3d5a80 100%); color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; margin-right: 12px; }
+.preview-content .step-content { flex: 1; }
+.preview-content .step-title { font-weight: 600; margin-bottom: 4px; }
+.preview-content .step-description { font-size: 14px; color: #666; }
+
+/* Timeline */
+.preview-content .timeline-component { margin: 16px 0; padding-left: 16px; border-left: 2px solid #576b95; }
+.preview-content .timeline-item { margin-bottom: 16px; padding-left: 16px; }
+.preview-content .timeline-title { font-weight: 600; }
+.preview-content .timeline-body { font-size: 14px; color: #666; }
+
+/* Card */
+.preview-content .card-component { padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; margin: 12px 0; background: #fafafa; }
+
+/* Callout */
+.preview-content .callout-component { padding: 12px; border-radius: 8px; margin: 12px 0; }
+.preview-content .callout-component.callout-info { background: #e3f2fd; border-left: 4px solid #576b95; }
+.preview-content .callout-component.callout-warning { background: #fff3e0; border-left: 4px solid #f59e0b; }
+.preview-content .callout-component.callout-error { background: #ffebee; border-left: 4px solid #f44336; }
+.preview-content .callout-component.callout-success { background: #e8f5e9; border-left: 4px solid #4caf50; }
+
+/* Quote */
+.preview-content .quote-component { padding: 12px 16px; margin: 12px 0; border-left: 4px solid #576b95; background: #fafafa; border-radius: 0 8px 8px 0; }
+.preview-content .quote-content { font-style: italic; }
+.preview-content .quote-attribution { margin-top: 8px; font-size: 14px; color: #666; }
+
+.preview-content .ai-image-wrapper { margin: 24px 0; text-align: center; position: relative; width: 100%; }
+.preview-content .ai-image-wrapper img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.preview-content .ai-image-wrapper.aspect-square { aspect-ratio: 1/1; }
+.preview-content .ai-image-wrapper.aspect-video { aspect-ratio: 16/9; }
+.preview-content .ai-image-wrapper.aspect-9-16 { aspect-ratio: 9/16; }
+.preview-content .ai-image-wrapper.aspect-4-3 { aspect-ratio: 4/3; }
+.preview-content .ai-image-wrapper.aspect-3-4 { aspect-ratio: 3/4; }
+
+/* ========================================
+DARK THEME OVERRIDES FOR WECHAT
+======================================== */
+.theme-dark .preview-content { color: #e0e0e0; }
+.theme-dark .preview-content h1 { color: #f0f0f0; }
+.theme-dark .preview-content h2 { color: #f0f0f0; }
+.theme-dark .preview-content h3 { color: #f0f0f0; }
+.theme-dark .preview-content a { color: #a78bfa; }
+.theme-dark .preview-content ul > li::before { background-color: #e0e0e0; }
+.theme-dark .preview-content ul ul > li::before { background-color: #a0a0a0; }
+.theme-dark .preview-content ol > li::before { color: #e0e0e0; }
+.theme-dark .preview-content ol ol > li::before { color: #a0a0a0; }
+.theme-dark .preview-content blockquote { background-color: rgba(255,255,255,0.05); border-left-color: #a78bfa; color: #a0a0a0; }
+.theme-dark .preview-content code { background: rgba(255,255,255,0.1); color: #e0e0e0; }
+.theme-dark .preview-content pre { background: rgba(0,0,0,0.4); }
+.theme-dark .preview-content th, .theme-dark .preview-content td { border-color: rgba(255,255,255,0.12); }
+.theme-dark .preview-content th { background: rgba(255,255,255,0.05); }
+.theme-dark .preview-content hr { background-color: rgba(255,255,255,0.12); }
+.theme-dark .preview-content .columns-table td { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+.theme-dark .preview-content .step-item { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+.theme-dark .preview-content .step-description { color: #a0a0a0; }
+.theme-dark .preview-content .timeline-component { border-left-color: rgba(255,255,255,0.2); }
+.theme-dark .preview-content .timeline-body { color: #a0a0a0; }
+.theme-dark .preview-content .card-component { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+.theme-dark .preview-content .callout-component.callout-info { background: rgba(33, 150, 243, 0.15); border-left-color: #64b5f6; }
+.theme-dark .preview-content .callout-component.callout-warning { background: rgba(255, 152, 0, 0.15); border-left-color: #ffb74d; }
+.theme-dark .preview-content .callout-component.callout-error { background: rgba(244, 67, 54, 0.15); border-left-color: #ef5350; }
+.theme-dark .preview-content .callout-component.callout-success { background: rgba(76, 175, 80, 0.15); border-left-color: #81c784; }
+.theme-dark .preview-content .quote-component { background: rgba(255,255,255,0.03); border-left-color: #a78bfa; }
+.theme-dark .preview-content .quote-attribution { color: #a0a0a0; }
+`;
+
+// Get WeChat/WeCom styles for preview with theme colors
+export function getWeChatStyles(themeAccent: string = "#576b95"): string {
+  const accentDark = adjustColorHex(themeAccent, -20);
+  return wechatStyles
+    .replace(/linear-gradient\(135deg, #576b95 0%, #3d5a80 100%/g, `linear-gradient(135deg, ${themeAccent} 0%, ${accentDark} 100%)`)
+    .replace(/#576b95/g, themeAccent)
+    .replace(/#3d5a80/g, accentDark);
+}
+
+function adjustColorHex(hex: string, percent: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+  return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+}

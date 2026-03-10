@@ -29,6 +29,7 @@ import CompactStats from "@/components/CompactStats";
 import { exportToMarkdown, exportToHTML, exportForWeChat } from "@/lib/export";
 import { fileOps, type Project } from "@/lib/file-operations";
 import { setupDefaultShortcuts, shortcuts } from "@/lib/keyboard-shortcuts";
+import { cn } from "@/lib/utils";
 const defaultMarkdown = `# MarkPolish Studio
 
 A content creation tool for **WeChat** publishing.
@@ -137,6 +138,7 @@ function App() {
   const [autoSaveEnabled] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [aiImageStates, setAIImageStates] = useState<Record<string, AIImageState>>({});
+  const [previewMode, setPreviewMode] = useState<"full" | "wecom">("full");
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -500,17 +502,46 @@ function App() {
         </div>
 
         {/* Preview - Right */}
-        <div className="flex-1 overflow-auto bg-muted/30 pb-11" ref={previewRef}>
-          <div className="border-b border-border px-4 py-2 bg-muted/50 flex items-center justify-between">
-            <h3 className="text-sm font-medium">Preview</h3>
+        <div className="flex-1 flex flex-col overflow-hidden bg-muted/30" ref={previewRef}>
+          <div className="border-b border-border px-4 py-2 bg-muted/50 flex items-center justify-between sticky top-0 z-10">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium">Preview</h3>
+              <div className="flex rounded-md bg-muted p-0.5">
+                <button
+                  onClick={() => setPreviewMode("full")}
+                  className={cn(
+                    "px-3 py-1 text-xs rounded-sm transition-colors",
+                    previewMode === "full" 
+                      ? "bg-background shadow-sm text-foreground" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Full
+                </button>
+                <button
+                  onClick={() => setPreviewMode("wecom")}
+                  className={cn(
+                    "px-3 py-1 text-xs rounded-sm transition-colors",
+                    previewMode === "wecom" 
+                      ? "bg-background shadow-sm text-foreground" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  WeCom
+                </button>
+              </div>
+            </div>
             <span className="text-xs text-muted-foreground">{theme}</span>
           </div>
-          <MarkdownPreview
-            markdown={markdown}
-            theme={theme}
-            aiImageStates={aiImageStates}
-            onAIImageStatesChange={setAIImageStates}
-          />
+          <div className="flex-1 overflow-auto">
+            <MarkdownPreview
+              markdown={markdown}
+              theme={theme}
+              previewMode={previewMode}
+              aiImageStates={aiImageStates}
+              onAIImageStatesChange={setAIImageStates}
+            />
+          </div>
         </div>
       </div>
 

@@ -38,7 +38,61 @@ function markdownToHtml(markdown: string): string {
   // Inline code
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
-  // Unordered lists
+  // Unordered lists - properly wrap in <ul>
+  const ulLines = html.split('\n');
+  const ulResult: string[] = [];
+  let inUl = false;
+  let ulItems: string[] = [];
+  
+  for (const ulLine of ulLines) {
+    const ulMatch = ulLine.match(/^- (.+)$/);
+    if (ulMatch) {
+      if (!inUl) {
+        inUl = true;
+        ulItems = [];
+      }
+      ulItems.push(`<li>${ulMatch[1]}</li>`);
+    } else {
+      if (inUl && ulItems.length > 0) {
+        ulResult.push(`<ul>${ulItems.join('')}</ul>`);
+        ulItems = [];
+        inUl = false;
+      }
+      ulResult.push(ulLine);
+    }
+  }
+  if (inUl && ulItems.length > 0) {
+    ulResult.push(`<ul>${ulItems.join('')}</ul>`);
+  }
+  html = ulResult.join('\n');
+
+  // Ordered lists - properly wrap in <ol>
+  const olLines = html.split('\n');
+  const olResult: string[] = [];
+  let inOl = false;
+  let olItems: string[] = [];
+  
+  for (const olLine of olLines) {
+    const olMatch = olLine.match(/^\d+\. (.+)$/);
+    if (olMatch) {
+      if (!inOl) {
+        inOl = true;
+        olItems = [];
+      }
+      olItems.push(`<li>${olMatch[1]}</li>`);
+    } else {
+      if (inOl && olItems.length > 0) {
+        olResult.push(`<ol>${olItems.join('')}</ol>`);
+        olItems = [];
+        inOl = false;
+      }
+      olResult.push(olLine);
+    }
+  }
+  if (inOl && olItems.length > 0) {
+    olResult.push(`<ol>${olItems.join('')}</ol>`);
+  }
+  html = olResult.join('\n');
   html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
   html = html.replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
 
@@ -186,26 +240,35 @@ export function renderComponent(component: ComponentMatch): string {
 
 function renderHero(content: string): string {
   const htmlContent = markdownToHtml(content);
-  return `<div class="hero-component" style="color: white;">${htmlContent}</div>`;
+  return `<div class="hero-component" style="color: white; background: var(--hero-bg, linear-gradient(135deg, #576b95, #3d5a80)); padding: 40px 24px; border-radius: 16px;">${htmlContent}</div>`;
 }
 
 function renderColumns(content: string, cols: number): string {
-  const colClass = cols === 2 ? "col-2" : "col-3";
-
   // Split by --- separator (flexible: handles whitespace, multiple dashes)
   const items = content.split(/\n\s*-{3,}\s*\n/);
 
   // Build column items with markdown converted to HTML
-  const itemsHtml = items
+  const columnItems = items
     .map((item) => item.trim())
     .filter((item) => item.length > 0)
     .map((item) => {
       const htmlContent = markdownToHtml(item);
-      return `<div class="column-item">${htmlContent}</div>`;
-    })
+      return htmlContent;
+    });
+
+  // Use TABLE-based layout with CSS classes for WeChat/WeCom Code mode
+  if (cols === 2 && columnItems.length >= 2) {
+    return `<table class="columns-table"><tr><td class="column-item">${columnItems[0]}</td><td class="column-item">${columnItems[1]}</td></tr></table>`;
+  } else if (cols === 3 && columnItems.length >= 3) {
+    return `<table class="columns-table"><tr><td class="column-item">${columnItems[0]}</td><td class="column-item">${columnItems[1]}</td><td class="column-item">${columnItems[2]}</td></tr></table>`;
+  }
+
+  // Fallback for fewer items than expected - stack them
+  const itemsHtml = columnItems
+    .map((item) => `<div class="column-item">${item}</div>`)
     .join("");
 
-  return `<div class="columns-component ${colClass}">${itemsHtml}</div>`;
+  return `<div class="columns-component">${itemsHtml}</div>`;
 }
 
 function renderSteps(content: string): string {

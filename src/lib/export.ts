@@ -207,277 +207,294 @@ function adjustColor(hex: string, percent: number): string {
   return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
 }
 
-// WeChat-specific HTML export
+// WeChat/WeCom export with <style> tags for Code mode
+// Accepts themeId parameter and uses theme colors
 export async function exportForWeChat(
   markdown: string,
   aiImageStates: Record<string, AIImageExportState> = {},
+  themeId: string = "wechat-classic",
 ): Promise<void> {
+  const theme = getTheme(themeId);
+  const colors = {
+    accent: theme.styles.accent,
+    heading: theme.styles.heading,
+    border: theme.styles.border,
+    link: theme.styles.link,
+    code: theme.styles.code,
+  };
+
   const wechatStyle = `
-    /* WeChat公众号样式 */
-    section {
-      font-size: 16px;
-      color: #333;
-      line-height: 1.75;
-      letter-spacing: 0.5px;
-      word-wrap: break-word;
-      font-family: -apple-system-font, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
-    }
-    h1 {
-      font-size: 24px;
-      font-weight: 600;
-      text-align: center;
-      margin: 24px 0 16px;
-      color: #000;
-    }
-    h2 {
-      font-size: 20px;
-      font-weight: 600;
-      margin: 24px 0 12px;
-      padding-left: 10px;
-      border-left: 4px solid #576b95;
-      color: #000;
-    }
-    h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 20px 0 10px;
-      color: #000;
-    }
-    p {
-      margin: 12px 0;
-      text-align: justify;
-    }
-    strong {
-      font-weight: 600;
-      color: #000;
-    }
-    em {
-      font-style: italic;
-    }
-    a {
-      color: #576b95;
-      text-decoration: none;
-    }
-    img {
-      max-width: 100%;
-      display: block;
-      margin: 16px auto;
-      border-radius: 4px;
-    }
-    blockquote {
-      border-left: 4px solid #e5e5e5;
-      padding-left: 16px;
-      margin: 16px 0;
-      color: #888;
-      font-style: italic;
-    }
-    code {
-      background: #f7f7f7;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      color: #d14;
-    }
-    pre {
-      background: #f7f7f7;
-      padding: 12px;
-      border-radius: 4px;
-      overflow-x: auto;
-      margin: 16px 0;
-    }
-    pre code {
-      background: none;
-      padding: 0;
-      color: #333;
-    }
-    ul, ol {
-      padding-left: 24px;
-      margin: 12px 0;
-    }
-    li {
-      margin: 6px 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 16px 0;
-    }
-    th, td {
-      border: 1px solid #e5e5e5;
-      padding: 8px 12px;
-      text-align: left;
-    }
-    th {
-      background: #f7f7f7;
-      font-weight: 600;
-    }
-    .ai-image-export {
-      margin: 16px 0;
-    }
-    .ai-image-export img {
-      width: 100%;
-      border-radius: 8px;
-    }
-    /* Component styles for WeChat */
-    .hero-component {
-      padding: 40px 24px;
-      border-radius: 16px;
-      text-align: center;
-      margin: 24px 0;
-      color: white !important;
-    }
-    .hero-component h1 {
-      color: white !important;
-      font-size: 28px !important;
-      margin-bottom: 12px !important;
-      text-align: center;
-    }
-    .hero-component p {
-      color: white !important;
-      font-size: 16px !important;
-    }
-    .columns-component {
-      display: flex;
-      gap: 16px;
-      margin: 16px 0;
-    }
-    .column-item {
-      flex: 1;
-      padding: 12px;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-    }
-    .steps-component {
-      margin: 16px 0;
-      padding: 0;
-      list-style: none;
-    }
-    .step-item {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-      padding: 12px;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      background: #fafafa;
-    }
-    .step-number {
-      width: 28px;
-      height: 28px;
-      min-width: 28px;
-      border-radius: 50%;
-      background: #576b95;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 14px;
-    }
-    .step-content {
-      flex: 1;
-    }
-    .step-title {
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .step-description {
-      font-size: 14px;
-      color: #666;
-    }
-    .timeline-component {
-      margin: 16px 0;
-      padding-left: 16px;
-      border-left: 2px solid #e5e5e5;
-    }
-    .timeline-item {
-      position: relative;
-      padding-left: 16px;
-      margin-bottom: 16px;
-    }
-    .timeline-title {
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .timeline-body {
-      font-size: 14px;
-      color: #666;
-    }
-    .card-component {
-      padding: 16px;
-      border: 1px solid #e5e5e5;
-      border-radius: 8px;
-      margin: 12px 0;
-      background: #fafafa;
-    }
-    .callout-component {
-      padding: 12px;
-      border-radius: 8px;
-      margin: 12px 0;
-    }
+    /* WeChat/WeCom Base Styles */
+    body { font-family: -apple-system-font, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif; font-size: 16px; line-height: 1.75; color: #333; }
+    
+    /* Hero Component */
+    .hero-component { padding: 40px 24px; background-color: ${colors.accent}; text-align: center; margin: 24px 0; border-radius: 16px; color: white; }
+    .hero-component h1 { color: white !important; font-size: 28px !important; margin: 0 0 16px !important; font-weight: 600 !important; }
+    .hero-component h2 { color: white !important; font-size: 22px !important; margin: 0 0 12px !important; font-weight: 600 !important; }
+    .hero-component h3 { color: white !important; font-size: 18px !important; margin: 0 0 8px !important; }
+    .hero-component p { color: white !important; margin: 0 !important; }
+    
+    /* Columns Table */
+    .columns-table { width: 100%; border-collapse: separate; border-spacing: 12px 0; margin: 16px 0; }
+    .columns-table td { padding: 16px; border: 1px solid ${colors.border}; border-radius: 8px; vertical-align: top; background-color: #fafafa; }
+    
+    /* Steps Component */
+    .steps-component { margin: 16px 0; padding: 0; list-style: none; }
+    .step-item { display: flex; gap: 12px; margin-bottom: 12px; padding: 12px; border: 1px solid ${colors.border}; border-radius: 8px; background: #fafafa; }
+    .step-number { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background-color: ${colors.accent}; }
+    .step-content { flex: 1; }
+    .step-title { font-weight: 600; margin-bottom: 4px; }
+    .step-description { font-size: 14px; color: #666; }
+    
+    /* Timeline Component */
+    .timeline-component { margin: 16px 0; padding-left: 16px; border-left: 2px solid ${colors.accent}; }
+    .timeline-item { position: relative; padding-left: 16px; margin-bottom: 16px; }
+    .timeline-title { font-weight: 600; margin-bottom: 4px; }
+    .timeline-body { font-size: 14px; color: #666; }
+    
+    /* Card Component */
+    .card-component { padding: 16px; border: 1px solid ${colors.border}; border-radius: 8px; margin: 12px 0; background: #fafafa; }
+    
+    /* Callout Component */
+    .callout-component { padding: 12px; border-radius: 8px; margin: 12px 0; }
     .callout-component.callout-info { background: #e3f2fd; border-left: 4px solid #2196f3; }
-    .callout-component.callout-warning { background: #fff3e0; border-left: 4px solid #ff9800; }
+    .callout-component.callout-warning { background: #fff3e0; border-left: 4px solid #f59e0b; }
     .callout-component.callout-error { background: #ffebee; border-left: 4px solid #f44336; }
     .callout-component.callout-success { background: #e8f5e9; border-left: 4px solid #4caf50; }
-    .quote-component {
-      padding: 12px 16px;
-      margin: 12px 0;
-      border-left: 4px solid #576b95;
-      background: #fafafa;
-      border-radius: 0 8px 8px 0;
+    .callout-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .callout-icon { font-size: 18px; }
+    .callout-title { font-weight: 600; font-size: 15px; }
+    .callout-content { font-size: 14px; line-height: 1.6; }
+    
+    /* Quote Component */
+    .quote-component { padding: 12px 16px; margin: 12px 0; border-left: 4px solid ${colors.accent}; background: #fafafa; border-radius: 0 8px 8px 0; }
+    .quote-content { font-style: italic; font-size: 16px; line-height: 1.7; }
+    .quote-attribution { margin-top: 8px; font-size: 14px; color: #666; }
+    .quote-author { font-weight: 600; color: ${colors.accent}; }
+    
+    /* Blockquote */
+    blockquote { margin: 16px 0; padding: 12px 16px; border-left: 4px solid ${colors.accent}; background-color: #fafafa; color: #666; font-style: italic; border-radius: 0 8px 8px 0; }
+    
+    /* Code */
+    code { background-color: ${colors.code}; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; }
+    pre { background-color: ${colors.code}; padding: 12px 16px; border-radius: 8px; overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+    
+    /* Headings */
+    h1 { font-size: 24px; font-weight: 600; color: ${colors.heading}; margin: 24px 0 16px; text-align: center; }
+    h2 { font-size: 20px; font-weight: 600; color: ${colors.heading}; margin: 20px 0 12px; border-left: 4px solid ${colors.accent}; padding-left: 12px; }
+    h3 { font-size: 18px; font-weight: 600; color: ${colors.heading}; margin: 16px 0 8px; }
+    
+    /* Links */
+    a { color: ${colors.link}; text-decoration: none; }
+    
+    /* ========================================
+    * STYLISH LISTS FOR WECHAT/WECOM
+    * ======================================== */
+    
+    /* Base List Styles */
+    ul, ol { padding-left: 0; margin: 20px 0; list-style: none; }
+    li { margin: 12px 0; line-height: 1.8; }
+    li p { margin: 6px 0; }
+    
+    /* ========================================
+    * UNORDERED LIST - WeChat Native Style
+    * ======================================== */
+    ul > li { 
+      position: relative; 
+      padding-left: 20px; 
+      margin: 10px 0;
     }
-    .quote-content {
-      font-style: italic;
-      font-size: 16px;
-      line-height: 1.6;
+    ul > li::before {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      background-color: #333;
+      border-radius: 50%;
     }
-    .quote-attribution {
-      margin-top: 8px;
-      font-size: 14px;
-      color: #666;
+    
+    /* Nested Level 1 */
+    ul ul > li { padding-left: 20px; }
+    ul ul > li::before { background-color: #666; }
+    
+    /* Nested Level 2 */
+    ul ul ul > li::before { background-color: #999; }
+    
+    /* Nested Level 3 */
+    ul ul ul ul > li::before { background-color: #ccc; }
+    
+    /* Nested Level 1 - Hollow Circle */
+    ul ul > li { padding-left: 28px; }
+    ul ul > li::before {
+      width: 8px;
+      height: 8px;
+      background: transparent;
+      border: 2px solid ${colors.accent};
+      box-shadow: none;
     }
+    
+    /* Nested Level 2 - Diamond */
+    ul ul ul > li { padding-left: 28px; }
+    ul ul ul > li::before {
+      width: 0;
+      height: 0;
+      background: transparent;
+      border: none;
+    }
+    ul ul ul > li::after {
+      content: '◆';
+      position: absolute;
+      left: 6px;
+      top: 6px;
+      font-size: 8px;
+      color: ${colors.accent};
+    }
+    
+    /* Nested Level 3 - Small Circle */
+    ul ul ul ul > li::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 2px;
+    }
+    ul ul ul ul > li::after { display: none; }
+    
+    /* ========================================
+    * ORDERED LIST - WeChat Native Style
+    * ======================================== */
+    ol { counter-reset: wechat-ol; }
+    ol > li {
+      position: relative;
+      padding-left: 24px;
+      margin: 10px 0;
+      counter-increment: wechat-ol;
+    }
+    ol > li::before {
+      content: counter(wechat-ol) ".";
+      position: absolute;
+      left: 4px;
+      top: 0;
+      color: #333;
+      font-weight: 500;
+    }
+    
+    /* Nested Level 1 */
+    ol ol { margin: 8px 0; }
+    ol ol > li { padding-left: 24px; }
+    ol ol > li::before { color: #666; }
+    
+    /* Nested Level 2 */
+    ol ol ol > li::before { color: #999; }
+    
+    /* Nested Level 3 */
+    ol ol ol ol > li::before { color: #ccc; }
+    
+    /* List Content Styling */
+    li strong { color: ${colors.heading}; }
+    li em { color: #666; }
+    /* ========================================
+    * TABLE STYLES
+    * ======================================== */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    th, td { padding: 12px 16px; border: 1px solid ${colors.border}; text-align: left; }
+    th { background-color: #f5f5f5; font-weight: 600; }
+    
+    /* AI Image */
+    .ai-image-export { margin: 24px 0; text-align: center; }
+    .ai-image-export img { max-width: 100%; border-radius: 8px; }
   `;
 
-  // Convert markdown to HTML and process AI images
+  // Convert markdown to HTML
   let wechatHTML = convertMarkdownToHTML(markdown);
+
+  // Process AI images
   wechatHTML = await processAIImagesInHTML(wechatHTML, aiImageStates);
-  wechatHTML = `<section style="font-size: 16px; color: #333;">
-${wechatHTML}
-</section>`;
 
-  // Copy to clipboard for pasting into WeChat editor
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = `<style>${wechatStyle}</style>${wechatHTML}`;
-  document.body.appendChild(tempDiv);
+  // Wrap with styles
+  wechatHTML = `<style>${wechatStyle}</style>
+${wechatHTML}`;
 
-  const range = document.createRange();
-  range.selectNodeContents(tempDiv);
-  const selection = window.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-
+  // Copy raw HTML code to clipboard (for WeCom Code mode)
   try {
-    document.execCommand("copy");
+    // Use text/plain to copy raw HTML code (not rendered content)
+    await navigator.clipboard.writeText(wechatHTML);
     alert(
-      "WeChat HTML copied to clipboard! Paste it directly into WeChat editor.",
+      "Raw HTML code copied! Paste into Code mode (代码模式) in WeCom editor."
     );
   } catch (err) {
     console.error("Failed to copy:", err);
-    // Fallback: download as HTML
-    const blob = new Blob([`<style>${wechatStyle}</style>${wechatHTML}`], {
-      type: "text/html",
-    });
+    // Fallback: download as HTML file
+    const blob = new Blob([wechatHTML], { type: "text/html" });
     downloadBlob(blob, "wechat-article.html");
   }
+}
 
-  document.body.removeChild(tempDiv);
+// Convert markdown tables to HTML tables
+function convertMarkdownTables(markdown: string): string {
+  const lines = markdown.split('\n');
+  const result: string[] = [];
+  let inTable = false;
+  let tableRows: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Check if line is a table row (starts with |)
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      // Check if separator line
+      if (/^\|\s*[-:]+\s*\|/.test(trimmed)) continue;
+      
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
+      }
+      tableRows.push(trimmed);
+    } else {
+      if (inTable && tableRows.length > 0) {
+        result.push(renderMarkdownTableHTML(tableRows));
+        tableRows = [];
+        inTable = false;
+      }
+      result.push(line);
+    }
+  }
+
+  if (inTable && tableRows.length > 0) {
+    result.push(renderMarkdownTableHTML(tableRows));
+  }
+
+  return result.join('\n');
+}
+
+function renderMarkdownTableHTML(rows: string[]): string {
+  if (rows.length === 0) return '';
+  
+  let html = '<table>\n';
+  
+  rows.forEach((row, index) => {
+    const cells = row.split('|').slice(1, -1).map(cell => cell.trim());
+    const tag = index === 0 ? 'th' : 'td';
+    html += '  <tr>\n';
+    cells.forEach(cell => {
+      html += `    <${tag}>${cell}</${tag}>\n`;
+    });
+    html += '  </tr>\n';
+  });
+  
+  html += '</table>';
+  return html;
 }
 
 // Improved markdown to HTML converter that preserves component HTML
 function convertMarkdownToHTML(markdown: string): string {
   // First, process custom components - this converts ::: blocks to HTML
   let html = convertMarkdownWithComponents(markdown);
+
+  // Convert markdown tables to HTML tables
+  html = convertMarkdownTables(html);
 
   // Now process remaining markdown while preserving existing HTML
   html = processBlockMarkdown(html);

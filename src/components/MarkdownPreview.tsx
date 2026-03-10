@@ -10,20 +10,7 @@ import {
 } from "@/lib/markdown-components";
 import { getTheme } from "@/lib/themes";
 import { aiImageGen } from "@/lib/ai-image-generation";
-import { getAllPreviewStyles } from "@/lib/preview-styles";
-
-import { cn } from "@/lib/utils";
-
-// Helper to adjust hex color brightness
-function adjustColor(hex: string, percent: number): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
-  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
-  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
-  return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
-}
-
+import { getAllPreviewStyles, getWeChatStyles } from "@/lib/preview-styles";
 // Clean AI Image State Interface
 export interface AIImageState {
   description: string;
@@ -35,6 +22,7 @@ export interface AIImageState {
 interface MarkdownPreviewProps {
   markdown: string;
   theme?: string;
+  previewMode?: "full" | "wecom";
   aiImageStates: Record<string, AIImageState>;
   onAIImageStatesChange: (states: Record<string, AIImageState>) => void;
 }
@@ -42,6 +30,7 @@ interface MarkdownPreviewProps {
 export default function MarkdownPreview({
   markdown,
   theme = "wechat-classic",
+  previewMode = "full",
   aiImageStates,
   onAIImageStatesChange,
 }: MarkdownPreviewProps) {
@@ -256,14 +245,28 @@ export default function MarkdownPreview({
         const aspectClass = aspectClassMap[state.ratio] || "aspect-square";
 
         if (state.imageUrl && state.status === "done") {
-          // Only update if not already showing image
-          if (!container.classList.contains("ai-image-wrapper")) {
+          // Check if wrapper exists with correct aspect ratio
+          const hasCorrectAspect = container.classList.contains("ai-image-wrapper") && 
+            container.classList.contains(aspectClass);
+          
+          if (!container.classList.contains("ai-image-wrapper") || !hasCorrectAspect) {
             container.outerHTML = `
               <div class="ai-image-wrapper ${aspectClass}" data-ai-id="${imageId}" data-ratio="${state.ratio}">
                 <img src="${state.imageUrl}" alt="AI generated image" class="ai-image-result" />
+                ${previewMode !== "wecom" ? `
                 <div class="ai-image-overlay">
                   <button class="ai-image-action-btn" data-clear="${imageId}" title="Clear image">✕</button>
                 </div>
+                ` : ''}
+              </div>
+            `;
+          }
+        } else if (previewMode === "wecom") {
+          // WeCom mode: show simple placeholder instead of interactive UI
+          if (!container.classList.contains("ai-image-wecom-placeholder")) {
+            container.outerHTML = `
+              <div class="ai-image-wecom-placeholder" data-ai-id="${imageId}" style="display: flex; align-items: center; justify-content: center; min-height: 200px; background: linear-gradient(135deg, #f5f5f5, #e0e0e0); border-radius: 8px; color: #999; font-size: 14px;">
+                【AI图片: ${state.description.slice(0, 30)}${state.description.length > 30 ? '...' : ''}】
               </div>
             `;
           }
@@ -301,23 +304,16 @@ export default function MarkdownPreview({
     return () => {
       clearTimeout(timer);
     };
-  }, [aiImageStates, processedMarkdown]);
+  }, [aiImageStates, processedMarkdown, previewMode]);
 
   return (
-    <div
-      className={cn(
-        "preview-container",
-        currentTheme.category === "dark" ? "theme-dark" : "",
-      )}
-      style={
-        {
-          "--hero-bg": `linear-gradient(135deg, ${currentTheme.styles.accent} 0%, ${adjustColor(currentTheme.styles.accent, -30)} 100%)`,
-          "--hero-text": "white",
-        } as React.CSSProperties
-      }
-    >
+    <div className="markdown-preview">
       <style>{currentTheme.css}</style>
-      <style>{getAllPreviewStyles()}</style>
+      <style>
+        {previewMode === "wecom"
+          ? getWeChatStyles(currentTheme.styles.accent)
+          : getAllPreviewStyles()}
+      </style>
       <div ref={previewRef} className="preview-content">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
