@@ -207,6 +207,16 @@ export default function MarkdownPreview({
     return () => previewRef.current?.removeEventListener("click", handleClick);
   }, [aiImageStates, handleSelectRatio, handleGenerateImage, handleClear]);
 
+  // Track if component is mounted to prevent DOM manipulation after unmount
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Render AI image placeholders and images based on state
   useEffect(() => {
     if (!previewRef.current) return;
@@ -215,6 +225,7 @@ export default function MarkdownPreview({
     const timer = setTimeout(() => {
       if (!previewRef.current) return;
 
+      try {
       Object.entries(aiImageStates).forEach(([imageId, state]) => {
         // Find existing placeholder or wrapper for this ID
         let container = previewRef.current?.querySelector(
@@ -233,7 +244,7 @@ export default function MarkdownPreview({
           }
         }
 
-        if (!container) return;
+        if (!container || !container.isConnected) return;
 
         const aspectClassMap: Record<string, string> = {
           "1:1": "aspect-square",
@@ -299,6 +310,13 @@ export default function MarkdownPreview({
           }
         }
       });
+    } catch (error) {
+      // Silently ignore DOM manipulation errors during React reconciliation
+      // This can happen when content is deleted while useEffect is running
+      if (isMountedRef.current) {
+        console.warn('AI image DOM update skipped:', error);
+      }
+    }
     }, 100); // 100ms delay to ensure DOM is ready
 
     return () => {
