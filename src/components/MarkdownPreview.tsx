@@ -341,7 +341,7 @@ export default function MarkdownPreview({
   }, [aiImageStates, processedMarkdown, previewMode]);
 
   return (
-    <div className="markdown-preview">
+    <div className={`markdown-preview ${currentTheme.category === "dark" ? "theme-dark" : ""}`}>
       <style>{currentTheme.css}</style>
       <style>
         {previewMode === "wecom"

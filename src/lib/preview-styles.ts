@@ -352,7 +352,7 @@ export const componentStyles = `
   /* Steps Component */
   .steps-component { margin: 24px 0; padding-left: 0; list-style: none; }
   .step-item { display: flex; gap: 16px; margin-bottom: 20px; padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; }
-  .step-number { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+  .step-number { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
   .step-content { flex: 1; }
   .step-title { font-weight: 600; margin-bottom: 4px; }
   .step-description { font-size: 14px; color: #666; }
@@ -465,6 +465,7 @@ export const darkThemeOverrides = `
   
   /* Dark Steps */
   .theme-dark .step-item { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+  .theme-dark .step-number { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); color: white; }
   .theme-dark .step-description { color: #a0a0a0; }
   
   /* Dark Timeline */
@@ -500,6 +501,13 @@ export const darkThemeOverrides = `
   .theme-dark .accordion-item { border-color: rgba(255,255,255,0.12); }
   .theme-dark .accordion-title { background: rgba(255,255,255,0.03); }
   .theme-dark .accordion-title:hover { background: rgba(255,255,255,0.08); }
+  .theme-dark .accordion-content { color: #e0e0e0; }
+  
+  /* Dark Quote Content */
+  .theme-dark .quote-content { color: #e0e0e0; }
+  
+  /* Dark Tab Content */
+  .theme-dark .tab-content { color: #e0e0e0; }
   
   /* Dark Blockquote Styles */
   .theme-dark .preview-content blockquote {
