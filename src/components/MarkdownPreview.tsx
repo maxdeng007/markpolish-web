@@ -313,13 +313,17 @@ export default function MarkdownPreview({
               )
               .join("");
 
-            // Only update if content has changed
+            // Only update if content has changed OR if switching from WeCom mode
             const expectedContent = `data-generate="${imageId}"`;
+            const isFromWecom = container.classList.contains("ai-image-wecom-placeholder");
             if (
               !container.innerHTML.includes(expectedContent) ||
-              container.classList.contains("ai-image-wrapper")
+              container.classList.contains("ai-image-wrapper") ||
+              isFromWecom
             ) {
               container.className = "ai-image-placeholder";
+              // Clear any inline styles from WeCom mode so CSS classes work
+              (container as HTMLElement).style.cssText = "";
               container.setAttribute("data-ratio", state.ratio);
               container.innerHTML = `
                 <div class="ai-image-icon">🎨</div>
