@@ -460,6 +460,22 @@ export const darkThemeOverrides = `
   .theme-dark .ai-image-action-btn:hover { background: rgba(40,40,40,1); }
   .theme-dark .ai-image-export { box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
   
+  /* Dark AI Image - additional styles */
+  .theme-dark .ai-image-icon { filter: grayscale(10%) brightness(1.1); }
+  .theme-dark .ai-image-ratio-btn.active { 
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); 
+    color: white; 
+    border-color: transparent; 
+    box-shadow: 0 4px 12px rgba(167, 139, 250, 0.3);
+  }
+  .theme-dark .ai-image-generate-btn {
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+    box-shadow: 0 8px 24px rgba(167, 139, 250, 0.35);
+  }
+  .theme-dark .ai-image-generate-btn:hover {
+    box-shadow: 0 12px 32px rgba(167, 139, 250, 0.45);
+  }
+  
   /* Dark Columns */
   .theme-dark .column-item { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
   
@@ -667,6 +683,18 @@ export const wechatStyles = `
 .preview-content .ai-image-wrapper.aspect-4-3 { aspect-ratio: 4/3; }
 .preview-content .ai-image-wrapper.aspect-3-4 { aspect-ratio: 3/4; }
 
+/* WeCom AI Image Placeholder */
+.preview-content .ai-image-wecom-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  border-radius: 8px;
+  color: #999;
+  font-size: 14px;
+  margin: 24px 0;
+}
 /* ========================================
 DARK THEME OVERRIDES FOR WECHAT
 ======================================== */
@@ -696,7 +724,73 @@ DARK THEME OVERRIDES FOR WECHAT
 .theme-dark .preview-content .callout-component.callout-error { background: rgba(244, 67, 54, 0.15); border-left-color: #ef5350; }
 .theme-dark .preview-content .callout-component.callout-success { background: rgba(76, 175, 80, 0.15); border-left-color: #81c784; }
 .theme-dark .preview-content .quote-component { background: rgba(255,255,255,0.03); border-left-color: #a78bfa; }
-.theme-dark .preview-content .quote-attribution { color: #a0a0a0; }
+
+
+}
+
+/* Dark AI Image placeholder - interactive UI in dark mode */
+.theme-dark .preview-content .ai-image-placeholder {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.08) 100%);
+}
+
+.theme-dark .preview-content .ai-image-placeholder:hover {
+  border-color: rgba(167, 139, 250, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.12) 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .preview-content .ai-image-icon {
+  filter: grayscale(10%) brightness(1.2);
+}
+
+.theme-dark .preview-content .ai-image-ratio-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #c0c0c0;
+}
+
+.theme-dark .preview-content .ai-image-ratio-btn:hover {
+  border-color: #a78bfa;
+  color: #e0e0e0;
+}
+
+.theme-dark .preview-content .ai-image-ratio-btn.active {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(167, 139, 250, 0.3);
+}
+
+.theme-dark .preview-content .ai-image-generate-btn {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+  box-shadow: 0 8px 24px rgba(167, 139, 250, 0.35);
+}
+
+.theme-dark .preview-content .ai-image-generate-btn:hover {
+  box-shadow: 0 12px 32px rgba(167, 139, 250, 0.45);
+}
+
+.theme-dark .preview-content .ai-image-generate-btn:disabled {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.15) 100%);
+}
+
+.theme-dark .preview-content .ai-image-status {
+  color: #707070;
+}
+
+.theme-dark .preview-content .ai-image-wrapper {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.theme-dark .preview-content .ai-image-action-btn {
+  background: rgba(30, 30, 3, 0.95);
+  color: #e0e0e0;
+}
+
+.theme-dark .preview-content .ai-image-action-btn:hover {
+  background: rgba(40, 40, 4, 1);
+}
 `;
 
 // Get WeChat/WeCom styles for preview with theme colors
