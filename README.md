@@ -1,12 +1,13 @@
-# MarkPolish Studio (React Edition)
+# MarkPolish Studio
 
-A powerful **WeChat-optimized** content creation and editing tool built with React, TypeScript, and shadcn/ui. Create beautifully formatted markdown content with custom components, AI assistance, and professional themes.
+A powerful **Wecom-optimized** content creation and editing tool built with React, TypeScript, and shadcn/ui. Create beautifully formatted markdown content with custom components, AI assistance, and professional themes.
 
 > 🎯 **Inspired by**: [MarkPolish Studio (Streamlit)](https://github.com/maxdeng007/markpolish-studio)
 
 ## ✨ Core Features
 
 ### 🤖 AI-Powered Content Enhancement
+
 - **Generate Titles**: Create catchy, engaging titles
 - **Expand Content**: Add detail, examples, and context
 - **Smart Format**: Improve structure and readability
@@ -14,6 +15,7 @@ A powerful **WeChat-optimized** content creation and editing tool built with Rea
 - **Polish with Context**: Refine content with custom context
 
 **Supported AI Providers**:
+
 - OpenAI (GPT-4o, GPT-4o-mini, GPT-3.5-turbo)
 - OpenRouter (Multiple models)
 - Anthropic (Claude)
@@ -22,7 +24,8 @@ A powerful **WeChat-optimized** content creation and editing tool built with Rea
 - Ollama (Local, privacy-first)
 
 ### 🎨 Custom Markdown Components
-WeChat-optimized components for engaging content:
+
+Wecom-optimized components for engaging content:
 
 - `:::hero` - Eye-catching hero sections
 - `:::col-2` / `:::col-3` - Multi-column layouts
@@ -38,10 +41,12 @@ WeChat-optimized components for engaging content:
 - `[LOCAL: filename]` - Local images
 
 ### 🎭 Professional Themes
+
 Choose from 14 distinctive themes organized by category:
 
 **Light Themes (8):**
-- **WeChat Classic** - Optimized for WeChat reading
+
+- **Wecom Classic** - Optimized for Wecom reading
 - **Apple Minimalist** - Clean, minimal design
 - **Nordic Frost** - Cool Scandinavian style
 - **Elegant Serif** - Classic typography
@@ -51,17 +56,20 @@ Choose from 14 distinctive themes organized by category:
 - **Newspaper** - Classic, authoritative journalism
 
 **Dark Themes (6):**
+
 - **Midnight** - Pure dark, minimal distraction
 - **Dracula** - Vibrant, colorful dark theme
 - **Tokyo Night** - Japanese cyberpunk aesthetic
 - **Nord Dark** - Arctic, cool dark theme
 - **Monokai Pro** - Code editor inspired
 - **Coffee** - Warm, cozy dark theme
+
 ### 📚 Template Library
+
 Quick-start templates for common content types:
 
 - Blog Post
-- WeChat Article (公众号)
+- Wecom Article (公众号)
 - Product Launch
 - Tutorial Guide
 - Company Timeline
@@ -70,7 +78,8 @@ Quick-start templates for common content types:
 - Case Study
 
 ### 🖼️ Advanced Image System
-Multiple image sources (coming soon):
+
+Multiple image sources:
 
 - AI Image Generation (DashScope, ModelScope)
 - Stock Photos (Picsum)
@@ -79,25 +88,19 @@ Multiple image sources (coming soon):
 - Aspect ratio control (1:1, 16:9, 9:16)
 
 ### 📤 Export Options
-- **HTML Export**: WeChat-ready HTML
-- **Markdown Download**: Save your work
-- **Copy to Clipboard**: Quick sharing
 
-### Export Options
-- **Multiple HTML Styles**:
-  - GitHub Style (clean, professional)
-  - Minimal Style (elegant simplicity)
-  - Elegant Style (sophisticated typography)
+- **Wecom Export**: Copy Wecom-ready HTML with theme colors preserved
+- **HTML Export**: Multiple styles (GitHub, Minimal, Elegant)
 - **PDF Export**: High-quality PDF generation
 - **Markdown Download**: Save your work as .md files
 
-### User Experience
+### 🎯 User Experience
+
 - **Dark Mode**: Easy on the eyes with full dark theme support
 - **File Operations**: Upload and manage markdown files
 - **Copy to Clipboard**: Quick copy functionality
 - **Three-Panel Layout**: Editor, Preview, and Tools sidebar
 - **Responsive Design**: Works beautifully on all screen sizes
-
 
 ## Tech Stack
 
@@ -121,53 +124,60 @@ Multiple image sources (coming soon):
 
 ### Installation
 
-\`\`\`bash
+```bash
 # Install dependencies
 npm install
 
 # Start development server
 npm run dev
-\`\`\`
+```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ### Build for Production
 
-\`\`\`bash
+```bash
 npm run build
 npm run preview
-\`\`\`
+```
 
 ## Usage Guide
 
 ### Basic Editing
+
 1. Type or paste markdown in the left editor pane
 2. See live preview in the center pane
 3. Use toolbar buttons for quick formatting
 
 ### Formatting Tools
+
 - Click **Format & Polish** to auto-format your entire document
 - Enable **Auto-format on paste** to clean up pasted content
 - Use **Generate TOC** to create a table of contents
 
 ### Statistics
+
 - View real-time document statistics in the Stats tab
 - Track word count, reading time, and content metrics
 - Monitor document structure (headings, links, images)
 
 ### Linting
+
 - Check the Lint tab for formatting issues
 - See errors and warnings with line numbers
 - Fix issues to maintain clean markdown
 
-### Exporting
-1. Choose your export style (GitHub, Minimal, or Elegant)
-2. Click **Export as HTML** or **Export as PDF**
-3. Your document will download automatically
+### Exporting to Wecom
+
+1. Select your preferred theme
+2. Click **Wecom** button to copy Wecom-formatted HTML
+3. Paste into Wecom Code mode (代码) in the editor
+4. Your content will render with theme colors preserved
 
 ## Keyboard Shortcuts
 
 The toolbar provides quick formatting:
+
 - **Bold**: `**text**`
 - **Italic**: `*text*`
 - **Headings**: `# H1`, `## H2`, `### H3`
@@ -179,7 +189,7 @@ The toolbar provides quick formatting:
 
 ## Project Structure
 
-\`\`\`
+```
 src/
 ├── components/
 │   ├── ui/                    # shadcn/ui components
@@ -188,57 +198,24 @@ src/
 │   │   ├── tabs.tsx
 │   │   ├── select.tsx
 │   │   └── switch.tsx
-│   ├── MarkdownPreview.tsx    # Preview renderer
-│   ├── Toolbar.tsx            # Formatting toolbar
-│   ├── StatsPanel.tsx         # Statistics display
-│   ├── SettingsPanel.tsx      # Tools and settings
-│   └── LintPanel.tsx          # Linting display
+│   ├── MarkdownPreview.tsx    # Preview renderer with custom components
+│   ├── AIPanel.tsx            # AI assistant panel
+│   ├── TemplatesPanel.tsx     # Template library
+│   ├── ComponentsPanel.tsx    # Custom component inserter
+│   ├── ThemesPanel.tsx        # Theme selector
+│   └── ProjectManager.tsx     # File/project management
 ├── lib/
-│   ├── utils.ts               # Utility functions
-│   ├── export.ts              # Export functionality
-│   └── markdown-utils.ts      # Markdown processing
-├── App.tsx                    # Main application
+│   ├── utils.ts               # cn() utility and helpers
+│   ├── export.ts              # HTML/PDF/Markdown export
+│   ├── ai-providers.ts        # AI API integrations
+│   ├── file-operations.ts     # LocalStorage persistence
+│   ├── markdown-components.ts # Custom component processing
+│   ├── themes.ts              # Theme definitions
+│   └── templates.ts           # Template library
+├── App.tsx                    # Main application component
 ├── main.tsx                   # Entry point
-└── index.css                  # Global styles
-\`\`\`
-
-## Advanced Features
-
-### Markdown Formatting
-The formatter automatically:
-- Fixes heading spacing
-- Standardizes list formatting
-- Ensures proper blank lines
-- Removes trailing whitespace
-- Cleans up code block formatting
-
-### Table of Contents Generation
-- Automatically extracts headings
-- Creates clickable anchor links
-- Supports H1, H2, and H3 levels
-- Configurable heading inclusion
-
-### Export Styles
-
-**GitHub Style**: Clean, professional look matching GitHub's markdown rendering
-
-**Minimal Style**: Simple, elegant typography with serif fonts
-
-**Elegant Style**: Sophisticated design with custom colors and spacing
-
-## Customization
-
-### Adding Toolbar Buttons
-Edit `src/components/Toolbar.tsx` to add more formatting options.
-
-### Modifying Export Styles
-Update `src/lib/export.ts` to customize HTML export templates.
-
-### Changing Theme Colors
-Modify `src/index.css` CSS variables for custom theming.
-
-### Adding Lint Rules
-Extend `src/lib/markdown-utils.ts` lintMarkdown function.
+└── index.css                  # Tailwind + CSS variables
+```
 
 ## Contributing
 
@@ -250,4 +227,4 @@ MIT License - feel free to use this project for any purpose.
 
 ## Acknowledgments
 
-Inspired by professional markdown editors and the need for a modern, web-based markdown formatting tool.
+Inspired by professional markdown editors and the need for a modern, web-based markdown formatting tool optimized for Wecom publishing.
