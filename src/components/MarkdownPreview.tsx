@@ -51,7 +51,17 @@ export default function MarkdownPreview({
   useEffect(() => {
     markdownRef.current = markdown;
 
-    const processed = convertMarkdownWithComponents(markdown);
+    // Pass theme colors to component rendering
+    const themeColors = {
+      accent: currentTheme.styles.accent,
+      foreground: currentTheme.styles.foreground,
+      heading: currentTheme.styles.heading,
+      link: currentTheme.styles.link,
+      border: currentTheme.styles.border,
+      code: currentTheme.styles.code,
+      background: currentTheme.styles.background,
+    };
+    const processed = convertMarkdownWithComponents(markdown, themeColors);
     setProcessedMarkdown(processed);
 
     // Extract ai-image blocks and initialize states
@@ -83,7 +93,7 @@ export default function MarkdownPreview({
       }
     });
     onAIImageStatesChange(newState);
-  }, [markdown]);
+  }, [markdown, currentTheme.styles]);
 
   // Handle ratio selection
   const handleSelectRatio = useCallback(

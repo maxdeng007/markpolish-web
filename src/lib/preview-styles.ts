@@ -268,7 +268,6 @@ export const componentStyles = `
     margin: 32px 0; 
     position: relative;
     overflow: hidden;
-    background: var(--hero-bg, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
     box-shadow: 
       0 20px 60px rgba(0,0,0,0.15),
       0 0 0 1px rgba(255,255,255,0.1) inset;
@@ -636,32 +635,38 @@ export const wechatStyles = `
 /* Image */
 .preview-content img { max-width: 100%; display: block; margin: 16px auto; border-radius: 4px; }
 
-/* Hero Component - Simple gradient, WeChat compatible */
-.preview-content .hero-component { padding: 40px 24px; background: linear-gradient(135deg, #576b95 0%, #3d5a80 100%); text-align: center; margin: 24px 0; border-radius: 16px; color: white; position: relative; overflow: hidden; }
-.preview-content .hero-component::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%); pointer-events: none; }
-.preview-content .hero-component > * { position: relative; z-index: 1; }
+/* WeCom simplified styles - without flexbox/complex CSS */
+/* Hero Component - inline styles provide all styling */
+.preview-content .hero-component { padding: 40px 24px; text-align: center; margin: 24px 0; border-radius: 16px; }
+.preview-content .hero-component > * { color: white; }
 .preview-content .hero-component h1, .preview-content .hero-component h2, .preview-content .hero-component h3, .preview-content .hero-component p { color: white !important; margin: 8px 0; }
+.preview-content .hero-component h1 { font-size: 24px !important; font-weight: bold; }
+.preview-content .hero-component p { font-size: 16px; }
 
-/* Columns Table */
-.preview-content .columns-table { width: 100%; border-collapse: separate; border-spacing: 12px 0; margin: 16px 0; }
-.preview-content .columns-table td { padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; vertical-align: top; background-color: #fafafa; }
-
-/* Steps Component */
-.preview-content .steps-component { margin: 16px 0; padding: 0; list-style: none; }
-.preview-content .step-item { display: flex; margin-bottom: 16px; padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; }
-.preview-content .step-number { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; background: linear-gradient(135deg, #576b95 0%, #3d5a80 100%); color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; margin-right: 12px; }
-.preview-content .step-content { flex: 1; }
+/* Steps - simple table without flex */
+.preview-content .steps-component { margin: 16px 0; border-collapse: collapse; width: 100%; }
+.preview-content .steps-component td { padding: 12px 16px; vertical-align: top; border: 1px solid #e5e5e5; background: #fafafa; }
+.preview-content .step-number { width: 24px; height: 24px; text-align: center; font-weight: bold; border-radius: 50%; background: linear-gradient(135deg, #576b95 0%, #3d5a80 100%); color: white; }
+.preview-content .step-content { padding-left: 12px; }
 .preview-content .step-title { font-weight: 600; margin-bottom: 4px; }
 .preview-content .step-description { font-size: 14px; color: #666; }
 
-/* Timeline */
-.preview-content .timeline-component { margin: 16px 0; padding-left: 16px; border-left: 2px solid #576b95; }
-.preview-content .timeline-item { margin-bottom: 16px; padding-left: 16px; }
-.preview-content .timeline-title { font-weight: 600; }
+/* Timeline - simple border without pseudo-elements */
+.preview-content .timeline-component { margin: 16px 0; border-left: 2px solid #576b95; padding-left: 16px; }
+.preview-content .timeline-item { margin-bottom: 12px; padding-left: 16px; border-bottom: 1px solid #e5e5e5; }
+.preview-content .timeline-title { font-weight: 600; margin-bottom: 4px; }
 .preview-content .timeline-body { font-size: 14px; color: #666; }
 
-/* Card */
+/* Card - simple styling */
 .preview-content .card-component { padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; margin: 12px 0; background: #fafafa; }
+
+/* Lists - WeCom native style using simple markers */
+.preview-content ul, .preview-content ol { padding-left: 0; margin: 16px 0; list-style: none; }
+.preview-content li { margin: 8px 0; line-height: 1.7; padding-left: 20px; }
+.preview-content ul > li::before { content: ''; position: absolute; left: 4px; top: 10px; width: 6px; height: 6px; background-color: #333; border-radius: 50%; }
+.preview-content ol { counter-reset: wecom-ol; }
+.preview-content ol > li { position: relative; padding-left: 24px; counter-increment: wecom-ol; }
+.preview-content ol > li::before { content: counter(wecom-ol) "."; position: absolute; left: 4px; top: 0; font-weight: 500; }
 
 /* Callout */
 .preview-content .callout-component { padding: 12px; border-radius: 8px; margin: 12px 0; }
@@ -798,6 +803,67 @@ export function getWeChatStyles(themeAccent: string = "#576b95"): string {
   const accentDark = adjustColorHex(themeAccent, -20);
   return wechatStyles
     .replace(/linear-gradient\(135deg, #576b95 0%, #3d5a80 100%/g, `linear-gradient(135deg, ${themeAccent} 0%, ${accentDark} 100%)`)
+    .replace(/#576b95/g, themeAccent)
+    .replace(/#3d5a80/g, accentDark);
+}
+
+// WeCom-specific export styles - no flexbox, no pseudo-elements, simple CSS
+export const wecomExportStyles = `
+/* WeCom Export - Simple CSS only */
+
+/* Hero Component */
+.hero-component { padding: 40px 24px; text-align: center; margin: 24px 0; border-radius: 16px; }
+.hero-component h1, .hero-component h2, .hero-component h3,
+.hero-component h4, .hero-component h5, .hero-component h6,
+.hero-component p { color: white !important; margin: 8px 0; }
+
+/* Columns - table-based layout */
+.columns-table { width: 100%; border-collapse: separate; border-spacing: 12px 0; margin: 16px 0; }
+.columns-table td { padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; vertical-align: top; background-color: #fafafa; }
+
+/* Steps - table-based layout, no flex */
+.steps-component { margin: 16px 0; }
+.step-item { margin-bottom: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; padding: 16px; }
+.step-item table { width: 100%; border-collapse: collapse; }
+.step-item table td { padding: 0; vertical-align: top; }
+.step-item table td:first-child { width: 40px; padding-right: 12px; }
+.step-number { display: inline-block; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; color: white; font-weight: bold; }
+.step-title { font-weight: 600; margin-bottom: 4px; }
+.step-description { font-size: 14px; color: #666; }
+
+/* Timeline - simple borders, no pseudo-elements */
+.timeline-component { margin: 16px 0; border-left: 2px solid #576b95; padding-left: 16px; }
+.timeline-item { margin-bottom: 16px; padding-left: 8px; }
+.timeline-marker { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #576b95; margin-left: -20px; margin-right: 8px; }
+.timeline-title { font-weight: 600; }
+.timeline-body { font-size: 14px; color: #666; }
+
+/* Card */
+.card-component { padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; margin: 12px 0; background: #fafafa; }
+
+/* Callout */
+.callout-component { padding: 12px; border-radius: 8px; margin: 12px 0; }
+.callout-component.callout-info { background: #e3f2fd; border-left: 4px solid #576b95; }
+.callout-component.callout-warning { background: #fff3e0; border-left: 4px solid #f59e0b; }
+.callout-component.callout-error { background: #ffebee; border-left: 4px solid #f44336; }
+.callout-component.callout-success { background: #e8f5e9; border-left: 4px solid #4caf50; }
+
+/* Quote */
+.quote-component { padding: 12px 16px; margin: 12px 0; border-left: 4px solid #576b95; background: #fafafa; border-radius: 0 8px 8px 0; }
+.quote-content { font-style: italic; }
+.quote-attribution { margin-top: 8px; font-size: 14px; color: #666; }
+
+/* Lists - inline markers instead of pseudo-elements */
+.preview-content ul, .preview-content ol { margin: 16px 0; padding-left: 0; }
+.preview-content li { margin: 8px 0; line-height: 1.7; }
+.preview-content ul li { padding-left: 20px; }
+.preview-content ol li { padding-left: 24px; }
+`;
+
+// Get WeCom export styles with theme colors
+export function getWeComExportStyles(themeAccent: string = "#576b95"): string {
+  const accentDark = adjustColorHex(themeAccent, -20);
+  return wecomExportStyles
     .replace(/#576b95/g, themeAccent)
     .replace(/#3d5a80/g, accentDark);
 }

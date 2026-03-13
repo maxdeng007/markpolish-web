@@ -8,6 +8,16 @@ export interface ComponentMatch {
   endIndex: number;
 }
 
+// Helper function to adjust color brightness
+function adjustColorHex(hex: string, percent: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+  const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+  const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+  return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+}
+
 /**
  * Convert basic markdown syntax to HTML
  * This is needed because content inside HTML tags is not processed by ReactMarkdown
@@ -105,8 +115,7 @@ function markdownToHtml(markdown: string): string {
     .map((line) => {
       const trimmed = line.trim();
       if (!trimmed) return "";
-      // Don't wrap if it starts with a block element
-      if (/^<(h[1-6]|ul|ol|li|div|p|blockquote|pre|code)/i.test(trimmed)) {
+      if (/^<(h[1-6]|ul|ol|li|div|p|blockquote|pre|code|table|thead|tbody|tfoot|tr|td|th|colgroup|col|section|article|header|footer|main|nav|aside|details|summary)/i.test(trimmed)) {
         return trimmed;
       }
       // Don't wrap if it's just whitespace
@@ -205,18 +214,29 @@ export function parseCustomComponents(markdown: string): ComponentMatch[] {
   return components;
 }
 
-export function renderComponent(component: ComponentMatch): string {
+// Theme colors interface for component rendering
+export interface ThemeColors {
+  accent: string;
+  foreground: string;
+  heading: string;
+  link: string;
+  border: string;
+  code: string;
+  background: string;
+}
+
+export function renderComponent(component: ComponentMatch, themeColors?: ThemeColors): string {
   switch (component.type) {
     case "hero":
-      return renderHero(component.content);
+      return renderHero(component.content, themeColors);
     case "col-2":
       return renderColumns(component.content, 2);
     case "col-3":
       return renderColumns(component.content, 3);
     case "steps":
-      return renderSteps(component.content);
+      return renderSteps(component.content, themeColors);
     case "timeline":
-      return renderTimeline(component.content);
+      return renderTimeline(component.content, themeColors);
     case "card":
       return renderCard(component.content);
     case "video":
@@ -238,9 +258,20 @@ export function renderComponent(component: ComponentMatch): string {
   }
 }
 
-function renderHero(content: string): string {
+function renderHero(content: string, themeColors?: ThemeColors): string {
   const htmlContent = markdownToHtml(content);
-  return `<div class="hero-component" style="color: white; background: var(--hero-bg, linear-gradient(135deg, #576b95, #3d5a80)); padding: 40px 24px; border-radius: 16px;">${htmlContent}</div>`;
+  // Use theme accent color directly, with fallback to default blue gradient
+ const accentColor = themeColors?.accent || '#576b95';
+  const darkerAccent = themeColors?.accent ? adjustColorHex(themeColors.accent, -30) : '#3d5a80';
+  // Add explicit white color to inner elements for WeCom compatibility
+  const styledContent = htmlContent
+    .replace(/<h1>/g, '<h1 style="color: white;">')
+    .replace(/<h2>/g, '<h2 style="color: white;">')
+    .replace(/<h3>/g, '<h3 style="color: white;">')
+    .replace(/<p>/g, '<p style="color: white;">')
+    .replace(/<strong>/g, '<strong style="color: white;">')
+    .replace(/<em>/g, '<em style="color: white;">');
+  return `<div class="hero-component" style="color: white; background: linear-gradient(135deg, ${accentColor} 0%, ${darkerAccent} 100%); padding: 40px 24px; border-radius: 16px;">${styledContent}</div>`;
 }
 
 function renderColumns(content: string, cols: number): string {
@@ -271,7 +302,7 @@ function renderColumns(content: string, cols: number): string {
   return `<div class="columns-component">${itemsHtml}</div>`;
 }
 
-function renderSteps(content: string): string {
+function renderSteps(content: string, themeColors?: ThemeColors): string {
   const lines = content.split("\n");
   const steps: Array<{ number: number; title: string; description: string[] }> =
     [];
@@ -282,29 +313,26 @@ function renderSteps(content: string): string {
   } | null = null;
 
   for (const line of lines) {
-    // Match numbered list items
     const match = line.match(/^(\d+)\.\s+(.+)$/);
     if (match) {
-      // Save previous step
       if (currentStep) {
         steps.push(currentStep);
       }
-      // Start new step
       currentStep = {
         number: parseInt(match[1]),
         title: match[2].trim(),
         description: [],
       };
     } else if (currentStep && line.trim()) {
-      // Add to description (remove leading spaces but preserve structure)
       currentStep.description.push(line.trim());
     }
   }
 
-  // Save last step
   if (currentStep) {
     steps.push(currentStep);
   }
+
+  const accentColor = themeColors?.accent || "#576b95";
 
   const stepsHtml = steps
     .map((step) => {
@@ -313,24 +341,26 @@ function renderSteps(content: string): string {
           ? markdownToHtml(step.description.join("\n"))
           : "";
       const descHtml = descContent
-        ? `<div class="step-description">${descContent}</div>`
+        ? `<div style="font-size: 14px; color: #666; margin-top: 4px;">${descContent}</div>`
         : "";
 
-      // Convert markdown in title (for bold, italic, etc.) but don't wrap in <p> for simple titles
       let titleHtml = markdownToHtml(step.title);
-      // Strip <p> wrapper if title is simple (single line, no complex markdown)
-      if (step.description.length === 0 && titleHtml.startsWith('<p>') && titleHtml.endsWith('</p>')) {
+      if (step.description.length === 0 && titleHtml.startsWith("<p>") && titleHtml.endsWith("</p>")) {
         titleHtml = titleHtml.slice(3, -4);
       }
-      return `<div class="step-item"><div class="step-number">${step.number}</div><div class="step-content"><div class="step-title">${titleHtml}</div>${descHtml}</div></div>`;
+
+      // Use table-based layout with inline styles for WeCom compatibility
+      return `<table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa;"><tr><td style="width: 40px; padding: 12px; text-align: center; vertical-align: top;"><div style="width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: ${accentColor}; color: white; font-weight: bold; display: inline-block;">${step.number}</div></td><td style="padding: 12px; vertical-align: top;"><div style="font-weight: 600; margin-bottom: 4px;">${titleHtml}</div>${descHtml}</td></tr></table>`;
     })
     .join("");
 
-  return `<div class="steps-component">${stepsHtml}</div>`;
+  return `<div style="margin: 16px 0;">${stepsHtml}</div>`;
 }
 
-function renderTimeline(content: string): string {
+function renderTimeline(content: string, themeColors?: ThemeColors): string {
   const items = content.split(/\n\s*-{3,}\s*\n/);
+  const accentColor = themeColors?.accent || "#576b95";
+  
   const itemsHtml = items
     .map((item) => {
       const lines = item.trim().split("\n");
@@ -339,27 +369,26 @@ function renderTimeline(content: string): string {
 
       const titleHtml = markdownToHtml(title);
       const bodyHtml = body ? markdownToHtml(body) : "";
-      // For timeline, only strip <p> if there's no body content
       let finalTitleHtml = titleHtml;
-      if (!body && titleHtml.startsWith('<p>') && titleHtml.endsWith('</p>')) {
+      if (!body && titleHtml.startsWith("<p>") && titleHtml.endsWith("</p>")) {
         finalTitleHtml = titleHtml.slice(3, -4);
       }
 
-      return `<div class="timeline-item"><div class="timeline-marker"></div><div class="timeline-content"><div class="timeline-title">${finalTitleHtml}</div>${bodyHtml ? `<div class="timeline-body">${bodyHtml}</div>` : ""}</div></div>`;
-
+      // Use inline styles for WeCom compatibility - simple border-left design
+      return `<div style="margin-bottom: 16px; padding-left: 16px; border-left: 3px solid ${accentColor};"><div style="font-weight: 600; margin-bottom: 4px;">${finalTitleHtml}</div>${bodyHtml ? `<div style="font-size: 14px; color: #666;">${bodyHtml}</div>` : ""}</div>`;
     })
     .join("");
 
-  return `<div class="timeline-component">${itemsHtml}</div>`;
+  return `<div style="margin: 16px 0;">${itemsHtml}</div>`;
 }
 
 function renderCard(content: string): string {
   let htmlContent = markdownToHtml(content);
-  // Strip <p> wrapper if content is simple single paragraph
   if (htmlContent.startsWith('<p>') && htmlContent.endsWith('</p>') && !htmlContent.includes('<br />')) {
     htmlContent = htmlContent.slice(3, -4);
   }
-  return `<div class="card-component">${htmlContent}</div>`;
+  // Use inline styles for WeCom compatibility
+  return `<div style="padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; margin: 12px 0; background: #fafafa;">${htmlContent}</div>`;
 }
 
 function renderVideo(props: Record<string, string>): string {
@@ -456,7 +485,7 @@ function renderAccordion(content: string): string {
   return `<div class="accordion-component">${accordionHtml}</div>`;
 }
 
-export function convertMarkdownWithComponents(markdown: string): string {
+export function convertMarkdownWithComponents(markdown: string, themeColors?: ThemeColors): string {
   const components = parseCustomComponents(markdown);
 
   // Sort by startIndex in reverse order to replace from end to start
@@ -464,7 +493,7 @@ export function convertMarkdownWithComponents(markdown: string): string {
 
   let result = markdown;
   for (const component of components) {
-    const rendered = renderComponent(component);
+    const rendered = renderComponent(component, themeColors);
     result =
       result.substring(0, component.startIndex) +
       rendered +

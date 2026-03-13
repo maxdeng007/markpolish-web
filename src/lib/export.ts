@@ -1,6 +1,6 @@
-import { convertMarkdownWithComponents } from "./markdown-components";
+import { convertMarkdownWithComponents, ThemeColors } from "./markdown-components";
 import { getTheme } from "./themes";
-import { getExportStyles } from "./preview-styles";
+import { getWeComExportStyles, getExportStyles } from "./preview-styles";
 
 // AI Image state interface for export
 export interface AIImageExportState {
@@ -8,7 +8,8 @@ export interface AIImageExportState {
   ratio: string;
   imageUrl: string | null;
   status: "idle" | "generating" | "done" | "error";
-}
+  }
+
 
 export function exportToMarkdown(
   markdown: string,
@@ -47,8 +48,19 @@ export async function exportToHTML(
   const isDark = theme.category === "dark";
   const sharedStyles = getExportStyles(isDark);
   
+  // Theme colors for component rendering
+  const themeColors: ThemeColors = {
+    accent: theme.styles.accent,
+    foreground: theme.styles.foreground,
+    heading: theme.styles.heading,
+    link: theme.styles.link,
+    border: theme.styles.border,
+    code: theme.styles.code,
+    background: theme.styles.background,
+  };
+  
   // Convert markdown to HTML with proper component handling
-  let contentHtml = convertMarkdownToHTML(markdown);
+  let contentHtml = convertMarkdownToHTML(markdown, themeColors);
   
   // Process AI images in the HTML - replace placeholders with actual images
   contentHtml = await processAIImagesInHTML(contentHtml, aiImageStates);
@@ -207,279 +219,181 @@ function adjustColor(hex: string, percent: number): string {
   return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
 }
 
-// WeChat/WeCom export with <style> tags for Code mode
-// Accepts themeId parameter and uses theme colors
+// WeChat/WeCom export - uses full HTML document with <style> blocks
+// Based on user testing: Full document structure preserves theme colors in WeCom Code mode
 export async function exportForWeChat(
   markdown: string,
   aiImageStates: Record<string, AIImageExportState> = {},
   themeId: string = "wechat-classic",
 ): Promise<void> {
   const theme = getTheme(themeId);
-  const colors = {
+  const isDark = theme.category === "dark";
+  const sharedStyles = getWeComExportStyles(theme.styles.accent);
+  
+  // Convert markdown to HTML with proper component handling and theme colors
+  const themeColors: ThemeColors = {
     accent: theme.styles.accent,
+    foreground: theme.styles.foreground,
     heading: theme.styles.heading,
-    border: theme.styles.border,
     link: theme.styles.link,
+    border: theme.styles.border,
     code: theme.styles.code,
+    background: theme.styles.background,
   };
+  let contentHtml = convertMarkdownToHTML(markdown, themeColors);
+  
+  // Process AI images in the HTML
+  contentHtml = await processAIImagesInHTML(contentHtml, aiImageStates);
+  
+  // Add inline styles to lists for WeCom compatibility
+  contentHtml = addInlineListStyles(contentHtml, theme.styles.accent);
+  // Build full HTML document - WeCom Code mode preserves <style> blocks in <head>
+  const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Reset and base styles */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system-font, "Helvetica Neue", sans-serif;
+    }
+    .preview-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .preview-content {
+      ${theme.styles.background !== "#ffffff" ? `background: ${theme.styles.background};` : ""}
+      ${theme.styles.foreground !== "#333333" ? `color: ${theme.styles.foreground};` : ""}
+      padding: 20px;
+    }
+    
+    /* Theme CSS */
+    ${theme.css}
+    
+    /* Shared component styles */
+    ${sharedStyles}
+    
+    
+    /* Dark mode - only affect content area */
+    ${isDark ? ".preview-content { background: " + theme.styles.background + "; color: " + theme.styles.foreground + "; }" : ""}
+  </style>
+</head>
+<body>
+  <div class="preview-container ${isDark ? "theme-dark" : ""}">
+    <div class="preview-content">
+      ${contentHtml}
+    </div>
+  </div>
+</body>
+</html>`;
 
-  const wechatStyle = `
-    /* WeChat/WeCom Base Styles */
-    body { font-family: -apple-system-font, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif; font-size: 16px; line-height: 1.75; color: #333; }
-    
-    /* Hero Component */
-    .hero-component { padding: 40px 24px; background-color: ${colors.accent}; text-align: center; margin: 24px 0; border-radius: 16px; color: white; }
-    .hero-component h1 { color: white !important; font-size: 28px !important; margin: 0 0 16px !important; font-weight: 600 !important; }
-    .hero-component h2 { color: white !important; font-size: 22px !important; margin: 0 0 12px !important; font-weight: 600 !important; }
-    .hero-component h3 { color: white !important; font-size: 18px !important; margin: 0 0 8px !important; }
-    .hero-component p { color: white !important; margin: 0 !important; }
-    
-    /* Columns Table */
-    .columns-table { width: 100%; border-collapse: separate; border-spacing: 12px 0; margin: 16px 0; }
-    .columns-table td { padding: 16px; border: 1px solid ${colors.border}; border-radius: 8px; vertical-align: top; background-color: #fafafa; }
-    
-    /* Steps Component */
-    .steps-component { margin: 16px 0; padding: 0; list-style: none; }
-    .step-item { display: flex; gap: 12px; margin-bottom: 12px; padding: 12px; border: 1px solid ${colors.border}; border-radius: 8px; background: #fafafa; }
-    .step-number { width: 28px; height: 28px; min-width: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; background-color: ${colors.accent}; }
-    .step-content { flex: 1; }
-    .step-title { font-weight: 600; margin-bottom: 4px; }
-    .step-description { font-size: 14px; color: #666; }
-    
-    /* Timeline Component */
-    .timeline-component { margin: 16px 0; padding-left: 16px; border-left: 2px solid ${colors.accent}; }
-    .timeline-item { position: relative; padding-left: 16px; margin-bottom: 16px; }
-    .timeline-title { font-weight: 600; margin-bottom: 4px; }
-    .timeline-body { font-size: 14px; color: #666; }
-    
-    /* Card Component */
-    .card-component { padding: 16px; border: 1px solid ${colors.border}; border-radius: 8px; margin: 12px 0; background: #fafafa; }
-    
-    /* Callout Component */
-    .callout-component { padding: 12px; border-radius: 8px; margin: 12px 0; }
-    .callout-component.callout-info { background: #e3f2fd; border-left: 4px solid #2196f3; }
-    .callout-component.callout-warning { background: #fff3e0; border-left: 4px solid #f59e0b; }
-    .callout-component.callout-error { background: #ffebee; border-left: 4px solid #f44336; }
-    .callout-component.callout-success { background: #e8f5e9; border-left: 4px solid #4caf50; }
-    .callout-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .callout-icon { font-size: 18px; }
-    .callout-title { font-weight: 600; font-size: 15px; }
-    .callout-content { font-size: 14px; line-height: 1.6; }
-    
-    /* Quote Component */
-    .quote-component { padding: 12px 16px; margin: 12px 0; border-left: 4px solid ${colors.accent}; background: #fafafa; border-radius: 0 8px 8px 0; }
-    .quote-content { font-style: italic; font-size: 16px; line-height: 1.7; }
-    .quote-attribution { margin-top: 8px; font-size: 14px; color: #666; }
-    .quote-author { font-weight: 600; color: ${colors.accent}; }
-    
-    /* Blockquote */
-    blockquote { margin: 16px 0; padding: 12px 16px; border-left: 4px solid ${colors.accent}; background-color: #fafafa; color: #666; font-style: italic; border-radius: 0 8px 8px 0; }
-    
-    /* Code */
-    code { background-color: ${colors.code}; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; }
-    pre { background-color: ${colors.code}; padding: 12px 16px; border-radius: 8px; overflow-x: auto; }
-    pre code { background: none; padding: 0; }
-    
-    /* Headings */
-    h1 { font-size: 24px; font-weight: 600; color: ${colors.heading}; margin: 24px 0 16px; text-align: center; }
-    h2 { font-size: 20px; font-weight: 600; color: ${colors.heading}; margin: 20px 0 12px; border-left: 4px solid ${colors.accent}; padding-left: 12px; }
-    h3 { font-size: 18px; font-weight: 600; color: ${colors.heading}; margin: 16px 0 8px; }
-    
-    /* Links */
-    a { color: ${colors.link}; text-decoration: none; }
-    
-    /* ========================================
-    * STYLISH LISTS FOR WECHAT/WECOM
-    * ======================================== */
-    
-    /* Base List Styles */
-    ul, ol { padding-left: 0; margin: 20px 0; list-style: none; }
-    li { margin: 12px 0; line-height: 1.8; }
-    li p { margin: 6px 0; }
-    
-    /* ========================================
-    * UNORDERED LIST - WeChat Native Style
-    * ======================================== */
-    ul > li { 
-      position: relative; 
-      padding-left: 20px; 
-      margin: 10px 0;
-    }
-    ul > li::before {
-      content: '';
-      position: absolute;
-      left: 4px;
-      top: 10px;
-      width: 6px;
-      height: 6px;
-      background-color: #333;
-      border-radius: 50%;
-    }
-    
-    /* Nested Level 1 */
-    ul ul > li { padding-left: 20px; }
-    ul ul > li::before { background-color: #666; }
-    
-    /* Nested Level 2 */
-    ul ul ul > li::before { background-color: #999; }
-    
-    /* Nested Level 3 */
-    ul ul ul ul > li::before { background-color: #ccc; }
-    
-    /* Nested Level 1 - Hollow Circle */
-    ul ul > li { padding-left: 28px; }
-    ul ul > li::before {
-      width: 8px;
-      height: 8px;
-      background: transparent;
-      border: 2px solid ${colors.accent};
-      box-shadow: none;
-    }
-    
-    /* Nested Level 2 - Diamond */
-    ul ul ul > li { padding-left: 28px; }
-    ul ul ul > li::before {
-      width: 0;
-      height: 0;
-      background: transparent;
-      border: none;
-    }
-    ul ul ul > li::after {
-      content: '◆';
-      position: absolute;
-      left: 6px;
-      top: 6px;
-      font-size: 8px;
-      color: ${colors.accent};
-    }
-    
-    /* Nested Level 3 - Small Circle */
-    ul ul ul ul > li::before {
-      width: 6px;
-      height: 6px;
-      border-radius: 2px;
-    }
-    ul ul ul ul > li::after { display: none; }
-    
-    /* ========================================
-    * ORDERED LIST - WeChat Native Style
-    * ======================================== */
-    ol { counter-reset: wechat-ol; }
-    ol > li {
-      position: relative;
-      padding-left: 24px;
-      margin: 10px 0;
-      counter-increment: wechat-ol;
-    }
-    ol > li::before {
-      content: counter(wechat-ol) ".";
-      position: absolute;
-      left: 4px;
-      top: 0;
-      color: #333;
-      font-weight: 500;
-    }
-    
-    /* Nested Level 1 */
-    ol ol { margin: 8px 0; }
-    ol ol > li { padding-left: 24px; }
-    ol ol > li::before { color: #666; }
-    
-    /* Nested Level 2 */
-    ol ol ol > li::before { color: #999; }
-    
-    /* Nested Level 3 */
-    ol ol ol ol > li::before { color: #ccc; }
-    
-    /* List Content Styling */
-    li strong { color: ${colors.heading}; }
-    li em { color: #666; }
-    /* ========================================
-    * TABLE STYLES
-    * ======================================== */
-    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    th, td { padding: 12px 16px; border: 1px solid ${colors.border}; text-align: left; }
-    th { background-color: #f5f5f5; font-weight: 600; }
-    
-    /* AI Image */
-    .ai-image-export { margin: 24px 0; text-align: center; }
-    .ai-image-export img { max-width: 100%; border-radius: 8px; }
-  `;
-
-  // Convert markdown to HTML
-  let wechatHTML = convertMarkdownToHTML(markdown);
-
-  // Process AI images
-  wechatHTML = await processAIImagesInHTML(wechatHTML, aiImageStates);
-
-  // Wrap with styles
-  wechatHTML = `<style>${wechatStyle}</style>
-${wechatHTML}`;
-
-  // Copy raw HTML code to clipboard (for WeCom Code mode)
+  // Copy the ENTIRE HTML document to clipboard
+  // WeCom Code mode preserves <style> blocks in <head>
   try {
-    // Use text/plain to copy raw HTML code (not rendered content)
-    await navigator.clipboard.writeText(wechatHTML);
+    await navigator.clipboard.writeText(fullHtml);
     alert(
-      "Raw HTML code copied! Paste into Code mode (代码模式) in WeCom editor."
+      "Full HTML document copied! Paste into Code mode (代码模式) in WeCom editor."
     );
   } catch (err) {
     console.error("Failed to copy:", err);
     // Fallback: download as HTML file
-    const blob = new Blob([wechatHTML], { type: "text/html" });
+    const blob = new Blob([fullHtml], { type: "text/html" });
     downloadBlob(blob, "wechat-article.html");
   }
 }
 
 // Convert markdown tables to HTML tables
-function convertMarkdownTables(markdown: string): string {
+// Only converts proper GFM tables (with separator row like |---|)
+// Leaves ASCII art tables as plain text
+function convertMarkdownTables(markdown: string, themeColors?: ThemeColors): string {
   const lines = markdown.split('\n');
   const result: string[] = [];
-  let inTable = false;
-  let tableRows: string[] = [];
-
+  
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
-
-    // Check if line is a table row (starts with |)
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-      // Check if separator line
-      if (/^\|\s*[-:]+\s*\|/.test(trimmed)) continue;
+    
+    // Normalize fullwidth pipes (｜ U+FF5C) to ASCII pipes (| U+007C)
+    const normalized = trimmed.replace(/｜/g, '|');
+    
+    // Check if this line starts with | and the NEXT line is a separator (|---|)
+    // This is the pattern for a proper GFM table
+    if (normalized.startsWith('|') && normalized.endsWith('|')) {
+      const nextLine = i + 1 < lines.length ? lines[i + 1].trim().replace(/｜/g, '|') : '';
       
-      if (!inTable) {
-        inTable = true;
-        tableRows = [];
+      // Check if next line is a separator row: |---|---| or | --- | --- |
+      const isSeparator = /^\|\s*[-:]+[-\s:|]*\|\s*$/.test(nextLine);
+      
+      if (isSeparator) {
+        // This is a proper markdown table! Collect all rows.
+        const tableRows: string[] = [];
+        let j = i;
+        
+        // Collect header row
+        tableRows.push(normalized);
+        j++;
+        
+        // Skip separator row
+        j++;
+        
+        // Collect body rows (all consecutive lines starting/ending with |)
+        while (j < lines.length) {
+          const bodyLine = lines[j].trim().replace(/｜/g, '|');
+          if (bodyLine.startsWith('|') && bodyLine.endsWith('|')) {
+            // Skip if it's another separator (shouldn't happen in body, but be safe)
+            if (!/^\|\s*[-:]+[-\s:|]*\|\s*$/.test(bodyLine)) {
+              tableRows.push(bodyLine);
+            }
+            j++;
+          } else {
+            break;
+          }
+        }
+        
+        // Render the table
+        result.push(renderMarkdownTableHTML(tableRows, themeColors?.accent));
+        
+        // Skip the lines we've processed
+        i = j - 1;
+        continue;
       }
-      tableRows.push(trimmed);
-    } else {
-      if (inTable && tableRows.length > 0) {
-        result.push(renderMarkdownTableHTML(tableRows));
-        tableRows = [];
-        inTable = false;
-      }
-      result.push(line);
     }
-  }
-
-  if (inTable && tableRows.length > 0) {
-    result.push(renderMarkdownTableHTML(tableRows));
+    
+    // Not a table or not a proper markdown table - keep as-is
+    result.push(line);
   }
 
   return result.join('\n');
 }
 
-function renderMarkdownTableHTML(rows: string[]): string {
+function renderMarkdownTableHTML(rows: string[], accentColor?: string): string {
   if (rows.length === 0) return '';
   
-  let html = '<table>\n';
+  const borderColor = accentColor || '#e5e5e5';
+  const headerBg = accentColor ? `${accentColor}15` : '#f5f5f5';
+  
+  let html = `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; border: 1px solid ${borderColor};">\n`;
   
   rows.forEach((row, index) => {
     const cells = row.split('|').slice(1, -1).map(cell => cell.trim());
-    const tag = index === 0 ? 'th' : 'td';
-    html += '  <tr>\n';
-    cells.forEach(cell => {
-      html += `    <${tag}>${cell}</${tag}>\n`;
+    const isHeader = index === 0;
+    const tag = isHeader ? 'th' : 'td';
+    
+    html += `  <tr>\n`;
+    cells.forEach((cell, cellIndex) => {
+      const padding = isHeader ? '12px 8px' : '10px 8px';
+      const fontWeight = isHeader ? '600' : 'normal';
+      const bg = isHeader ? headerBg : 'transparent';
+      const textAlign = isHeader ? 'center' : 'left';
+      const borderRight = cellIndex < cells.length - 1 ? `border-right: 1px solid ${borderColor};` : '';
+      html += `    <${tag} style="padding: ${padding}; font-weight: ${fontWeight}; background: ${bg}; text-align: ${textAlign}; border-bottom: 1px solid ${borderColor}; ${borderRight}">${cell}</${tag}>\n`;
     });
     html += '  </tr>\n';
   });
@@ -489,40 +403,193 @@ function renderMarkdownTableHTML(rows: string[]): string {
 }
 
 // Improved markdown to HTML converter that preserves component HTML
-function convertMarkdownToHTML(markdown: string): string {
+function convertMarkdownToHTML(markdown: string, themeColors?: ThemeColors): string {
   // First, process custom components - this converts ::: blocks to HTML
-  let html = convertMarkdownWithComponents(markdown);
+  let html = convertMarkdownWithComponents(markdown, themeColors);
 
   // Convert markdown tables to HTML tables
-  html = convertMarkdownTables(html);
+  html = convertMarkdownTables(html, themeColors);
 
   // Now process remaining markdown while preserving existing HTML
-  html = processBlockMarkdown(html);
+  html = processBlockMarkdown(html, themeColors);
   html = processInlineMarkdown(html);
   html = wrapOrphanText(html);
 
   return html;
 }
 
+// Add inline styles to lists for WeCom compatibility
+// Converts <ul> and <ol> to div-based layouts with inline styles
+// Handles nested lists recursively
+function addInlineListStyles(html: string, accentColor: string): string {
+  // Process lists from innermost to outermost (reverse recursion)
+  // Keep processing until no more list tags are found
+  let previousHtml = '';
+  let maxIterations = 20; // Safety limit
+  
+  while (html !== previousHtml && maxIterations > 0) {
+    previousHtml = html;
+    maxIterations--;
+    
+    // Process unordered lists - match innermost first
+    html = html.replace(
+      /<ul>((?:(?!<ul>|<ol>|<\/ul>|<\/ol>).)*?)<\/ul>/gs,
+      (_match, content) => {
+        return processListItems(content, 'ul', accentColor, 0);
+      }
+    );
+    
+    // Process ordered lists - match innermost first
+    html = html.replace(
+      /<ol>((?:(?!<ul>|<ol>|<\/ul>|<\/ol>).)*?)<\/ol>/gs,
+      (_match, content) => {
+        return processListItems(content, 'ol', accentColor, 0);
+      }
+    );
+  }
+  
+  // Now handle any remaining nested lists that are inside list items
+  // These would be lists that were processed but their markers are still in the content
+  html = html.replace(
+    /<div[^>]*data-list-marker="true"[^>]*>(.*?)<\/div>/gs,
+    (_match, content) => {
+      return content;
+    }
+  );
+  
+  return html;
+}
+
+// Process list items within a ul/ol
+function processListItems(content: string, listType: 'ul' | 'ol', accentColor: string, level: number): string {
+  // Extract li items - handle both simple and complex content
+  const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/g;
+  const items: Array<{content: string; nestedList?: string}> = [];
+  
+  let liMatch;
+  while ((liMatch = liRegex.exec(content)) !== null) {
+    let itemContent = liMatch[1].trim();
+    let nestedList: string | undefined;
+    
+    // Check for nested list divs that were already processed
+    // Match divs with the list wrapper style
+    const nestedDivRegex = /<div[^>]*style="margin:\s*8px\s+0;[^"]*"[^>]*>/;
+    const nestedUlMatch = itemContent.match(nestedDivRegex);
+    
+    if (nestedUlMatch) {
+      const startIndex = itemContent.indexOf(nestedUlMatch[0]);
+      if (startIndex >= 0) {
+        // Split into text content and nested list
+        const textContent = itemContent.substring(0, startIndex).trim();
+        nestedList = itemContent.substring(startIndex);
+        
+        if (textContent) {
+          // Has text before nested list
+          itemContent = textContent;
+        } else {
+          // No text before nested list - this item IS a container for nested list
+          // Mark as having only nested content (no bullet needed for parent)
+          itemContent = '';
+        }
+      }
+    }
+    
+    // Skip completely empty items (but keep items that have nested lists)
+    if (itemContent === '' && !nestedList) {
+      continue;
+    }
+    
+    items.push({ content: itemContent, nestedList });
+  }
+  
+  if (items.length === 0) {
+    return '';
+  }
+  
+  const bullets = ['•', '○', '▪', '▫'];
+  
+  const rows = items.map((item) => {
+    // If item has no content but has nested list, just return the nested list
+    if (item.content === '' && item.nestedList) {
+      const indentedNestedList = item.nestedList.replace(
+        /padding-left:\s*(\d+)px/g,
+        (_match, num) => `padding-left: ${parseInt(num) + 20}px`
+      );
+      return indentedNestedList;
+    }
+    
+    const bullet = listType === 'ul' ? bullets[level % bullets.length] : '•';
+    const indent = level * 20;
+    let row = `<div style="padding-left: ${24 + indent}px; margin: 4px 0;"><span style="font-weight: 600; color: ${accentColor};">${bullet}</span><span style="color: #333;">${item.content}</span></div>`;
+    
+    // Append nested list if present - increase indentation by modifying inline styles
+    if (item.nestedList) {
+      const indentedNestedList = item.nestedList.replace(
+        /padding-left:\s*(\d+)px/g,
+        (_match, num) => `padding-left: ${parseInt(num) + 20}px`
+      );
+      row += indentedNestedList;
+    }
+    
+    return row;
+  }).join('');
+  
+  if (!rows) return '';
+  
+  return `<div style="margin: 8px 0;">${rows}</div>`;
+}
+
+
 // Process block-level markdown (headers, lists, code, blockquotes)
-function processBlockMarkdown(html: string): string {
+function processBlockMarkdown(html: string, themeColors?: ThemeColors): string {
   const lines = html.split('\n');
   const result: string[] = [];
   let inCodeBlock = false;
   let codeBlockContent: string[] = [];
-  let inList = false;
-  let listItems: string[] = [];
-  let listType: 'ul' | 'ol' = 'ul';
   let inBlockquote = false;
   let blockquoteContent: string[] = [];
 
-  const closeList = () => {
-    if (inList && listItems.length > 0) {
-      result.push(`<${listType}>`);
-      listItems.forEach(item => result.push(item));
-      result.push(`</${listType}>`);
-      listItems = [];
-      inList = false;
+  // List state - track nested lists
+  interface ListState {
+    type: 'ul' | 'ol';
+    items: string[];
+    level: number;
+  }
+  let listStack: ListState[] = [];
+
+  const getIndentLevel = (line: string): number => {
+    const match = line.match(/^(\s*)/);
+    return match ? Math.floor(match[1].length / 2) : 0;
+  };
+
+  const flushLists = () => {
+    // Build HTML from innermost to outermost
+    let nestedContent = '';
+    
+    while (listStack.length > 0) {
+      const list = listStack.pop()!;
+      const items = list.items.join('\n');
+      
+      if (nestedContent) {
+        // Find the last </li> to insert nested content before it
+        // Using </li> instead of <li> ensures we find the correct parent item
+        // (not a nested <li> inside another item)
+        const lastCloseLiIdx = items.lastIndexOf('</li>');
+        if (lastCloseLiIdx !== -1) {
+          const before = items.substring(0, lastCloseLiIdx);
+          const after = items.substring(lastCloseLiIdx);
+          // Insert nested list before </li> of last item
+          nestedContent = `<${list.type}>\n${before}<${list.type}>${nestedContent}</${list.type}>${after}\n</${list.type}>`;
+        } else {
+          nestedContent = `<${list.type}>${items}\n${nestedContent}</${list.type}>`;
+        }
+      } else {
+        nestedContent = `<${list.type}>\n${items}\n</${list.type}>`;
+      }
+    }
+    
+    if (nestedContent) {
+      result.push(nestedContent);
     }
   };
 
@@ -537,19 +604,18 @@ function processBlockMarkdown(html: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
+    const indentLevel = getIndentLevel(line);
 
-    // Skip lines that are already HTML (contain tags but not markdown)
-    // Check if line starts with HTML tag (not just contains one)
-    if (trimmed.match(/^<(div|span|p|h[1-6]|ul|ol|li|blockquote|pre|code|table|img|a|strong|em|br|hr|section|article|header|footer|main|nav)/i)) {
-      closeList();
+    // Skip lines that are already HTML
+    if (trimmed.match(/^<(div|span|p|h[1-6]|ul|ol|li|blockquote|pre|code|table|thead|tbody|tfoot|tr|td|th|colgroup|col|img|a|strong|em|br|hr|section|article|header|footer|main|nav|details|summary)/i)) {
+      flushLists();
       closeBlockquote();
       result.push(line);
       continue;
     }
     
-    // Also skip closing tags and lines with class attributes (component output)
     if (trimmed.match(/^<\//) || trimmed.includes('class="')) {
-      closeList();
+      flushLists();
       closeBlockquote();
       result.push(line);
       continue;
@@ -562,7 +628,7 @@ function processBlockMarkdown(html: string): string {
         codeBlockContent = [];
         inCodeBlock = false;
       } else {
-        closeList();
+        flushLists();
         closeBlockquote();
         inCodeBlock = true;
       }
@@ -577,7 +643,7 @@ function processBlockMarkdown(html: string): string {
     // Headers
     const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
     if (headerMatch) {
-      closeList();
+      flushLists();
       closeBlockquote();
       const level = headerMatch[1].length;
       result.push(`<h${level}>${headerMatch[2]}</h${level}>`);
@@ -586,9 +652,10 @@ function processBlockMarkdown(html: string): string {
 
     // Horizontal rule
     if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
-      closeList();
+      flushLists();
       closeBlockquote();
-      result.push('<hr />');
+      const dividerColor = themeColors?.accent || '#e5e5e5';
+      result.push(`<div style="height: 1px; background-color: ${dividerColor}; margin: 20px 0;"></div>`);
       continue;
     }
 
@@ -596,12 +663,38 @@ function processBlockMarkdown(html: string): string {
     const ulMatch = trimmed.match(/^-\s+(.+)$/);
     if (ulMatch) {
       closeBlockquote();
-      if (!inList || listType !== 'ul') {
-        closeList();
-        inList = true;
-        listType = 'ul';
+      
+      // Adjust list stack based on indentation
+      while (listStack.length > indentLevel + 1) {
+        const deeperList = listStack.pop()!;
+        if (listStack.length > 0) {
+          const parent = listStack[listStack.length - 1];
+          if (parent.items.length > 0) {
+            const lastItem = parent.items.pop()!;
+            parent.items.push(lastItem.replace('</li>', `<${deeperList.type}>${deeperList.items.join('\n')}</${deeperList.type}></li>`));
+          }
+        }
       }
-      listItems.push(`<li>${ulMatch[1]}</li>`);
+      
+      // Ensure we have a list at the right level
+      while (listStack.length < indentLevel + 1) {
+        listStack.push({ type: 'ul', items: [], level: listStack.length });
+      }
+      
+      // Set correct list type if needed
+      if (listStack[indentLevel] && listStack[indentLevel].type !== 'ul') {
+        const oldList = listStack[indentLevel];
+        if (oldList.items.length > 0 && listStack[indentLevel - 1]) {
+          const parent = listStack[indentLevel - 1];
+          if (parent.items.length > 0) {
+            const lastItem = parent.items.pop()!;
+            parent.items.push(lastItem.replace('</li>', `<${oldList.type}>${oldList.items.join('\n')}</${oldList.type}></li>`));
+          }
+        }
+        listStack[indentLevel] = { type: 'ul', items: [], level: indentLevel };
+      }
+      
+      listStack[indentLevel].items.push(`<li>${ulMatch[1]}</li>`);
       continue;
     }
 
@@ -609,18 +702,41 @@ function processBlockMarkdown(html: string): string {
     const olMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
     if (olMatch) {
       closeBlockquote();
-      if (!inList || listType !== 'ol') {
-        closeList();
-        inList = true;
-        listType = 'ol';
+      
+      while (listStack.length > indentLevel + 1) {
+        const deeperList = listStack.pop()!;
+        if (listStack.length > 0) {
+          const parent = listStack[listStack.length - 1];
+          if (parent.items.length > 0) {
+            const lastItem = parent.items.pop()!;
+            parent.items.push(lastItem.replace('</li>', `<${deeperList.type}>${deeperList.items.join('\n')}</${deeperList.type}></li>`));
+          }
+        }
       }
-      listItems.push(`<li>${olMatch[2]}</li>`);
+      
+      while (listStack.length < indentLevel + 1) {
+        listStack.push({ type: 'ol', items: [], level: listStack.length });
+      }
+      
+      if (listStack[indentLevel] && listStack[indentLevel].type !== 'ol') {
+        const oldList = listStack[indentLevel];
+        if (oldList.items.length > 0 && listStack[indentLevel - 1]) {
+          const parent = listStack[indentLevel - 1];
+          if (parent.items.length > 0) {
+            const lastItem = parent.items.pop()!;
+            parent.items.push(lastItem.replace('</li>', `<${oldList.type}>${oldList.items.join('\n')}</${oldList.type}></li>`));
+          }
+        }
+        listStack[indentLevel] = { type: 'ol', items: [], level: indentLevel };
+      }
+      
+      listStack[indentLevel].items.push(`<li>${olMatch[2]}</li>`);
       continue;
     }
 
     // Blockquote
     if (trimmed.startsWith('> ')) {
-      closeList();
+      flushLists();
       if (!inBlockquote) {
         inBlockquote = true;
       }
@@ -630,23 +746,23 @@ function processBlockMarkdown(html: string): string {
 
     // Empty line - close open blocks
     if (trimmed === '') {
-      closeList();
+      flushLists();
       closeBlockquote();
       result.push('');
       continue;
     }
 
     // Regular text line
-    closeList();
+    flushLists();
     closeBlockquote();
     result.push(line);
   }
 
-  // Close any open elements
+  // Close any remaining open elements
   if (inCodeBlock && codeBlockContent.length > 0) {
     result.push(`<pre><code>${escapeHtml(codeBlockContent.join('\n'))}</code></pre>`);
   }
-  closeList();
+  flushLists();
   closeBlockquote();
 
   return result.join('\n');
@@ -678,7 +794,7 @@ function processInlineMarkdown(html: string): string {
 // Wrap text that's not inside block elements with <p> tags
 function wrapOrphanText(html: string): string {
   const blockElementRegex =
-    /^<(div|p|h[1-6]|ul|ol|li|blockquote|pre|hr|section|table|thead|tbody|tr|td|th|article|aside|header|footer|main|nav|img)[\s>]/i;
+    /^<(div|p|h[1-6]|ul|ol|li|blockquote|pre|hr|section|table|thead|tbody|tfoot|tr|td|th|colgroup|col|article|aside|header|footer|main|nav|img|details|summary)[\s>]/i;
 
   const parts = html.split(/\n\n+/);
 
@@ -757,3 +873,5 @@ function downloadBlob(blob: Blob, filename: string) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+

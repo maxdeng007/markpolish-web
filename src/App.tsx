@@ -30,106 +30,238 @@ import { exportToMarkdown, exportToHTML, exportForWeChat } from "@/lib/export";
 import { fileOps, type Project } from "@/lib/file-operations";
 import { setupDefaultShortcuts, shortcuts } from "@/lib/keyboard-shortcuts";
 import { cn } from "@/lib/utils";
-const defaultMarkdown = `# MarkPolish Studio
+const defaultMarkdown = `# MarkPolish Complete Test Document
 
-A content creation tool for **WeChat** publishing.
-
----
-
-## Custom Components
-
-:::hero
-# Welcome to MarkPolish
-Create beautiful content with custom components
-:::
-
-:::col-2
-### Features
-- Rich text editing
-- Custom themes
-- Export to WeChat
----
-### Benefits
-- Easy to use
-- Professional output
-- Save time
-:::
-
-:::steps
-1. Write your content
-2. Choose a theme
-3. Export to WeChat
-:::
-
-:::timeline
-**2024 Q1** Project Launch
----
-**2024 Q2** AI Features
----
-**2024 Q3** Premium Release
-:::
-
-:::card
-**Pro Tip:** Combine components for engaging layouts!
-:::
+This document contains all components and formats for testing export to Wecom.
 
 ---
 
-## Markdown Syntax
+## 📝 Text Formatting Test
 
-### Text Formatting
-
-**Bold text** for emphasis.
+**Bold text** for emphasizing important content.
 
 *Italic text* for subtle emphasis.
 
 ~~Strikethrough~~ for deleted content.
 
-### Lists
+\`Inline code\` looks like this.
 
-**Unordered List:**
+[This is a link](https://example.com)
+
+---
+
+## 📋 List Test
+
+### Unordered List
+
 - First item
 - Second item
 - Third item
+- Fourth item
 
-**Ordered List:**
-1. Step one
-2. Step two
-3. Step three
+### Ordered List
 
-### Links and Images
+1. Step one: Prepare content
+2. Step two: Select theme
+3. Step three: Export file
+4. Step four: Paste and publish
 
-[Visit Example](https://example.com)
+### Nested List
 
-AI Generated Image:
+- Main item one
+  - Sub item 1.1
+  - Sub item 1.2
+- Main item two
+  - Sub item 2.1
 
-[IMG: A beautiful sunset over mountains]
+---
+
+## 💬 Blockquote and Code Test
 
 ### Blockquote
 
 > This is a blockquote.
-> Perfect for highlighting important text.
+> It can span multiple lines.
+> Perfect for highlighting important information.
 
-### Code
-
-Inline \`code\` looks like this.
+### Code Block
 
 \`\`\`javascript
-const greeting = "Hello, World!";
-console.log(greeting);
+function greet(name) {
+  console.log(\`Hello, \${name}!\`);
+}
+greet('MarkPolish');
 \`\`\`
 
 ---
 
-## Tips
+## 📊 Table Test
 
-- Switch themes in the Theme tab
-- Use AI to enhance content
-- Export for WeChat
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Theme System | 14 professional themes | ✅ |
+| AI Assistant | Smart content enhancement | ✅ |
+| Export | HTML/PDF/MD | ✅ |
+| Custom Components | Rich layout options | ✅ |
 
 ---
 
-*Start editing to create amazing content!*`;
+## 🎨 Custom Components Test
+
+### Hero Component
+
+:::hero
+# Welcome to MarkPolish Studio
+Create beautiful WeCom content, export with one click, publish easily
+:::
+
+### Two Column Layout
+
+:::col-2
+#### Left Column
+- Rich features
+- Easy to use
+- Professional output
+---
+#### Right Column
+- Multiple themes
+- AI assistance
+- Real-time preview
+:::
+
+### Three Column Layout
+
+:::col-3
+**First Column**
+Quick start
+---
+**Second Column**
+Professional output
+---
+**Third Column**
+Efficient publishing
+:::
+
+### Steps Component
+
+:::steps
+1. Write your Markdown content
+2. Select your favorite theme on the right
+3. Use AI features to optimize text
+4. Click export button to get code
+5. Paste into Wecom and publish
+:::
+
+### Timeline Component
+
+:::timeline
+**January 2024** Project launch, completed basic architecture
+---
+**March 2024** Released AI assistance features
+---
+**June 2024** Added 14 professional themes
+---
+**September 2024** Optimized Wecom export
+:::
+
+### Card Component
+
+:::card
+**💡 Pro Tip**
+
+Combine multiple components to create more engaging content layouts!
+
+Try combining Hero, Steps, and Card for better results.
+:::
+
+### Callout Component
+
+:::callout type="info" title="Note"
+This is an info callout for displaying important tips.
+:::
+
+:::callout type="warning" title="Warning"
+This is a warning callout to alert users about potential issues.
+:::
+
+:::callout type="error" title="Error"
+This is an error callout for displaying errors or critical problems.
+:::
+
+:::callout type="success" title="Success"
+This is a success callout indicating an operation completed successfully.
+:::
+
+### Quote Component
+
+:::quote author="Steve Jobs" source="Stanford Commencement Speech"
+Stay hungry, stay foolish.
+:::
+
+### Tabs Component
+
+:::tabs
+--Tab1--
+**Introduction**
+
+MarkPolish provides rich Markdown editing features.
+
+--Tab2--
+**User Guide**
+
+1. Write content
+2. Select theme
+3. Export and publish
+
+--Tab3--
+**FAQ**
+
+Q: How to export to Wecom?
+A: Click the "Export" button.
+:::
+
+### Accordion Component
+
+:::accordion
+--First Question: How to get started?--
+Simply type Markdown content in the left editor, and the right side will show a real-time preview.
+
+--Second Question: What themes are supported?--
+Currently 14 themes are supported, including 8 light themes and 6 dark themes.
+
+--Third Question: How to export?--
+Click the export button in the toolbar and select HTML, PDF, or Markdown format.
+:::
+
+### Video Component
+
+:::video src="https://example.com/demo.mp4" caption="Feature demo video" :::
+
+---
+
+## 🖼️ Image Test
+
+### AI Generated Image
+
+[IMG: A beautiful mountain sunset with orange and red gradient sky]
+
+---
+
+## ✅ Test Summary
+
+The content above covers all major features of MarkPolish Studio:
+
+- Text formatting (bold, italic, strikethrough, code)
+- Heading levels (H1-H4)
+- Ordered and unordered lists
+- Blockquotes and code blocks
+- Tables
+- Horizontal rules
+- All custom components (Hero, Layout, Steps, Timeline, Card, Callout, Quote, Tabs, Accordion, Video)
+
+---
+
+*🎉 If all content displays correctly, the export feature is working properly!*`;
 function App() {
   const [markdown, setMarkdown] = useState(defaultMarkdown);
   const [isDark, setIsDark] = useState(false);
@@ -271,7 +403,7 @@ function App() {
   };
 
   const handleExportWeChat = () => {
-    exportForWeChat(markdown, aiImageStates);
+    exportForWeChat(markdown, aiImageStates, theme);
   };
 
   const handleLoadProject = (project: Project) => {
@@ -290,7 +422,7 @@ function App() {
           <div>
             <h1 className="text-lg font-bold">MarkPolish Studio</h1>
             <p className="text-xs text-muted-foreground">
-              WeChat Content Creation
+              Wecom Content Creation
             </p>
           </div>
         </div>
@@ -333,7 +465,7 @@ function App() {
           <Button
             variant="outline"
             onClick={handleExportHTML}
-            title="Export for WeChat"
+            title="Export for Wecom"
           >
             <FileText className="w-4 h-4 mr-2" />
             Export HTML
@@ -342,10 +474,10 @@ function App() {
           <Button
             variant="default"
             onClick={handleExportWeChat}
-            title="Copy WeChat-formatted HTML"
+            title="Copy Wecom-formatted HTML"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            WeChat
+            Wecom
           </Button>
 
           <Button
@@ -497,7 +629,7 @@ function App() {
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
             className="flex-1 resize-none rounded-none border-0 focus-visible:ring-0 font-mono text-sm leading-relaxed p-6"
-            placeholder="Start writing your WeChat content here..."
+            placeholder="Start writing your Wecom content here..."
           />
         </div>
 
