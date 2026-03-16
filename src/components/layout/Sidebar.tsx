@@ -44,7 +44,7 @@ export default function Sidebar({
   onOpenSettings,
 }: SidebarProps) {
   return (
-    <div className="w-80 border-r border-border bg-background overflow-auto">
+    <div className="w-80 border-r border-border bg-background overflow-auto pb-14">
       <Tabs
         value={activeTab}
         onValueChange={(value) => onTabChange(value as SidebarTab)}
