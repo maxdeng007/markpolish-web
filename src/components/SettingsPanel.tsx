@@ -102,39 +102,42 @@ return <AlertCircle className="w-4 h-4 text-muted-foreground" />
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 p-1 bg-muted rounded-lg">
+      <div className="flex gap-1 p-1 bg-muted rounded-lg">
         <button
           onClick={() => setActiveSection('text')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1 ${
+          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 truncate ${
             activeSection === 'text'
               ? 'bg-background shadow-sm text-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
+          title="AI Text"
         >
-          <Sparkles className="w-4 h-4" />
-          AI Text
+          <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="truncate hidden sm:inline">Text</span>
         </button>
         <button
           onClick={() => setActiveSection('image')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1 ${
+          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 truncate ${
             activeSection === 'image'
               ? 'bg-background shadow-sm text-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
+          title="AI Images"
         >
-          <ImageIcon className="w-4 h-4" />
-          AI Images
+          <ImageIcon className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="truncate hidden sm:inline">Images</span>
         </button>
         <button
           onClick={() => setActiveSection('preferences')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-1 ${
+          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 truncate ${
             activeSection === 'preferences'
               ? 'bg-background shadow-sm text-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
+          title="Preferences"
         >
-          <Zap className="w-4 h-4" />
-          Preferences
+          <Zap className="w-3.5 h-3.5 flex-shrink-0" />
+          <span className="truncate hidden sm:inline">Prefs</span>
         </button>
       </div>
 
