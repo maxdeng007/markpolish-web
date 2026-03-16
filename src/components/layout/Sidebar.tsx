@@ -44,14 +44,14 @@ export default function Sidebar({
   onOpenSettings,
 }: SidebarProps) {
   return (
-    <div className="w-80 border-r border-border bg-background overflow-hidden flex flex-col">
+    <div className="w-80 border-r border-border bg-background overflow-hidden flex flex-col pb-14">
       {/* Tab Navigation */}
       <Tabs
         value={activeTab}
         onValueChange={(value) => onTabChange(value as SidebarTab)}
         className="flex flex-col h-full"
       >
-        <div className="border-b border-border px-2 py-2 bg-background">
+        <div className="border-b border-border px-2 py-2 bg-background flex-shrink-0">
           <TabsListPill className="w-full justify-start gap-0.5">
             <TabButton
               value="ai"
@@ -99,7 +99,7 @@ export default function Sidebar({
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar pb-14">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           <TabsContent value="ai" className="m-0 h-full">
             <AIPanel markdown={markdown} setMarkdown={onMarkdownChange} onOpenSettings={onOpenSettings} />
           </TabsContent>

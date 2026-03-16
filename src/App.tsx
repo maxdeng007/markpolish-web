@@ -70,12 +70,12 @@ This document contains all components and formats for testing export to Wecom.
 
 ### Code Block
 
-\\\`\\\`\\\`javascript
+\`\`\`javascript
 function greet(name) {
-  console.log(\\\`Hello, \\\${name}!\\\`);
+  console.log(\`Hello, \${name}!\`);
 }
 greet('MarkPolish');
-\\\`\\\`\\\`
+\`\`\`
 
 ---
 

@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
+import "highlight.js/styles/atom-one-dark.css";
 import { Button } from "@/components/ui/button";
 import { Download, X, Loader2 } from "lucide-react";
 import { exportToPDF } from "@/lib/export";
@@ -40,7 +45,14 @@ export default function PDFExportModal({
     background: currentTheme.styles.background,
   };
 
-  const processedMarkdown = convertMarkdownWithComponents(markdown, themeColors);
+  // Process markdown with ReactMarkdown for full markdown support
+  const processedHtml = useMemo(() => {
+    // First convert custom components to HTML
+    const withComponents = convertMarkdownWithComponents(markdown, themeColors);
+    // Return as-is - ReactMarkdown will handle the rest
+    return withComponents;
+  }, [markdown, themeColors]);
+
   const previewStyles = getAllPreviewStyles();
 
   const handleExport = async () => {
@@ -81,14 +93,31 @@ export default function PDFExportModal({
         {/* PDF Preview */}
         <div
           ref={setPreviewRef}
-          className="border border-border rounded p-4 mb-4 max-h-96 overflow-auto bg-white"
-          style={{ color: currentTheme.styles.foreground }}
+          className={`border border-border rounded p-4 mb-4 max-h-96 overflow-auto ${currentTheme.category === "dark" ? "theme-dark" : ""}`}
+          style={{
+            color: currentTheme.styles.foreground,
+            background: currentTheme.styles.background,
+          }}
         >
+          <style>{currentTheme.css}</style>
           <style>{previewStyles}</style>
-          <div
-            className="preview-content"
-            dangerouslySetInnerHTML={{ __html: processedMarkdown }}
-          />
+          <div className="preview-content">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight, rehypeRaw]}
+              components={{
+                table({ children }) {
+                  return (
+                    <div style={{ overflowX: "auto" }}>
+                      <table>{children}</table>
+                    </div>
+                  );
+                },
+              }}
+            >
+              {processedHtml}
+            </ReactMarkdown>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2">

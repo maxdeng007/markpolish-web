@@ -49,10 +49,17 @@ export default function AIPanel({ markdown, setMarkdown, onOpenSettings }: AIPan
       ? ollamaModels
       : aiProviders[config.provider]?.models || []
 
-  // Check Ollama connection on mount
-  useEffect(() => {
-    testOllamaConnection()
-  }, [])
+  // Update config and save to settings when provider changes
+  const handleProviderChange = (value: string) => {
+    setConfig({ ...config, provider: value })
+    settingsManager.setDefaultTextProvider(value)
+  }
+
+  // Update config and save to settings when model changes
+  const handleModelChange = (value: string) => {
+    setConfig({ ...config, model: value })
+    settingsManager.setDefaultTextModel(value)
+  }
 
   // Load models when provider changes
   useEffect(() => {
@@ -75,8 +82,13 @@ export default function AIPanel({ markdown, setMarkdown, onOpenSettings }: AIPan
       .finally(() => {
         setLoadingModels(false)
       })
-  }
-}, [config.provider, config.model])
+    }
+  }, [config.provider, config.model])
+
+  // Test Ollama connection on mount
+  useEffect(() => {
+    testOllamaConnection()
+  }, [])
 
   // Update default model when provider changes
   useEffect(() => {
@@ -185,7 +197,7 @@ export default function AIPanel({ markdown, setMarkdown, onOpenSettings }: AIPan
         <Zap className="w-4 h-4 text-primary" />
         <Select
           value={config.provider}
-          onValueChange={(value) => setConfig({ ...config, provider: value })}
+          onValueChange={handleProviderChange}
         >
           <SelectTrigger className="h-8 flex-1">
             <SelectValue placeholder="Select provider" />
@@ -218,7 +230,7 @@ export default function AIPanel({ markdown, setMarkdown, onOpenSettings }: AIPan
       {/* Model Selector */}
       <Select
         value={config.model}
-        onValueChange={(value) => setConfig({ ...config, model: value })}
+        onValueChange={handleModelChange}
         disabled={loadingModels && config.provider === "ollama"}
       >
         <SelectTrigger className="h-8">

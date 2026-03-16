@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { 
-  Settings, 
-  Check, 
-  X, 
-  Eye, 
-  EyeOff, 
+import {
+  Settings,
+  Check,
+  X,
+  Eye,
+  EyeOff,
   RefreshCw,
   Sparkles,
   Image as ImageIcon,
@@ -15,27 +15,64 @@ import {
   Zap
 } from 'lucide-react'
 import { settingsManager } from '@/lib/settings'
-import { aiProviders } from '@/lib/ai-providers'
+import { aiProviders, fetchOllamaModels } from '@/lib/ai-providers'
 
 export default function SettingsPanel() {
+  const [settingsKey, setSettingsKey] = useState(0)
   const settings = settingsManager.getSettings()
+  // Force re-render when settingsKey changes
+  useEffect(() => {
+    // This effect runs when settingsKey changes, triggering a re-render
+  }, [settingsKey])
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
   const [testingOllama, setTestingOllama] = useState(false)
   const [ollamaStatus, setOllamaStatus] = useState<'idle' | 'testing' | 'connected' | 'failed'>('idle')
+  const [ollamaModels, setOllamaModels] = useState<string[]>([])
+  const [loadingOllamaModels, setLoadingOllamaModels] = useState(false)
 
   const [activeSection, setActiveSection] = useState<'text' | 'image' | 'preferences'>('text')
 
   const textProviders = settingsManager.getTextProviders()
   const imageProviders = settingsManager.getImageProviders()
 
-  // Check Ollama connection on mount
+  // Force re-render when settings change
+  const refreshSettings = () => {
+    setSettingsKey(prev => prev + 1)
+  }
+
+  // Check Ollama connection and fetch models on mount
   useEffect(() => {
     const checkOllama = async () => {
       const connected = await settingsManager.checkOllamaConnection()
       setOllamaStatus(connected ? 'connected' : 'failed')
+
+      // Fetch Ollama models if connected
+      if (connected) {
+        await loadOllamaModels()
+      }
     }
     checkOllama()
   }, [])
+
+  // Fetch Ollama models when default text provider changes to ollama
+  useEffect(() => {
+    if (settings.defaultTextProvider === "ollama" && ollamaModels.length === 0) {
+      loadOllamaModels()
+    }
+  }, [settings.defaultTextProvider])
+
+  const loadOllamaModels = async () => {
+    setLoadingOllamaModels(true)
+    try {
+      const baseUrl = settingsManager.getTextProvider("ollama")?.baseUrl || "http://localhost:11434"
+      const models = await fetchOllamaModels(baseUrl)
+      setOllamaModels(models)
+    } catch (error) {
+      console.error("Failed to fetch Ollama models:", error)
+    } finally {
+      setLoadingOllamaModels(false)
+    }
+  }
 
   const toggleShowKey = (providerId: string) => {
     setShowKeys(prev => ({
@@ -50,10 +87,12 @@ export default function SettingsPanel() {
     } else {
       settingsManager.setImageProviderApiKey(providerId, value)
     }
+    refreshSettings()
   }
 
   const handleOllamaUrlChange = (value: string) => {
     settingsManager.setTextProviderBaseUrl('ollama', value)
+    refreshSettings()
   }
 
   const testOllamaConnection = async () => {
@@ -343,7 +382,10 @@ return <AlertCircle className="w-4 h-4 text-muted-foreground" />
               <label className="text-xs text-muted-foreground mb-1 block">Default Text Provider</label>
               <Select
                 value={settings.defaultTextProvider}
-                onValueChange={(value) => settingsManager.setDefaultTextProvider(value)}
+                onValueChange={(value) => {
+                  settingsManager.setDefaultTextProvider(value)
+                  refreshSettings()
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -363,17 +405,34 @@ return <AlertCircle className="w-4 h-4 text-muted-foreground" />
               <label className="text-xs text-muted-foreground mb-1 block">Default Text Model</label>
               <Select
                 value={settings.defaultTextModel}
-                onValueChange={(value) => settingsManager.setDefaultTextModel(value)}
+                onValueChange={(value) => {
+                  settingsManager.setDefaultTextModel(value)
+                  refreshSettings()
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {aiProviders[settings.defaultTextProvider]?.models.map(model => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
+                  {settings.defaultTextProvider === "ollama" ? (
+                    loadingOllamaModels ? (
+                      <SelectItem value="loading" disabled>Loading models...</SelectItem>
+                    ) : ollamaModels.length > 0 ? (
+                      ollamaModels.map(model => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>No models found</SelectItem>
+                    )
+                  ) : (
+                    aiProviders[settings.defaultTextProvider]?.models.map(model => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -383,7 +442,10 @@ return <AlertCircle className="w-4 h-4 text-muted-foreground" />
               <label className="text-xs text-muted-foreground mb-1 block">Default Image Provider</label>
               <Select
                 value={settings.defaultImageProvider}
-                onValueChange={(value) => settingsManager.setDefaultImageProvider(value)}
+                onValueChange={(value) => {
+                  settingsManager.setDefaultImageProvider(value)
+                  refreshSettings()
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
