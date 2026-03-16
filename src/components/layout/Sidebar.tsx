@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Wand2,
   FolderOpen,
@@ -24,27 +23,31 @@ export type SidebarTab = "ai" | "projects" | "templates" | "components" | "theme
 interface SidebarProps {
   markdown: string;
   theme: string;
+  activeTab: SidebarTab;
+  onTabChange: (tab: SidebarTab) => void;
   onMarkdownChange: (markdown: string) => void;
   onThemeChange: (theme: string) => void;
   onLoadProject: (project: Project) => void;
   onInsertImage: (url: string, filename: string) => void;
+  onOpenSettings?: () => void;
 }
 
 export default function Sidebar({
   markdown,
   theme,
+  activeTab,
+  onTabChange,
   onMarkdownChange,
   onThemeChange,
   onLoadProject,
   onInsertImage,
+  onOpenSettings,
 }: SidebarProps) {
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("ai");
-
   return (
     <div className="w-80 border-r border-border bg-background overflow-auto">
       <Tabs
-        value={sidebarTab}
-        onValueChange={(value) => setSidebarTab(value as SidebarTab)}
+        value={activeTab}
+        onValueChange={(value) => onTabChange(value as SidebarTab)}
         className="h-full flex flex-col"
       >
         <TabsListPill className="w-full justify-start px-2 py-2 gap-1">
@@ -101,7 +104,7 @@ export default function Sidebar({
 
         <div className="flex-1 overflow-auto">
           <TabsContent value="ai" className="m-0">
-            <AIPanel markdown={markdown} setMarkdown={onMarkdownChange} />
+            <AIPanel markdown={markdown} setMarkdown={onMarkdownChange} onOpenSettings={onOpenSettings} />
           </TabsContent>
 
           <TabsContent value="projects" className="m-0">

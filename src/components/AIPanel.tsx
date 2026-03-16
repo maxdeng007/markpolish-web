@@ -19,14 +19,14 @@ import {
   type AIConfig,
 } from '@/lib/ai-providers'
 import { settingsManager } from '@/lib/settings'
-import SettingsModal from '@/components/SettingsModal'
 
 interface AIPanelProps {
   markdown: string
   setMarkdown: (markdown: string) => void
+  onOpenSettings?: () => void
 }
 
-export default function AIPanel({ markdown, setMarkdown }: AIPanelProps) {
+export default function AIPanel({ markdown, setMarkdown, onOpenSettings }: AIPanelProps) {
   const settings = settingsManager.getSettings()
   const [config, setConfig] = useState<AIConfig>({
     provider: settings.defaultTextProvider,
@@ -40,7 +40,6 @@ export default function AIPanel({ markdown, setMarkdown }: AIPanelProps) {
   const [showContext, setShowContext] = useState(false)
   const [ollamaModels, setOllamaModels] = useState<string[]>([])
   const [loadingModels, setLoadingModels] = useState(false)
-  const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [ollamaStatus, setOllamaStatus] = useState<'idle' | 'testing' | 'connected' | 'failed'>('idle')
 
 
@@ -54,13 +53,6 @@ export default function AIPanel({ markdown, setMarkdown }: AIPanelProps) {
   useEffect(() => {
     testOllamaConnection()
   }, [])
-
-  // Check Ollama connection when opening settings modal
-  useEffect(() => {
-    if (showSettingsModal && config.provider === "ollama") {
-      testOllamaConnection()
-    }
-  }, [showSettingsModal, config.provider])
 
   // Load models when provider changes
   useEffect(() => {
@@ -120,7 +112,7 @@ export default function AIPanel({ markdown, setMarkdown }: AIPanelProps) {
     // Check if provider is configured
     const providerConfig = settingsManager.getTextProvider(config.provider)
     if (config.provider !== "ollama" && !providerConfig?.apiKey) {
-      setShowSettingsModal(true)
+      onOpenSettings?.()
       return
     }
 
@@ -251,7 +243,7 @@ export default function AIPanel({ markdown, setMarkdown }: AIPanelProps) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => setShowSettingsModal(true)}
+        onClick={() => onOpenSettings?.()}
         className="w-full h-8 text-xs"
       >
         <Settings className="w-3 h-3 mr-1" />
@@ -424,13 +416,6 @@ export default function AIPanel({ markdown, setMarkdown }: AIPanelProps) {
           </div>
         </div>
       )}
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        initialTab={config.provider === "ollama" ? "text" : "text"}
-      />
     </div>
   )
 }

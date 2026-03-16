@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { useAutoSave } from "@/components/hooks/useAutoSave";
 import Header from "@/components/layout/Header";
-import Sidebar from "@/components/layout/Sidebar";
+import Sidebar, { type SidebarTab } from "@/components/layout/Sidebar";
 import Editor from "@/components/layout/Editor";
 import Preview from "@/components/layout/Preview";
 import CompactStats from "@/components/CompactStats";
@@ -260,6 +260,7 @@ function App() {
   }>>({});
   const [previewMode, setPreviewMode] = useState<"full" | "wecom">("full");
   const [showPDFExport, setShowPDFExport] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("ai");
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -390,10 +391,13 @@ function App() {
             <Sidebar
               markdown={markdown}
               theme={theme}
+              activeTab={sidebarTab}
+              onTabChange={setSidebarTab}
               onMarkdownChange={setMarkdown}
               onThemeChange={setTheme}
               onLoadProject={handleLoadProject}
               onInsertImage={handleInsertImage}
+              onOpenSettings={() => setSidebarTab("settings")}
             />
           </ErrorBoundary>
 
