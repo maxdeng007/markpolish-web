@@ -40,6 +40,7 @@ export const themes: Record<string, Theme> = {
         font-size: 16px;
         line-height: 1.75;
         color: #333333;
+        background: #ffffff;
         max-width: 677px;
         margin: 0 auto;
         padding: 20px 16px;
@@ -77,6 +78,7 @@ export const themes: Record<string, Theme> = {
         font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
         line-height: 1.6;
         color: #1d1d1f;
+        background: #ffffff;
         max-width: 680px;
         margin: 0 auto;
         padding: 40px 20px;
@@ -366,6 +368,7 @@ export const themes: Record<string, Theme> = {
         font-family: 'Noto Sans JP', 'Hiragino Sans', -apple-system, sans-serif;
         line-height: 1.8;
         color: #4a4a4a;
+        background: #ffffff;
         max-width: 680px;
         margin: 0 auto;
         padding: 40px 24px;

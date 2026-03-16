@@ -99,7 +99,7 @@ export default function Sidebar({
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto custom-scrollbar pb-14">
           <TabsContent value="ai" className="m-0 h-full">
             <AIPanel markdown={markdown} setMarkdown={onMarkdownChange} onOpenSettings={onOpenSettings} />
           </TabsContent>
