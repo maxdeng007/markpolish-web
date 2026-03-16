@@ -53,7 +53,7 @@ export default function ThemesPanel({
       </div>
 
       {/* Theme List */}
-      <div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1">
+      <div className="space-y-2">
         {themes.map((theme) => (
           <button
             key={theme.id}
