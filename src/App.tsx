@@ -8,6 +8,7 @@ import CompactStats from "@/components/CompactStats";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { shortcuts, setupDefaultShortcuts } from "@/lib/keyboard-shortcuts";
 import { fileOps, type Project } from "@/lib/file-operations";
+import { getDefaultTheme } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 
 // Lazy load PDF Export Button for better bundle size
@@ -303,7 +304,13 @@ function App() {
       togglePreview: () => {
         previewRef.current?.scrollIntoView({ behavior: "smooth" });
       },
-      toggleTheme: () => setIsDark(!isDark),
+      toggleTheme: () => {
+        const newIsDark = !isDark;
+        setIsDark(newIsDark);
+        // Auto-switch theme to match dark/light mode
+        const defaultTheme = getDefaultTheme(newIsDark);
+        setTheme(defaultTheme.id);
+      },
     });
   }, [markdown, theme, isDark]);
 
@@ -314,6 +321,12 @@ function App() {
     } else {
       document.documentElement.classList.remove("dark");
     }
+  }, [isDark]);
+
+  // Auto-switch theme when dark mode changes
+  useEffect(() => {
+    const defaultTheme = getDefaultTheme(isDark);
+    setTheme(defaultTheme.id);
   }, [isDark]);
 
   const insertFormatting = (before: string, after: string) => {

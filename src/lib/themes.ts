@@ -541,3 +541,12 @@ export function getLightThemes(): Theme[] {
 export function getDarkThemes(): Theme[] {
   return Object.values(themes).filter((t) => t.category === "dark");
 }
+
+// Get default theme based on dark/light mode
+export function getDefaultTheme(isDark: boolean): Theme {
+  if (isDark) {
+    const darkThemes = getDarkThemes();
+    return darkThemes[0] || themes["midnight"] || themes["wechat-classic"];
+  }
+  return themes["wechat-classic"];
+}
