@@ -102,7 +102,7 @@ Use components!
 });
 
 describe("convertMarkdownWithComponents", () => {
-  it("should convert col-2 to HTML with columns-component class", () => {
+  it("should convert col-2 to HTML with columns-table class", () => {
     const markdown = `:::col-2
 ### Left
 Content
@@ -111,8 +111,7 @@ Content
 Content
 :::`;
     const result = convertMarkdownWithComponents(markdown);
-    expect(result).toContain("columns-component");
-    expect(result).toContain("col-2");
+    expect(result).toContain("columns-table");
     expect(result).toContain("column-item");
   });
 
@@ -155,7 +154,8 @@ describe("renderComponent", () => {
       endIndex: 50,
     };
     const result = renderComponent(component);
-    expect(result).toContain("columns-component col-2");
+    expect(result).toContain("columns-table");
+    expect(result).toContain("column-item");
     expect(result).toContain("<h3>");
   });
 
@@ -188,7 +188,7 @@ describe("renderComponent", () => {
       endIndex: 30,
     };
     const result = renderComponent(component);
-    expect(result).toContain("card-component");
+    expect(result).toContain("border-radius: 8px");
     expect(result).toContain("<h2>");
     expect(result).toContain("<strong>");
   });
