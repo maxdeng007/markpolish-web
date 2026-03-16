@@ -238,7 +238,7 @@ export function renderComponent(component: ComponentMatch, themeColors?: ThemeCo
     case "timeline":
       return renderTimeline(component.content, themeColors);
     case "card":
-      return renderCard(component.content);
+      return renderCard(component.content, themeColors);
     case "video":
       return renderVideo(component.props || {});
     case "ai-image":
@@ -382,13 +382,38 @@ function renderTimeline(content: string, themeColors?: ThemeColors): string {
   return `<div style="margin: 16px 0;">${itemsHtml}</div>`;
 }
 
-function renderCard(content: string): string {
+function renderCard(content: string, themeColors?: ThemeColors): string {
   let htmlContent = markdownToHtml(content);
   if (htmlContent.startsWith('<p>') && htmlContent.endsWith('</p>') && !htmlContent.includes('<br />')) {
     htmlContent = htmlContent.slice(3, -4);
   }
-  // Use inline styles for WeCom compatibility
-  return `<div style="padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; margin: 12px 0; background: #fafafa;">${htmlContent}</div>`;
+
+  // Determine if dark theme based on background color
+  const isDark = themeColors?.background
+    ? isColorDark(themeColors.background)
+    : false;
+
+  // Use theme-aware colors for WeCom compatibility
+  const borderColor = isDark ? '#3f3f3f' : '#e5e5e5';
+  const backgroundColor = isDark ? '#1f1f1f' : '#fafafa';
+
+  return `<div style="padding: 16px; border: 1px solid ${borderColor}; border-radius: 8px; margin: 12px 0; background: ${backgroundColor};">${htmlContent}</div>`;
+}
+
+// Helper function to determine if a color is dark
+function isColorDark(hexColor: string): boolean {
+  // Remove # if present
+  const color = hexColor.replace('#', '');
+
+  // Parse RGB values
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+
+  // Calculate relative luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance < 0.5;
 }
 
 function renderVideo(props: Record<string, string>): string {
