@@ -1,15 +1,6 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  useLayoutEffect,
-} from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import rehypeRaw from "rehype-raw";
-import rehypeSlug from "rehype-slug";
+import { useEffect, useState, useRef, useCallback } from "react";
+import hljs from "highlight.js";
+import "highlight.js/styles/atom-one-dark.css";
 import {
   convertMarkdownWithComponents,
   parseCustomComponents,
@@ -46,53 +37,80 @@ export default function MarkdownPreview({
   const currentTheme = getTheme(theme);
   // Track the current markdown to detect changes
   const markdownRef = useRef(markdown);
+  // Track if component is mounted
+  const isMountedRef = useRef(true);
+  // Track pending update to avoid race conditions
+  const pendingUpdateRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Clear any pending updates
+      if (pendingUpdateRef.current) {
+        clearTimeout(pendingUpdateRef.current);
+      }
+    };
+  }, []);
 
   // Parse markdown and initialize AI image states
+  // Use delayed update to avoid React rendering conflicts
   useEffect(() => {
+    // Skip if unmounted
+    if (!isMountedRef.current) return;
     markdownRef.current = markdown;
 
-    // Pass theme colors to component rendering
-    const themeColors = {
-      accent: currentTheme.styles.accent,
-      foreground: currentTheme.styles.foreground,
-      heading: currentTheme.styles.heading,
-      link: currentTheme.styles.link,
-      border: currentTheme.styles.border,
-      code: currentTheme.styles.code,
-      background: currentTheme.styles.background,
-    };
-    const processed = convertMarkdownWithComponents(markdown, themeColors);
-    setProcessedMarkdown(processed);
+    // Clear any pending update
+    if (pendingUpdateRef.current) {
+      clearTimeout(pendingUpdateRef.current);
+    }
 
-    // Extract ai-image blocks and initialize states
-    const components = parseCustomComponents(markdown);
-    const aiImages = components.filter((c) => c.type === "ai-image");
+    // Delay the update slightly to allow React to batch renders
+    pendingUpdateRef.current = setTimeout(() => {
+      // Pass theme colors to component rendering
+      const themeColors = {
+        accent: currentTheme.styles.accent,
+        foreground: currentTheme.styles.foreground,
+        heading: currentTheme.styles.heading,
+        link: currentTheme.styles.link,
+        border: currentTheme.styles.border,
+        code: currentTheme.styles.code,
+        background: currentTheme.styles.background,
+      };
+      const processed = convertMarkdownWithComponents(markdown, themeColors);
+      setProcessedMarkdown(processed);
 
-    const newState: Record<string, AIImageState> = {};
-    aiImages.forEach((img, index) => {
-      const id = `ai-img-${index}`;
-      // Preserve state by position (index-based matching)
-      const prevKeys = Object.keys(aiImageStates);
-      const existingState = prevKeys[index]
-        ? aiImageStates[prevKeys[index]]
-        : null;
+      // Extract ai-image blocks and initialize states
+      const components = parseCustomComponents(markdown);
+      const aiImages = components.filter((c) => c.type === "ai-image");
 
-      if (existingState) {
-        // Keep ratio and status, but always use NEW description from markdown
-        newState[id] = {
-          ...existingState,
-          description: img.content,
-        };
-      } else {
-        newState[id] = {
-          description: img.content,
-          ratio: "1:1",
-          imageUrl: null,
-          status: "idle",
-        };
-      }
-    });
-    onAIImageStatesChange(newState);
+      const newState: Record<string, AIImageState> = {};
+      aiImages.forEach((img, index) => {
+        const id = `ai-img-${index}`;
+        // Preserve state by position (index-based matching)
+        const prevKeys = Object.keys(aiImageStates);
+        const existingState = prevKeys[index]
+          ? aiImageStates[prevKeys[index]]
+          : null;
+
+        if (existingState) {
+          // Keep ratio and status, but always use NEW description from markdown
+          newState[id] = {
+            ...existingState,
+            description: img.content,
+          };
+        } else {
+          newState[id] = {
+            description: img.content,
+            ratio: "1:1",
+            imageUrl: null,
+            status: "idle",
+          };
+        }
+      });
+      onAIImageStatesChange(newState);
+    }, 200); // Delay to allow React to complete updates
   }, [markdown, currentTheme.styles]);
 
   // Handle ratio selection
@@ -222,6 +240,29 @@ export default function MarkdownPreview({
         }
         return;
       }
+
+      // Tab button click
+      const tabButton = target.closest(".tab-button");
+      if (tabButton) {
+        const tabsComponent = tabButton.closest(".tabs-component");
+        if (tabsComponent) {
+          const tabIndex = (tabButton as HTMLElement).dataset.tab;
+          tabsComponent.querySelectorAll(".tab-button").forEach((btn) => {
+            btn.classList.remove("active");
+          });
+          tabsComponent.querySelectorAll(".tab-panel").forEach((panel) => {
+            panel.classList.remove("active");
+          });
+          tabButton.classList.add("active");
+          const panel = tabsComponent.querySelector(
+            `.tab-panel[data-tab="${tabIndex}"]`,
+          );
+          if (panel) {
+            panel.classList.add("active");
+          }
+        }
+        return;
+      }
     };
 
     previewRef.current.addEventListener("click", handleClick);
@@ -229,16 +270,17 @@ export default function MarkdownPreview({
   }, [aiImageStates, handleSelectRatio, handleGenerateImage, handleClear]);
 
   // Render AI image placeholders and images based on state
-  // Use useLayoutEffect to run synchronously after React commits to DOM
-  useLayoutEffect(() => {
-    if (!previewRef.current) return;
+  // Use useEffect instead of useLayoutEffect to avoid DOM conflicts that cause "insertBefore" errors
+  useEffect(() => {
+    if (!previewRef.current || !isMountedRef.current) return;
 
     // Store current markdown at the start of this effect
     const currentMarkdown = markdownRef.current;
 
-    // Use queueMicrotask to run after React has finished all its work
-    queueMicrotask(() => {
+    // Use setTimeout to run after React has finished rendering
+    const timeoutId = setTimeout(() => {
       // Check if markdown has changed since we started
+      if (!isMountedRef.current) return;
       if (markdownRef.current !== currentMarkdown) return;
       if (!previewRef.current?.isConnected) return;
 
@@ -325,7 +367,9 @@ export default function MarkdownPreview({
 
             // Only update if content has changed OR if switching from WeCom mode
             const expectedContent = `data-generate="${imageId}"`;
-            const isFromWecom = container.classList.contains("ai-image-wecom-placeholder");
+            const isFromWecom = container.classList.contains(
+              "ai-image-wecom-placeholder",
+            );
             if (
               !container.innerHTML.includes(expectedContent) ||
               container.classList.contains("ai-image-wrapper") ||
@@ -347,38 +391,51 @@ export default function MarkdownPreview({
           }
         });
       } catch (error) {
-        // Silently ignore DOM manipulation errors
-        // This can happen when content is deleted while we're updating
         console.debug("AI image update skipped:", error);
       }
-    });
+
+      try {
+        previewRef.current?.querySelectorAll("pre code").forEach((block) => {
+          hljs.highlightElement(block as HTMLElement);
+        });
+      } catch (e) {
+        console.debug("Syntax highlighting skipped:", e);
+      }
+    }, 200);
+    // Cleanup timeout on unmount or dependency change
+    return () => clearTimeout(timeoutId);
   }, [aiImageStates, processedMarkdown, previewMode]);
 
+  const themeStyles = currentTheme.styles;
+
   return (
-    <div className={`markdown-preview ${currentTheme.category === "dark" ? "theme-dark" : ""}`}>
+    <div
+      className={`markdown-preview ${currentTheme.category === "dark" ? "theme-dark" : ""}`}
+      style={
+        {
+          "--accent": themeStyles.accent,
+          "--background": themeStyles.background,
+          "--foreground": themeStyles.foreground,
+          "--heading": themeStyles.heading,
+          "--border": themeStyles.border,
+          "--blockquote-bg": themeStyles.blockquoteBg || "#f8f9fa",
+        } as React.CSSProperties
+      }
+    >
       <style>{currentTheme.css}</style>
       <style>
         {previewMode === "wecom"
-          ? getWeChatStyles(currentTheme.styles.accent)
+          ? getWeChatStyles(
+              currentTheme.styles.accent,
+              currentTheme.styles.blockquoteBg || "#f8f9fa",
+            )
           : getAllPreviewStyles()}
       </style>
-      <div ref={previewRef} className="preview-content">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeHighlight, rehypeRaw, rehypeSlug]}
-          components={{
-            table({ children }) {
-              return (
-                <div style={{ overflowX: "auto" }}>
-                  <table>{children}</table>
-                </div>
-              );
-            },
-          }}
-        >
-          {processedMarkdown}
-        </ReactMarkdown>
-      </div>
+      <div
+        ref={previewRef}
+        className="preview-content"
+        dangerouslySetInnerHTML={{ __html: processedMarkdown }}
+      />
     </div>
   );
 }

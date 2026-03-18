@@ -3,11 +3,13 @@ import { componentTemplates } from "@/lib/markdown-components";
 interface ComponentsPanelProps {
   markdown: string;
   setMarkdown: (markdown: string) => void;
+  getCursorPosition?: () => number | null;
 }
 
 export default function ComponentsPanel({
   markdown,
   setMarkdown,
+  getCursorPosition,
 }: ComponentsPanelProps) {
   const components = [
     {
@@ -84,7 +86,33 @@ export default function ComponentsPanel({
     const template =
       componentTemplates[componentId as keyof typeof componentTemplates];
     if (template) {
-      setMarkdown(markdown + "\n\n" + template + "\n\n");
+      const componentWithNewlines = "\n\n" + template + "\n\n";
+
+      // Get cursor position from textarea
+      let cursorPosition: number | null = null;
+
+      try {
+        const pos = getCursorPosition?.();
+        if (typeof pos === 'number' && pos > 0) {
+          cursorPosition = pos;
+        }
+      } catch (e) {
+        // Ignore errors getting cursor position
+        cursorPosition = null;
+      }
+
+      if (cursorPosition !== null && cursorPosition > 0 && markdown.length > 0) {
+        // Insert at cursor position
+        const before = markdown.substring(0, cursorPosition);
+        const after = markdown.substring(cursorPosition);
+        setMarkdown(before + componentWithNewlines + after);
+      } else if (markdown.trim() === "") {
+        // Empty document - insert at beginning (no leading newlines)
+        setMarkdown(template + "\n\n");
+      } else {
+        // Fallback: append to end (original behavior)
+        setMarkdown(markdown + componentWithNewlines);
+      }
     }
   };
 

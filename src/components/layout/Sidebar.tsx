@@ -30,6 +30,7 @@ interface SidebarProps {
   onLoadProject: (project: Project) => void;
   onInsertImage: (url: string, filename: string) => void;
   onOpenSettings?: () => void;
+  getCursorPosition?: () => number | null;
 }
 
 export default function Sidebar({
@@ -42,6 +43,7 @@ export default function Sidebar({
   onLoadProject,
   onInsertImage,
   onOpenSettings,
+  getCursorPosition,
 }: SidebarProps) {
   return (
     <div className="w-80 border-r border-border bg-background overflow-hidden flex flex-col pb-14">
@@ -120,6 +122,7 @@ export default function Sidebar({
             <ComponentsPanel
               markdown={markdown}
               setMarkdown={onMarkdownChange}
+              getCursorPosition={getCursorPosition}
             />
           </TabsContent>
 

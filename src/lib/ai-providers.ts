@@ -158,7 +158,7 @@ ${content}`
 
 Available components:
 • :::hero - Eye-catching hero/intro sections with title and subtitle
-• :::col-2 / :::col-3 - Multi-column layouts for comparisons or feature lists
+• :::col-2 / :::col-3 - Multi-column layouts for comparisons or feature lists. IMPORTANT: Use "---" (three dashes on its own line) as the separator between columns. Each column content goes above or below the --- separator.
 • :::steps - Step-by-step numbered instructions
 • :::timeline - Chronological events or milestones
 • :::card - Styled cards for highlighting key information
@@ -176,7 +176,7 @@ Component: [component name]
 Location: [exact location - e.g., "After the second paragraph", "At the beginning"]
 Example syntax:
 \`\`\`
-[show exact syntax to use]
+[show exact syntax to use. For col-2/col-3, MUST include "---" on its own line as separator between columns]
 \`\`\`
 Reason: [why this component improves the content]
 ━━━

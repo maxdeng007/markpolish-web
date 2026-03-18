@@ -18,10 +18,69 @@ function adjustColorHex(hex: string, percent: number): string {
   return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
 }
 
-/**
- * Convert basic markdown syntax to HTML
- * This is needed because content inside HTML tags is not processed by ReactMarkdown
- */
+function convertTableRows(rows: string[]): string {
+  if (rows.length === 0) return "";
+
+  const cells = (row: string) =>
+    row
+      .replace(/^\||\|$/g, "")
+      .split("|")
+      .map((cell) => cell.trim());
+
+  const headerCells = cells(rows[0]);
+  const thead = `<thead><tr>${headerCells.map((c) => `<th>${c}</th>`).join("")}</tr></thead>`;
+
+  const bodyRows = rows.slice(1);
+  const tbody =
+    bodyRows.length > 0
+      ? `<tbody>${bodyRows
+          .map((row) => {
+            const rowCells = cells(row);
+            return `<tr>${rowCells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+          })
+          .join("")}</tbody>`
+      : "";
+
+  return `<table>${thead}${tbody}</table>`;
+}
+
+function parseListItems(
+  lines: string[],
+  startIdx: number,
+  indent: number,
+): { html: string; endIdx: number } {
+  let html = "";
+  let i = startIdx;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const match = line.match(/^(\s*)- (.+)$/);
+
+    if (!match) {
+      if (line.trim() === "") {
+        i++;
+        continue;
+      }
+      break;
+    }
+
+    const currentIndent = match[1].length;
+    if (currentIndent < indent) break;
+
+    if (currentIndent > indent) {
+      const nested = parseListItems(lines, i, currentIndent);
+      html = html.slice(0, -5) + `<ul>${nested.html}</ul></li>`;
+      i = nested.endIdx;
+      continue;
+    }
+
+    html += `<li>${match[2]}</li>`;
+    i++;
+  }
+
+  return { html, endIdx: i };
+}
+
 function markdownToHtml(markdown: string): string {
   let html = markdown;
 
@@ -32,6 +91,9 @@ function markdownToHtml(markdown: string): string {
   html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
   html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
   html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+
+  // Horizontal rules (--- or *** or ___) - must be before italic
+  html = html.replace(/^[-*_]{3,}\s*$/gm, "<hr />");
 
   // Bold (must be before italic)
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
@@ -45,43 +107,74 @@ function markdownToHtml(markdown: string): string {
   // Images
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
 
-  // Inline code
+  // Code blocks FIRST (before inline code to avoid conflicts)
+  html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
+    return `<pre><code>${code.trim()}</code></pre>`;
+  });
+
+  // Inline code (after code blocks, so triple backticks are already processed)
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
 
-  // Unordered lists - properly wrap in <ul>
-  const ulLines = html.split('\n');
-  const ulResult: string[] = [];
-  let inUl = false;
-  let ulItems: string[] = [];
-  
-  for (const ulLine of ulLines) {
-    const ulMatch = ulLine.match(/^- (.+)$/);
-    if (ulMatch) {
-      if (!inUl) {
-        inUl = true;
-        ulItems = [];
+  // Code blocks (```...```)
+  html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
+    return `<pre><code>${code.trim()}</code></pre>`;
+  });
+
+  // Blockquotes (> ...)
+  const bqLines = html.split("\n");
+  const bqResult: string[] = [];
+  let inBq = false;
+  let bqLinesArr: string[] = [];
+
+  for (const bqLine of bqLines) {
+    const bqMatch = bqLine.match(/^>\s?(.*)$/);
+    if (bqMatch) {
+      if (!inBq) {
+        inBq = true;
+        bqLinesArr = [];
       }
-      ulItems.push(`<li>${ulMatch[1]}</li>`);
+      bqLinesArr.push(bqMatch[1]);
     } else {
-      if (inUl && ulItems.length > 0) {
-        ulResult.push(`<ul>${ulItems.join('')}</ul>`);
-        ulItems = [];
-        inUl = false;
+      if (inBq && bqLinesArr.length > 0) {
+        bqResult.push(`<blockquote>${bqLinesArr.join("<br />")}</blockquote>`);
+        bqLinesArr = [];
       }
-      ulResult.push(ulLine);
+      inBq = false;
+      bqResult.push(bqLine);
     }
   }
-  if (inUl && ulItems.length > 0) {
-    ulResult.push(`<ul>${ulItems.join('')}</ul>`);
+  if (inBq && bqLinesArr.length > 0) {
+    bqResult.push(`<blockquote>${bqLinesArr.join("<br />")}</blockquote>`);
   }
-  html = ulResult.join('\n');
+  html = bqResult.join("\n");
+
+  const ulLines = html.split("\n");
+  const ulResult: string[] = [];
+  let i = 0;
+
+  while (i < ulLines.length) {
+    const line = ulLines[i];
+    const match = line.match(/^(\s*)- (.+)$/);
+
+    if (match) {
+      const indent = match[1].length;
+      const parsed = parseListItems(ulLines, i, indent);
+      ulResult.push(`<ul>${parsed.html}</ul>`);
+      i = parsed.endIdx;
+    } else {
+      ulResult.push(line);
+      i++;
+    }
+  }
+
+  html = ulResult.join("\n");
 
   // Ordered lists - properly wrap in <ol>
-  const olLines = html.split('\n');
+  const olLines = html.split("\n");
   const olResult: string[] = [];
   let inOl = false;
   let olItems: string[] = [];
-  
+
   for (const olLine of olLines) {
     const olMatch = olLine.match(/^\d+\. (.+)$/);
     if (olMatch) {
@@ -92,7 +185,7 @@ function markdownToHtml(markdown: string): string {
       olItems.push(`<li>${olMatch[1]}</li>`);
     } else {
       if (inOl && olItems.length > 0) {
-        olResult.push(`<ol>${olItems.join('')}</ol>`);
+        olResult.push(`<ol>${olItems.join("")}</ol>`);
         olItems = [];
         inOl = false;
       }
@@ -100,14 +193,41 @@ function markdownToHtml(markdown: string): string {
     }
   }
   if (inOl && olItems.length > 0) {
-    olResult.push(`<ol>${olItems.join('')}</ol>`);
+    olResult.push(`<ol>${olItems.join("")}</ol>`);
   }
-  html = olResult.join('\n');
-  html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, "<ul>$&</ul>");
+  html = olResult.join("\n");
 
-  // Ordered lists
-  html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
+  const tableLines = html.split("\n");
+  const tableResult: string[] = [];
+  let inTable = false;
+  let tableRows: string[] = [];
+
+  for (const tableLine of tableLines) {
+    const trimmedLine = tableLine.trim();
+    const isTableRow = /^\|(.+)\|$/.test(trimmedLine);
+    const isSeparator = /^\|[-\s|:]+\|$/.test(trimmedLine);
+
+    if (isTableRow) {
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
+      }
+      if (!isSeparator) {
+        tableRows.push(trimmedLine);
+      }
+    } else {
+      if (inTable && tableRows.length > 0) {
+        tableResult.push(convertTableRows(tableRows));
+        tableRows = [];
+      }
+      inTable = false;
+      tableResult.push(tableLine);
+    }
+  }
+  if (inTable && tableRows.length > 0) {
+    tableResult.push(convertTableRows(tableRows));
+  }
+  html = tableResult.join("\n");
 
   // Paragraphs - wrap non-tagged content in <p>
   const lines = html.split("\n\n");
@@ -115,10 +235,16 @@ function markdownToHtml(markdown: string): string {
     .map((line) => {
       const trimmed = line.trim();
       if (!trimmed) return "";
-      if (/^<(h[1-6]|ul|ol|li|div|p|blockquote|pre|code|table|thead|tbody|tfoot|tr|td|th|colgroup|col|section|article|header|footer|main|nav|aside|details|summary)/i.test(trimmed)) {
+      if (
+        /^<(h[1-6]|ul|ol|li|div|p|blockquote|pre|code|table|thead|tbody|tfoot|tr|td|th|colgroup|col|section|article|header|footer|main|nav|aside|details|summary|hr)/i.test(
+          trimmed,
+        )
+      ) {
         return trimmed;
       }
-      // Don't wrap if it's just whitespace
+      if (/^[-*_]{3,}\s*$/.test(trimmed)) {
+        return "<hr />";
+      }
       if (!trimmed) return "";
       return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
     })
@@ -225,7 +351,11 @@ export interface ThemeColors {
   background: string;
 }
 
-export function renderComponent(component: ComponentMatch, themeColors?: ThemeColors): string {
+export function renderComponent(
+  component: ComponentMatch,
+  themeColors?: ThemeColors,
+  forWeCom: boolean = false,
+): string {
   switch (component.type) {
     case "hero":
       return renderHero(component.content, themeColors);
@@ -250,9 +380,9 @@ export function renderComponent(component: ComponentMatch, themeColors?: ThemeCo
     case "quote":
       return renderQuote(component.props || {}, component.content);
     case "tabs":
-      return renderTabs(component.content);
+      return renderTabs(component.content, forWeCom);
     case "accordion":
-      return renderAccordion(component.content);
+      return renderAccordion(component.content, forWeCom);
     default:
       return component.content;
   }
@@ -261,8 +391,10 @@ export function renderComponent(component: ComponentMatch, themeColors?: ThemeCo
 function renderHero(content: string, themeColors?: ThemeColors): string {
   const htmlContent = markdownToHtml(content);
   // Use theme accent color directly, with fallback to default blue gradient
- const accentColor = themeColors?.accent || '#576b95';
-  const darkerAccent = themeColors?.accent ? adjustColorHex(themeColors.accent, -30) : '#3d5a80';
+  const accentColor = themeColors?.accent || "#576b95";
+  const darkerAccent = themeColors?.accent
+    ? adjustColorHex(themeColors.accent, -30)
+    : "#3d5a80";
   // Add explicit white color to inner elements for WeCom compatibility
   const styledContent = htmlContent
     .replace(/<h1>/g, '<h1 style="color: white;">')
@@ -275,19 +407,24 @@ function renderHero(content: string, themeColors?: ThemeColors): string {
 }
 
 function renderColumns(content: string, cols: number): string {
+  // Clean the content - remove leading/trailing whitespace
+  const cleanContent = content.trim();
+
   // Split by --- separator (flexible: handles whitespace, multiple dashes)
-  const items = content.split(/\n\s*-{3,}\s*\n/);
+  // Also remove the --- lines from the result
+  const parts = cleanContent.split(/\n\s*-{3,}\s*\n/);
 
-  // Build column items with markdown converted to HTML
-  const columnItems = items
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0)
-    .map((item) => {
-      const htmlContent = markdownToHtml(item);
-      return htmlContent;
-    });
+  // Filter out empty parts and process
+  const columnItems = parts.map((part) => {
+    let cleanPart = part.trim();
+    // Remove leading/trailing --- lines from each part
+    cleanPart = cleanPart
+      .replace(/^\s*-{3,}\s*\n/g, "")
+      .replace(/\n\s*-{3,}\s*$/g, "");
+    return markdownToHtml(cleanPart);
+  });
 
-  // Use TABLE-based layout with CSS classes for WeChat/WeCom Code mode
+  // Use TABLE-based layout for WeChat/WeCom Code mode
   if (cols === 2 && columnItems.length >= 2) {
     return `<table class="columns-table"><tr><td class="column-item">${columnItems[0]}</td><td class="column-item">${columnItems[1]}</td></tr></table>`;
   } else if (cols === 3 && columnItems.length >= 3) {
@@ -345,7 +482,11 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
         : "";
 
       let titleHtml = markdownToHtml(step.title);
-      if (step.description.length === 0 && titleHtml.startsWith("<p>") && titleHtml.endsWith("</p>")) {
+      if (
+        step.description.length === 0 &&
+        titleHtml.startsWith("<p>") &&
+        titleHtml.endsWith("</p>")
+      ) {
         titleHtml = titleHtml.slice(3, -4);
       }
 
@@ -360,7 +501,7 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
 function renderTimeline(content: string, themeColors?: ThemeColors): string {
   const items = content.split(/\n\s*-{3,}\s*\n/);
   const accentColor = themeColors?.accent || "#576b95";
-  
+
   const itemsHtml = items
     .map((item) => {
       const lines = item.trim().split("\n");
@@ -384,7 +525,11 @@ function renderTimeline(content: string, themeColors?: ThemeColors): string {
 
 function renderCard(content: string, themeColors?: ThemeColors): string {
   let htmlContent = markdownToHtml(content);
-  if (htmlContent.startsWith('<p>') && htmlContent.endsWith('</p>') && !htmlContent.includes('<br />')) {
+  if (
+    htmlContent.startsWith("<p>") &&
+    htmlContent.endsWith("</p>") &&
+    !htmlContent.includes("<br />")
+  ) {
     htmlContent = htmlContent.slice(3, -4);
   }
 
@@ -394,8 +539,8 @@ function renderCard(content: string, themeColors?: ThemeColors): string {
     : false;
 
   // Use theme-aware colors for WeCom compatibility
-  const borderColor = isDark ? '#3f3f3f' : '#e5e5e5';
-  const backgroundColor = isDark ? '#1f1f1f' : '#fafafa';
+  const borderColor = isDark ? "#3f3f3f" : "#e5e5e5";
+  const backgroundColor = isDark ? "#1f1f1f" : "#fafafa";
 
   return `<div style="padding: 16px; border: 1px solid ${borderColor}; border-radius: 8px; margin: 12px 0; background: ${backgroundColor};">${htmlContent}</div>`;
 }
@@ -403,7 +548,7 @@ function renderCard(content: string, themeColors?: ThemeColors): string {
 // Helper function to determine if a color is dark
 function isColorDark(hexColor: string): boolean {
   // Remove # if present
-  const color = hexColor.replace('#', '');
+  const color = hexColor.replace("#", "");
 
   // Parse RGB values
   const r = parseInt(color.substring(0, 2), 16);
@@ -472,26 +617,58 @@ function renderQuote(props: Record<string, string>, content: string): string {
   return `<blockquote class="quote-component"><div class="quote-content">${htmlContent}</div>${attribution}</blockquote>`;
 }
 
-function renderTabs(content: string): string {
+function renderTabs(content: string, forWeCom: boolean = false): string {
   const items = content.split(/\n\s*-{3,}\s*\n/);
 
-  const tabsHtml = items
-    .map((item, index) => {
-      const lines = item.trim().split("\n");
-      const title = lines[0]
-        ? lines[0].replace(/^#+\s*/, "").trim()
-        : `Tab ${index + 1}`;
-      const body = lines.slice(1).join("\n");
-      const bodyHtml = body ? markdownToHtml(body) : "";
+  const buttons: string[] = [];
+  const panels: string[] = [];
 
-      return `<div class="tab-item" data-tab="${index}"><div class="tab-title">${title}</div><div class="tab-content">${bodyHtml}</div></div>`;
-    })
-    .join("");
+  items.forEach((item, index) => {
+    const lines = item.trim().split("\n");
+    const title = lines[0]
+      ? lines[0].replace(/^#+\s*/, "").trim()
+      : `Tab ${index + 1}`;
+    const body = lines.slice(1).join("\n");
+    const bodyHtml = body ? markdownToHtml(body) : "";
 
-  return `<div class="tabs-component">${tabsHtml}</div>`;
+    if (forWeCom) {
+      panels.push(
+        `<section class="wecom-tab-section"><h4 class="wecom-tab-title">${title}</h4><div class="wecom-tab-content">${bodyHtml}</div></section>`,
+      );
+    } else {
+      buttons.push(
+        `<button class="tab-button${index === 0 ? " active" : ""}" data-tab="${index}">${title}</button>`,
+      );
+      panels.push(
+        `<div class="tab-panel${index === 0 ? " active" : ""}" data-tab="${index}">${bodyHtml}</div>`,
+      );
+    }
+  });
+
+  if (forWeCom) {
+    return `<div class="wecom-tabs">${panels.join("")}</div>`;
+  }
+  return `<div class="tabs-component"><div class="tab-list">${buttons.join("")}</div>${panels.join("")}</div>`;
 }
-function renderAccordion(content: string): string {
+function renderAccordion(content: string, forWeCom: boolean = false): string {
   const items = content.split(/\n\s*-{3,}\s*\n/);
+
+  if (forWeCom) {
+    const sectionsHtml = items
+      .map((item, index) => {
+        const lines = item.trim().split("\n");
+        const title = lines[0]
+          ? lines[0].replace(/^#+\s*/, "").trim()
+          : `Section ${index + 1}`;
+        const body = lines.slice(1).join("\n");
+        const bodyHtml = body ? markdownToHtml(body) : "";
+
+        return `<section class="wecom-accordion-section"><h4 class="wecom-accordion-title">▸ ${title}</h4><div class="wecom-accordion-content">${bodyHtml}</div></section>`;
+      })
+      .join("");
+
+    return `<div class="wecom-accordion">${sectionsHtml}</div>`;
+  }
 
   const accordionHtml = items
     .map((item, index) => {
@@ -502,28 +679,33 @@ function renderAccordion(content: string): string {
       const body = lines.slice(1).join("\n");
       const bodyHtml = body ? markdownToHtml(body) : "";
 
-      return `<details class="accordion-item"><summary class="accordion-title">${title}</summary><div class="accordion-content">${bodyHtml}</div></details>`;
-
+      return `<details class="accordion-item"${index === 0 ? " open" : ""}><summary class="accordion-header">${title}</summary><div class="accordion-content">${bodyHtml}</div></details>`;
     })
     .join("");
 
   return `<div class="accordion-component">${accordionHtml}</div>`;
 }
 
-export function convertMarkdownWithComponents(markdown: string, themeColors?: ThemeColors): string {
+export function convertMarkdownWithComponents(
+  markdown: string,
+  themeColors?: ThemeColors,
+  forWeCom: boolean = false,
+): string {
   const components = parseCustomComponents(markdown);
 
-  // Sort by startIndex in reverse order to replace from end to start
   components.sort((a, b) => b.startIndex - a.startIndex);
 
   let result = markdown;
   for (const component of components) {
-    const rendered = renderComponent(component, themeColors);
+    const rendered = renderComponent(component, themeColors, forWeCom);
     result =
       result.substring(0, component.startIndex) +
       rendered +
       result.slice(component.endIndex);
   }
+
+  result = markdownToHtml(result);
+
   return result;
 }
 

@@ -14,6 +14,7 @@ export interface Theme {
     link: string;
     code: string;
     blockquote: string;
+    blockquoteBg?: string;
   };
   css: string;
 }
@@ -29,30 +30,32 @@ export const themes: Record<string, Theme> = {
       foreground: "#333333",
       accent: "#576b95",
       border: "#e5e5e5",
-      heading: "#000000",
+      heading: "#1a1a1a",
       link: "#576b95",
       code: "#f7f7f7",
       blockquote: "#888888",
+      blockquoteBg: "#f0f4f8",
     },
     css: `
       .preview-content {
-        font-family: -apple-system-font, "Helvetica Neue", sans-serif;
+        font-family: -apple-system-font, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
         font-size: 16px;
-        line-height: 1.75;
+        line-height: 1.8;
         color: #333333;
         background: #ffffff;
         max-width: 677px;
         margin: 0 auto;
-        padding: 20px 16px;
+        padding: 24px 16px;
       }
-      .preview-content h1 { font-size: 24px; font-weight: 600; color: #000000; margin: 24px 0 16px; text-align: center; }
-      .preview-content h2 { font-size: 20px; font-weight: 600; color: #000000; margin: 24px 0 12px; padding-left: 10px; border-left: 4px solid #576b95; }
-      .preview-content h3 { font-size: 18px; font-weight: 600; color: #000000; margin: 20px 0 10px; }
-      .preview-content p { margin: 12px 0; text-align: justify; }
+      .preview-content h1 { font-size: 32px; font-weight: 700; color: #1a1a1a; margin: 32px 0 20px; letter-spacing: -0.02em; }
+      .preview-content h2 { font-size: 24px; font-weight: 600; color: #1a1a1a; margin: 28px 0 16px; padding-left: 12px; border-left: 4px solid #576b95; }
+      .preview-content h3 { font-size: 20px; font-weight: 600; color: #1a1a1a; margin: 24px 0 12px; }
+      .preview-content h4 { font-size: 17px; font-weight: 600; color: #333333; margin: 20px 0 10px; }
+      .preview-content p { margin: 14px 0; line-height: 1.85; }
       .preview-content a { color: #576b95; text-decoration: none; }
+      .preview-content a:hover { text-decoration: underline; }
       .preview-content img { max-width: 100%; display: block; margin: 16px auto; border-radius: 4px; }
-      .preview-content blockquote { border-left: 4px solid #e5e5e5; padding-left: 16px; margin: 16px 0; color: #888888; font-style: italic; }
-      .preview-content code { background: #f7f7f7; padding: 2px 6px; border-radius: 4px; font-family: Menlo, Monaco, monospace; font-size: 0.9em; }
+      .preview-content code { background: #f7f7f7; padding: 2px 6px; border-radius: 4px; font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 0.9em; }
       .preview-content pre { background: #f7f7f7; padding: 16px; border-radius: 8px; overflow-x: auto; }
       .preview-content pre code { background: none; padding: 0; }
     `,
@@ -72,6 +75,7 @@ export const themes: Record<string, Theme> = {
       link: "#0071e3",
       code: "#f5f5f7",
       blockquote: "#86868b",
+      blockquoteBg: "#f5f5f7",
     },
     css: `
       .preview-content {
@@ -94,7 +98,7 @@ export const themes: Record<string, Theme> = {
     `,
   },
 
-  "dracula": {
+  dracula: {
     id: "dracula",
     name: "Dracula",
     description: "Vibrant, colorful dark theme",
@@ -108,6 +112,7 @@ export const themes: Record<string, Theme> = {
       link: "#8be9fd",
       code: "#44475a",
       blockquote: "#6272a4",
+      blockquoteBg: "#1e1f29",
     },
     css: `
       .preview-content {
@@ -144,6 +149,7 @@ export const themes: Record<string, Theme> = {
       link: "#5e81ac",
       code: "#eceff4",
       blockquote: "#4c566a",
+      blockquoteBg: "#e5e9f0",
     },
     css: `
       .preview-content {
@@ -180,6 +186,7 @@ export const themes: Record<string, Theme> = {
       link: "#7dcfff",
       code: "#24283b",
       blockquote: "#565f89",
+      blockquoteBg: "#16161e",
     },
     css: `
       .preview-content {
@@ -202,7 +209,7 @@ export const themes: Record<string, Theme> = {
     `,
   },
 
-  "midnight": {
+  midnight: {
     id: "midnight",
     name: "Midnight",
     description: "Pure dark, minimal distraction",
@@ -216,6 +223,7 @@ export const themes: Record<string, Theme> = {
       link: "#60a5fa",
       code: "#1a1a1a",
       blockquote: "#a1a1aa",
+      blockquoteBg: "#171717",
     },
     css: `
       .preview-content {
@@ -253,6 +261,7 @@ export const themes: Record<string, Theme> = {
       link: "#c45d1a",
       code: "#f5efe8",
       blockquote: "#7a6b5a",
+      blockquoteBg: "#fff8f0",
     },
     css: `
       .preview-content {
@@ -275,7 +284,6 @@ export const themes: Record<string, Theme> = {
     `,
   },
 
-
   "elegant-serif": {
     id: "elegant-serif",
     name: "Elegant Serif",
@@ -290,6 +298,7 @@ export const themes: Record<string, Theme> = {
       link: "#8b6f47",
       code: "#f5f3f0",
       blockquote: "#7a7a7a",
+      blockquoteBg: "#faf8f5",
     },
     css: `
       .preview-content {
@@ -326,6 +335,7 @@ export const themes: Record<string, Theme> = {
       link: "#5a9a7c",
       code: "#e8f2e6",
       blockquote: "#6b7a68",
+      blockquoteBg: "#edf5eb",
     },
     css: `
       .preview-content {
@@ -362,6 +372,7 @@ export const themes: Record<string, Theme> = {
       link: "#e8788a",
       code: "#fef6f7",
       blockquote: "#888888",
+      blockquoteBg: "#fefafa",
     },
     css: `
       .preview-content {
@@ -384,7 +395,7 @@ export const themes: Record<string, Theme> = {
     `,
   },
 
-  "newspaper": {
+  newspaper: {
     id: "newspaper",
     name: "Newspaper",
     description: "Classic, authoritative print journalism",
@@ -398,6 +409,7 @@ export const themes: Record<string, Theme> = {
       link: "#c41e3a",
       code: "#f0efec",
       blockquote: "#555555",
+      blockquoteBg: "#f5f4f1",
     },
     css: `
       .preview-content {
@@ -434,6 +446,7 @@ export const themes: Record<string, Theme> = {
       link: "#88c0d0",
       code: "#3b4252",
       blockquote: "#a8b4c4",
+      blockquoteBg: "#262c36",
     },
     css: `
       .preview-content {
@@ -470,6 +483,7 @@ export const themes: Record<string, Theme> = {
       link: "#ff6188",
       code: "#363337",
       blockquote: "#727072",
+      blockquoteBg: "#272528",
     },
     css: `
       .preview-content {
@@ -492,7 +506,7 @@ export const themes: Record<string, Theme> = {
     `,
   },
 
-  "coffee": {
+  coffee: {
     id: "coffee",
     name: "Coffee",
     description: "Warm, cozy dark theme",
@@ -506,6 +520,7 @@ export const themes: Record<string, Theme> = {
       link: "#e8b86d",
       code: "#3d3226",
       blockquote: "#8b7355",
+      blockquoteBg: "#241c12",
     },
     css: `
       .preview-content {

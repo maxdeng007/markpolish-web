@@ -185,20 +185,19 @@ Stay hungry, stay foolish.
 ### Tabs Component
 
 :::tabs
---Tab1--
-**Introduction**
+### Introduction
 
 MarkPolish provides rich Markdown editing features.
 
---Tab2--
-**User Guide**
+---
+### User Guide
 
 1. Write content
 2. Select theme
 3. Export and publish
 
---Tab3--
-**FAQ**
+---
+### FAQ
 
 Q: How to export to Wecom?
 A: Click the "Export" button.
@@ -207,13 +206,15 @@ A: Click the "Export" button.
 ### Accordion Component
 
 :::accordion
---First Question: How to get started?--
+### First Question: How to get started?
 Simply type Markdown content in the left editor, and the right side will show a real-time preview.
 
---Second Question: What themes are supported?--
+---
+### Second Question: What themes are supported?
 Currently 14 themes are supported, including 8 light themes and 6 dark themes.
 
---Third Question: How to export?--
+---
+### Third Question: How to export?
 Click the export button in the toolbar and select HTML, PDF, or Markdown format.
 :::
 
@@ -253,17 +254,32 @@ function App() {
   const [theme, setTheme] = useState("wechat-classic");
   const [autoSaveEnabled] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [aiImageStates, setAIImageStates] = useState<Record<string, {
-    description: string;
-    ratio: string;
-    imageUrl: string | null;
-    status: "idle" | "generating" | "done" | "error";
-  }>>({});
+  const [aiImageStates, setAIImageStates] = useState<
+    Record<
+      string,
+      {
+        description: string;
+        ratio: string;
+        imageUrl: string | null;
+        status: "idle" | "generating" | "done" | "error";
+      }
+    >
+  >({});
   const [previewMode, setPreviewMode] = useState<"full" | "wecom">("full");
   const [showPDFExport, setShowPDFExport] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("ai");
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Get cursor position from textarea
+  const getCursorPosition = (): number | null => {
+    const textarea = textareaRef.current;
+    if (!textarea) return null;
+    // Return the cursor position if textarea exists and has valid selection
+    const pos = textarea.selectionStart;
+    if (pos < 0 || pos > textarea.value.length) return null;
+    return pos;
+  };
 
   // Auto-save hook
   useAutoSave({
@@ -411,6 +427,7 @@ function App() {
               onLoadProject={handleLoadProject}
               onInsertImage={handleInsertImage}
               onOpenSettings={() => setSidebarTab("settings")}
+              getCursorPosition={getCursorPosition}
             />
           </ErrorBoundary>
 
@@ -424,7 +441,10 @@ function App() {
           </ErrorBoundary>
 
           {/* Preview - Right */}
-          <div className="flex-1 flex flex-col overflow-hidden" ref={previewRef}>
+          <div
+            className="flex-1 flex flex-col overflow-hidden"
+            ref={previewRef}
+          >
             <ErrorBoundary>
               <Preview
                 markdown={markdown}
@@ -456,7 +476,10 @@ function App() {
               <h3 className="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
               <div className="space-y-2 text-sm">
                 {shortcuts.getAll().map((shortcut, i) => (
-                  <div key={i} className="flex justify-between items-center py-1">
+                  <div
+                    key={i}
+                    className="flex justify-between items-center py-1"
+                  >
                     <span className="text-muted-foreground">
                       {shortcut.description}
                     </span>
@@ -478,7 +501,13 @@ function App() {
 
         {/* Lazy loaded PDF Export Modal */}
         {showPDFExport && (
-          <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">Loading...</div>}>
+          <Suspense
+            fallback={
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                Loading...
+              </div>
+            }
+          >
             <PDFExportModal
               markdown={markdown}
               theme={theme}

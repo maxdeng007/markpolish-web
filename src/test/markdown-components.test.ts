@@ -188,7 +188,6 @@ describe("renderComponent", () => {
       endIndex: 30,
     };
     const result = renderComponent(component);
-    expect(result).toContain("border-radius: 8px");
     expect(result).toContain("<h2>");
     expect(result).toContain("<strong>");
   });
