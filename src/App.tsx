@@ -11,6 +11,7 @@ import { fileOps, type Project } from "@/lib/file-operations";
 import { getDefaultTheme } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 import { ToastProvider, ToastContainer } from "@/components/Toast";
+import { TranslationProvider, useTranslation } from "@/hooks/useTranslation";
 
 // Lazy load PDF Export Button for better bundle size
 const PDFExportModal = lazy(() => import("@/components/PDFExportModal"));
@@ -249,6 +250,39 @@ The content above covers all major features of MarkPolish Studio:
 
 *🎉 If all content displays correctly, the export feature is working properly!*`;
 
+function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold mb-4">{t("keyboard.title")}</h3>
+        <div className="space-y-2 text-sm">
+          {shortcuts.getAll().map((shortcut, i) => (
+            <div key={i} className="flex justify-between items-center py-1">
+              <span className="text-muted-foreground">
+                {t(shortcut.description)}
+              </span>
+              <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">
+                {shortcuts.getShortcutString(shortcut)}
+              </kbd>
+            </div>
+          ))}
+        </div>
+        <Button onClick={onClose} className="w-full mt-4">
+          {t("common.close")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [markdown, setMarkdown] = useState(defaultMarkdown);
   const [isDark, setIsDark] = useState(false);
@@ -397,136 +431,107 @@ function App() {
   };
 
   return (
-    <ToastProvider>
-      <ErrorBoundary>
-        <div className="h-screen flex flex-col bg-background">
-          {/* Header */}
-          <Header
-            markdown={markdown}
-            theme={theme}
-            isDark={isDark}
-            onToggleDark={() => setIsDark(!isDark)}
-            onMarkdownChange={setMarkdown}
-            onThemeChange={setTheme}
-            showShortcutsHelp={showShortcutsHelp}
-            onToggleShortcutsHelp={() =>
-              setShowShortcutsHelp(!showShortcutsHelp)
-            }
-            aiImageStates={aiImageStates}
-            defaultMarkdown={defaultMarkdown}
-            onShowPDFExport={() => setShowPDFExport(true)}
-          />
+    <TranslationProvider>
+      <ToastProvider>
+        <ErrorBoundary>
+          <div className="h-screen flex flex-col bg-background">
+            {/* Header */}
+            <Header
+              markdown={markdown}
+              theme={theme}
+              isDark={isDark}
+              onToggleDark={() => setIsDark(!isDark)}
+              onMarkdownChange={setMarkdown}
+              onThemeChange={setTheme}
+              showShortcutsHelp={showShortcutsHelp}
+              onToggleShortcutsHelp={() =>
+                setShowShortcutsHelp(!showShortcutsHelp)
+              }
+              aiImageStates={aiImageStates}
+              defaultMarkdown={defaultMarkdown}
+              onShowPDFExport={() => setShowPDFExport(true)}
+            />
 
-          {/* Main Content */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Sidebar - Left */}
-            <ErrorBoundary>
-              <Sidebar
-                markdown={markdown}
-                theme={theme}
-                activeTab={sidebarTab}
-                onTabChange={setSidebarTab}
-                onMarkdownChange={setMarkdown}
-                onThemeChange={setTheme}
-                onLoadProject={handleLoadProject}
-                onInsertImage={handleInsertImage}
-                onOpenSettings={() => setSidebarTab("settings")}
-                getCursorPosition={getCursorPosition}
-              />
-            </ErrorBoundary>
-
-            {/* Editor - Center */}
-            <ErrorBoundary>
-              <Editor
-                markdown={markdown}
-                onChange={setMarkdown}
-                ref={textareaRef}
-              />
-            </ErrorBoundary>
-
-            {/* Preview - Right */}
-            <div
-              className="flex-1 flex flex-col overflow-hidden"
-              ref={previewRef}
-            >
+            {/* Main Content */}
+            <div className="flex-1 flex overflow-hidden">
+              {/* Sidebar - Left */}
               <ErrorBoundary>
-                <Preview
+                <Sidebar
                   markdown={markdown}
                   theme={theme}
-                  previewMode={previewMode}
-                  onPreviewModeChange={setPreviewMode}
-                  aiImageStates={aiImageStates}
-                  onAIImageStatesChange={setAIImageStates}
+                  activeTab={sidebarTab}
+                  onTabChange={setSidebarTab}
+                  onMarkdownChange={setMarkdown}
+                  onThemeChange={setTheme}
+                  onLoadProject={handleLoadProject}
+                  onInsertImage={handleInsertImage}
+                  onOpenSettings={() => setSidebarTab("settings")}
+                  getCursorPosition={getCursorPosition}
                 />
               </ErrorBoundary>
-            </div>
-          </div>
 
-          {/* Compact Stats - Sticky at Bottom */}
-          <ErrorBoundary>
-            <CompactStats markdown={markdown} />
-          </ErrorBoundary>
+              {/* Editor - Center */}
+              <ErrorBoundary>
+                <Editor
+                  markdown={markdown}
+                  onChange={setMarkdown}
+                  ref={textareaRef}
+                />
+              </ErrorBoundary>
 
-          {/* Keyboard Shortcuts Help Modal */}
-          {showShortcutsHelp && (
-            <div
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-              onClick={() => setShowShortcutsHelp(false)}
-            >
+              {/* Preview - Right */}
               <div
-                className="bg-background border border-border rounded-lg p-6 max-w-md w-full mx-4"
-                onClick={(e) => e.stopPropagation()}
+                className="flex-1 flex flex-col overflow-hidden"
+                ref={previewRef}
               >
-                <h3 className="text-lg font-semibold mb-4">
-                  Keyboard Shortcuts
-                </h3>
-                <div className="space-y-2 text-sm">
-                  {shortcuts.getAll().map((shortcut, i) => (
-                    <div
-                      key={i}
-                      className="flex justify-between items-center py-1"
-                    >
-                      <span className="text-muted-foreground">
-                        {shortcut.description}
-                      </span>
-                      <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono">
-                        {shortcuts.getShortcutString(shortcut)}
-                      </kbd>
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  onClick={() => setShowShortcutsHelp(false)}
-                  className="w-full mt-4"
-                >
-                  Close
-                </Button>
+                <ErrorBoundary>
+                  <Preview
+                    markdown={markdown}
+                    theme={theme}
+                    previewMode={previewMode}
+                    onPreviewModeChange={setPreviewMode}
+                    aiImageStates={aiImageStates}
+                    onAIImageStatesChange={setAIImageStates}
+                  />
+                </ErrorBoundary>
               </div>
             </div>
-          )}
 
-          {/* Lazy loaded PDF Export Modal */}
-          {showPDFExport && (
-            <Suspense
-              fallback={
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  Loading...
-                </div>
-              }
-            >
-              <PDFExportModal
-                markdown={markdown}
-                theme={theme}
-                aiImageStates={aiImageStates}
-                onClose={() => setShowPDFExport(false)}
+            {/* Compact Stats - Sticky at Bottom */}
+            <ErrorBoundary>
+              <CompactStats markdown={markdown} />
+            </ErrorBoundary>
+
+            {/* Keyboard Shortcuts Help Modal */}
+            {showShortcutsHelp && (
+              <KeyboardShortcutsModal
+                onClose={() => setShowShortcutsHelp(false)}
               />
-            </Suspense>
-          )}
+            )}
 
-          <ToastContainer />
-        </div>
-      </ErrorBoundary>
-    </ToastProvider>
+            {/* Lazy loaded PDF Export Modal */}
+            {showPDFExport && (
+              <Suspense
+                fallback={
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    Loading...
+                  </div>
+                }
+              >
+                <PDFExportModal
+                  markdown={markdown}
+                  theme={theme}
+                  aiImageStates={aiImageStates}
+                  onClose={() => setShowPDFExport(false)}
+                />
+              </Suspense>
+            )}
+
+            <ToastContainer />
+          </div>
+        </ErrorBoundary>
+      </ToastProvider>
+    </TranslationProvider>
   );
 }
 

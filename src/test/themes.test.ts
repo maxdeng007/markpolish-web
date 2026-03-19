@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { getTheme, getThemeList, getLightThemes, getDarkThemes, themes } from "@/lib/themes";
+import {
+  getTheme,
+  getThemeList,
+  getLightThemes,
+  getDarkThemes,
+  themes,
+} from "@/lib/themes";
 
 describe("themes", () => {
   it("should have at least 10 themes defined", () => {
@@ -11,7 +17,7 @@ describe("themes", () => {
     const theme = getTheme("wechat-classic");
     expect(theme).toBeDefined();
     expect(theme.id).toBe("wechat-classic");
-    expect(theme.name).toBe("WeChat Classic");
+    expect(theme.nameKey).toBe("themes.wechatClassic");
   });
 
   it("should have both light and dark themes", () => {
@@ -42,7 +48,9 @@ describe("themes", () => {
     Object.values(themes).forEach((theme) => {
       requiredStyles.forEach((style) => {
         expect(theme.styles).toHaveProperty(style);
-        expect(typeof theme.styles[style as keyof typeof theme.styles]).toBe("string");
+        expect(typeof theme.styles[style as keyof typeof theme.styles]).toBe(
+          "string",
+        );
       });
     });
   });

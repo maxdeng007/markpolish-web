@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getLightThemes, getDarkThemes } from "@/lib/themes";
 import { Check, Sun, Moon } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ThemesPanelProps {
   currentTheme: string;
@@ -11,6 +12,7 @@ export default function ThemesPanel({
   currentTheme,
   setTheme,
 }: ThemesPanelProps) {
+  const { t } = useTranslation();
   const lightThemes = getLightThemes();
   const darkThemes = getDarkThemes();
   const [activeTab, setActiveTab] = useState<"light" | "dark">("light");
@@ -20,9 +22,9 @@ export default function ThemesPanel({
   return (
     <div className="p-4 space-y-4">
       <div>
-        <h3 className="font-semibold text-sm mb-3">Preview Themes</h3>
+        <h3 className="font-semibold text-sm mb-3">{t("themes.title")}</h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Choose a theme optimized for WeChat publishing
+          {t("themes.description")}
         </p>
       </div>
 
@@ -37,7 +39,7 @@ export default function ThemesPanel({
           }`}
         >
           <Sun className="w-4 h-4 text-amber-500" />
-          Light ({lightThemes.length})
+          {t("themes.light")} ({lightThemes.length})
         </button>
         <button
           onClick={() => setActiveTab("dark")}
@@ -48,7 +50,7 @@ export default function ThemesPanel({
           }`}
         >
           <Moon className="w-4 h-4 text-indigo-400" />
-          Dark ({darkThemes.length})
+          {t("themes.dark")} ({darkThemes.length})
         </button>
       </div>
 
@@ -66,9 +68,11 @@ export default function ThemesPanel({
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <div className="font-semibold text-sm mb-1">{theme.name}</div>
+                <div className="font-semibold text-sm mb-1">
+                  {t(theme.nameKey)}
+                </div>
                 <div className="text-xs text-muted-foreground">
-                  {theme.description}
+                  {t(theme.descriptionKey)}
                 </div>
               </div>
               {currentTheme === theme.id && (
@@ -79,17 +83,17 @@ export default function ThemesPanel({
               <div
                 className="w-10 h-10 rounded border-2 shadow-sm"
                 style={{ background: theme.styles.background }}
-                title="Background"
+                title={t("themes.background")}
               />
               <div
                 className="w-10 h-10 rounded border-2 shadow-sm"
                 style={{ background: theme.styles.accent }}
-                title="Accent"
+                title={t("themes.accent")}
               />
               <div
                 className="w-10 h-10 rounded border-2 shadow-sm"
                 style={{ background: theme.styles.heading }}
-                title="Heading"
+                title={t("themes.heading")}
               />
             </div>
           </button>

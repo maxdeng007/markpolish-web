@@ -7,7 +7,12 @@ import {
   Image,
   Settings,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsListPill, TabsTriggerPill } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsListPill,
+  TabsTriggerPill,
+} from "@/components/ui/tabs";
 import AIPanel from "@/components/AIPanel";
 import TemplatesPanel from "@/components/TemplatesPanel";
 import ComponentsPanel from "@/components/ComponentsPanel";
@@ -17,8 +22,16 @@ import ImageLibraryPanel from "@/components/ImageLibraryPanel";
 import AIImagePanel from "@/components/AIImagePanel";
 import SettingsPanel from "@/components/SettingsPanel";
 import { type Project } from "@/lib/file-operations";
+import { useTranslation } from "@/hooks/useTranslation";
 
-export type SidebarTab = "ai" | "projects" | "templates" | "components" | "themes" | "images" | "settings";
+export type SidebarTab =
+  | "ai"
+  | "projects"
+  | "templates"
+  | "components"
+  | "themes"
+  | "images"
+  | "settings";
 
 interface SidebarProps {
   markdown: string;
@@ -45,6 +58,8 @@ export default function Sidebar({
   onOpenSettings,
   getCursorPosition,
 }: SidebarProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="w-80 border-r border-border bg-background overflow-hidden flex flex-col pb-14">
       {/* Tab Navigation */}
@@ -58,43 +73,43 @@ export default function Sidebar({
             <TabButton
               value="ai"
               icon={<Wand2 className="w-4 h-4" />}
-              label="AI"
+              label={t("sidebar.ai")}
               isActive={activeTab === "ai"}
             />
             <TabButton
               value="projects"
               icon={<FolderOpen className="w-4 h-4" />}
-              label="Projects"
+              label={t("sidebar.projects")}
               isActive={activeTab === "projects"}
             />
             <TabButton
               value="templates"
               icon={<FileText className="w-4 h-4" />}
-              label="Templates"
+              label={t("sidebar.templates")}
               isActive={activeTab === "templates"}
             />
             <TabButton
               value="components"
               icon={<Layout className="w-4 h-4" />}
-              label="Components"
+              label={t("sidebar.components")}
               isActive={activeTab === "components"}
             />
             <TabButton
               value="themes"
               icon={<Palette className="w-4 h-4" />}
-              label="Themes"
+              label={t("sidebar.themes")}
               isActive={activeTab === "themes"}
             />
             <TabButton
               value="images"
               icon={<Image className="w-4 h-4" />}
-              label="Images"
+              label={t("sidebar.images")}
               isActive={activeTab === "images"}
             />
             <TabButton
               value="settings"
               icon={<Settings className="w-4 h-4" />}
-              label="Settings"
+              label={t("sidebar.settings")}
               isActive={activeTab === "settings"}
             />
           </TabsListPill>
@@ -103,7 +118,11 @@ export default function Sidebar({
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <TabsContent value="ai" className="m-0 h-full">
-            <AIPanel markdown={markdown} setMarkdown={onMarkdownChange} onOpenSettings={onOpenSettings} />
+            <AIPanel
+              markdown={markdown}
+              setMarkdown={onMarkdownChange}
+              onOpenSettings={onOpenSettings}
+            />
           </TabsContent>
 
           <TabsContent value="projects" className="m-0 h-full">
@@ -134,8 +153,18 @@ export default function Sidebar({
             <Tabs defaultValue="library" className="h-full flex flex-col">
               <div className="border-b border-border px-3 py-2">
                 <TabsListPill className="w-full gap-1">
-                  <TabsTriggerPill value="library" className="flex-1 text-xs py-1.5">Library</TabsTriggerPill>
-                  <TabsTriggerPill value="ai-generate" className="flex-1 text-xs py-1.5">AI Generate</TabsTriggerPill>
+                  <TabsTriggerPill
+                    value="library"
+                    className="flex-1 text-xs py-1.5"
+                  >
+                    {t("images.library")}
+                  </TabsTriggerPill>
+                  <TabsTriggerPill
+                    value="ai-generate"
+                    className="flex-1 text-xs py-1.5"
+                  >
+                    {t("ai.generate")}
+                  </TabsTriggerPill>
                 </TabsListPill>
               </div>
               <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -176,9 +205,10 @@ function TabButton({
       className={`
         flex-col py-2 px-2 gap-1 h-auto min-w-[40px] flex-1
         transition-all duration-200 ease-out
-        ${isActive
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        ${
+          isActive
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
         }
       `}
       title={label}

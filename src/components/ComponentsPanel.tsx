@@ -1,4 +1,5 @@
 import { componentTemplates } from "@/lib/markdown-components";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ComponentsPanelProps {
   markdown: string;
@@ -11,80 +12,40 @@ export default function ComponentsPanel({
   setMarkdown,
   getCursorPosition,
 }: ComponentsPanelProps) {
+  const { t } = useTranslation();
+
+  const getComponent = (id: string) => ({
+    id,
+    name: t(`components.${id}`),
+    icon: getIcon(id),
+    description: t(`components.${id}Desc`),
+  });
+
   const components = [
-    {
-      id: "hero",
-      name: "Hero Section",
-      icon: "🎯",
-      description: "Eye-catching hero banner",
-    },
-    {
-      id: "col-2",
-      name: "2 Columns",
-      icon: "📊",
-      description: "Two-column layout",
-    },
-    {
-      id: "col-3",
-      name: "3 Columns",
-      icon: "📈",
-      description: "Three-column layout",
-    },
-    {
-      id: "steps",
-      name: "Steps",
-      icon: "📝",
-      description: "Step-by-step guide",
-    },
-    {
-      id: "timeline",
-      name: "Timeline",
-      icon: "⏱️",
-      description: "Timeline visualization",
-    },
-    {
-      id: "card",
-      name: "Card",
-      icon: "🎴",
-      description: "Styled card component",
-    },
-    { id: "video", name: "Video", icon: "🎥", description: "Video embed" },
-    {
-      id: "ai-image",
-      name: "AI Image",
-      icon: "🎨",
-      description: "AI-generated image",
-    },
-    {
-      id: "local-image",
-      name: "Local Image",
-      icon: "🖼️",
-      description: "Local image file",
-    },
-    {
-      id: "callout",
-      name: "Callout",
-      icon: "💡",
-      description: "Info/warning box",
-    },
-    {
-      id: "quote",
-      name: "Quote",
-      icon: "💬",
-      description: "Quote with attribution",
-    },
-    { id: "tabs", name: "Tabs", icon: "📑", description: "Tabbed content" },
-    {
-      id: "accordion",
-      name: "Accordion",
-      icon: "📂",
-      description: "Collapsible sections",
-    },
+    getComponent("hero"),
+    getComponent("col2"),
+    getComponent("col3"),
+    getComponent("steps"),
+    getComponent("timeline"),
+    getComponent("card"),
+    getComponent("video"),
+    getComponent("aiImage"),
+    getComponent("localImage"),
+    getComponent("callout"),
+    getComponent("quote"),
+    getComponent("tabs"),
+    getComponent("accordion"),
   ];
 
   const insertComponent = (componentId: string) => {
+    // Map display ID back to template ID
+    const templateId = componentId
+      .replace("col2", "col-2")
+      .replace("col3", "col-3")
+      .replace("aiImage", "ai-image")
+      .replace("localImage", "local-image");
     const template =
-      componentTemplates[componentId as keyof typeof componentTemplates];
+      componentTemplates[templateId as keyof typeof componentTemplates];
     if (template) {
       const componentWithNewlines = "\n\n" + template + "\n\n";
 
@@ -93,15 +54,19 @@ export default function ComponentsPanel({
 
       try {
         const pos = getCursorPosition?.();
-        if (typeof pos === 'number' && pos > 0) {
+        if (typeof pos === "number" && pos > 0) {
           cursorPosition = pos;
         }
-      } catch (e) {
+      } catch {
         // Ignore errors getting cursor position
         cursorPosition = null;
       }
 
-      if (cursorPosition !== null && cursorPosition > 0 && markdown.length > 0) {
+      if (
+        cursorPosition !== null &&
+        cursorPosition > 0 &&
+        markdown.length > 0
+      ) {
         // Insert at cursor position
         const before = markdown.substring(0, cursorPosition);
         const after = markdown.substring(cursorPosition);
@@ -119,9 +84,9 @@ export default function ComponentsPanel({
   return (
     <div className="p-4 space-y-4">
       <div>
-        <h3 className="font-semibold text-sm mb-3">Custom Components</h3>
+        <h3 className="font-semibold text-sm mb-3">{t("components.title")}</h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Insert WeChat-optimized components to enhance your content
+          {t("components.description")}
         </p>
       </div>
 
@@ -142,11 +107,10 @@ export default function ComponentsPanel({
       </div>
 
       <div className="border-t border-border pt-4">
-        <h4 className="font-semibold text-xs mb-2">Component Syntax</h4>
+        <h4 className="font-semibold text-xs mb-2">{t("components.syntax")}</h4>
         <div className="text-xs space-y-2 text-muted-foreground">
           <div>
             <code className="bg-muted px-1 py-0.5 rounded">:::hero</code> - Hero
-            sections
           </div>
           <div>
             <code className="bg-muted px-1 py-0.5 rounded">:::col-2</code> - Two
@@ -154,30 +118,48 @@ export default function ComponentsPanel({
           </div>
           <div>
             <code className="bg-muted px-1 py-0.5 rounded">:::steps</code> -
-            Step-by-step
+            Steps
           </div>
           <div>
             <code className="bg-muted px-1 py-0.5 rounded">:::callout</code> -
-            Callout boxes
+            Callout
           </div>
           <div>
             <code className="bg-muted px-1 py-0.5 rounded">:::quote</code> -
-            Quotes
+            Quote
           </div>
           <div>
-            <code className="bg-muted px-1 py-0.5 rounded">:::tabs</code> -
-            Tabbed content
+            <code className="bg-muted px-1 py-0.5 rounded">:::tabs</code> - Tabs
           </div>
           <div>
             <code className="bg-muted px-1 py-0.5 rounded">:::accordion</code> -
-            Collapsible
+            Accordion
           </div>
           <div>
             <code className="bg-muted px-1 py-0.5 rounded">[IMG: desc]</code> -
-            AI image
+            AI Image
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function getIcon(id: string): string {
+  const icons: Record<string, string> = {
+    hero: "🎯",
+    col2: "📊",
+    col3: "📈",
+    steps: "📝",
+    timeline: "⏱️",
+    card: "🎴",
+    video: "🎥",
+    aiImage: "🎨",
+    localImage: "🖼️",
+    callout: "💡",
+    quote: "💬",
+    tabs: "📑",
+    accordion: "📂",
+  };
+  return icons[id] || "📦";
 }

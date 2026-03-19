@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { fileOps } from "@/lib/file-operations";
 import { exportToHTML, exportForWeChat } from "@/lib/export";
+import { LanguageSwitcher, useTranslation } from "@/hooks/useTranslation";
 
 interface HeaderProps {
   markdown: string;
@@ -22,12 +23,15 @@ interface HeaderProps {
   onThemeChange: (theme: string) => void;
   showShortcutsHelp: boolean;
   onToggleShortcutsHelp: () => void;
-  aiImageStates: Record<string, {
-    description: string;
-    ratio: string;
-    imageUrl: string | null;
-    status: "idle" | "generating" | "done" | "error";
-  }>;
+  aiImageStates: Record<
+    string,
+    {
+      description: string;
+      ratio: string;
+      imageUrl: string | null;
+      status: "idle" | "generating" | "done" | "error";
+    }
+  >;
   defaultMarkdown: string;
   onShowPDFExport: () => void;
 }
@@ -45,6 +49,8 @@ export default function Header({
   defaultMarkdown,
   onShowPDFExport,
 }: HeaderProps) {
+  const { t } = useTranslation();
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -59,7 +65,7 @@ export default function Header({
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(markdown);
-    alert("Copied to clipboard!");
+    alert(t("toasts.copied"));
   };
 
   const handleExportHTML = () => {
@@ -72,11 +78,11 @@ export default function Header({
 
   const handleSave = () => {
     fileOps.saveProject({ name: "Quick Save", content: markdown, theme });
-    alert("Project saved!");
+    alert(t("toasts.projectSaved"));
   };
 
   const handleNewProject = () => {
-    if (confirm("Start new project? Unsaved changes will be lost.")) {
+    if (confirm(t("projects.confirmDelete"))) {
       onMarkdownChange(defaultMarkdown);
       onThemeChange("wechat-classic");
     }
@@ -89,10 +95,8 @@ export default function Header({
           <Sparkles className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">MarkPolish Studio</h1>
-          <p className="text-xs text-muted-foreground">
-            Wecom Content Creation
-          </p>
+          <h1 className="text-lg font-bold">{t("app.name")}</h1>
+          <p className="text-xs text-muted-foreground">{t("app.subtitle")}</p>
         </div>
       </div>
 
@@ -109,7 +113,7 @@ export default function Header({
           variant="outline"
           size="icon"
           onClick={handleNewProject}
-          title="New Project"
+          title={t("header.newProject")}
         >
           <FileText className="w-4 h-4" />
         </Button>
@@ -118,7 +122,7 @@ export default function Header({
           variant="outline"
           size="icon"
           onClick={() => document.getElementById("file-upload")?.click()}
-          title="Upload Markdown File"
+          title={t("header.loadProject")}
         >
           <Upload className="w-4 h-4" />
         </Button>
@@ -127,7 +131,7 @@ export default function Header({
           variant="outline"
           size="icon"
           onClick={handleCopy}
-          title="Copy to Clipboard"
+          title={t("common.copy")}
         >
           <Copy className="w-4 h-4" />
         </Button>
@@ -136,7 +140,7 @@ export default function Header({
           variant="outline"
           size="icon"
           onClick={handleSave}
-          title="Save Project"
+          title={t("header.saveProject")}
         >
           <Download className="w-4 h-4" />
         </Button>
@@ -144,35 +148,35 @@ export default function Header({
         <Button
           variant="outline"
           onClick={handleExportHTML}
-          title="Export for Wecom"
+          title={t("export.html")}
         >
           <FileText className="w-4 h-4 mr-2" />
-          Export HTML
+          {t("export.html")}
         </Button>
 
         <Button
           variant="default"
           onClick={handleExportWeChat}
-          title="Copy Wecom-formatted HTML"
+          title={t("export.wecom")}
         >
           <Sparkles className="w-4 h-4 mr-2" />
-          Wecom
+          {t("export.wecom")}
         </Button>
 
         <Button
           variant="outline"
           onClick={onShowPDFExport}
-          title="Export to PDF"
+          title={t("export.pdf")}
         >
           <FileDown className="w-4 h-4 mr-2" />
-          PDF
+          {t("export.pdf")}
         </Button>
 
         <Button
           variant="outline"
           size="icon"
           onClick={onToggleShortcutsHelp}
-          title="Keyboard Shortcuts"
+          title={t("keyboard.title")}
         >
           <Keyboard className="w-4 h-4" />
         </Button>
@@ -183,14 +187,12 @@ export default function Header({
           variant="outline"
           size="icon"
           onClick={onToggleDark}
-          title="Toggle Theme"
+          title={t("header.toggleTheme")}
         >
-          {isDark ? (
-            <Sun className="w-4 h-4" />
-          ) : (
-            <Moon className="w-4 h-4" />
-          )}
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </Button>
+
+        <LanguageSwitcher />
       </div>
     </header>
   );

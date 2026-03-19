@@ -25,6 +25,7 @@ import {
   type AIConfig,
 } from "@/lib/ai-providers";
 import { settingsManager } from "@/lib/settings";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface AIPanelProps {
   markdown: string;
@@ -37,6 +38,7 @@ export default function AIPanel({
   setMarkdown,
   onOpenSettings,
 }: AIPanelProps) {
+  const { t } = useTranslation();
   const settings = settingsManager.getSettings();
   const [config, setConfig] = useState<AIConfig>({
     provider: settings.defaultTextProvider,
@@ -130,7 +132,7 @@ export default function AIPanel({
 
   const handleAction = async (actionId: string) => {
     if (!markdown.trim()) {
-      alert("Please add some content first");
+      alert(t("toasts.noContent"));
       return;
     }
 
@@ -157,7 +159,7 @@ export default function AIPanel({
       }
     } catch (error) {
       console.error("AI action failed:", error);
-      alert("AI action failed. Please check your configuration in Settings.");
+      alert(t("toasts.configRequired"));
     } finally {
       setLoading(false);
     }
@@ -184,21 +186,21 @@ export default function AIPanel({
       return {
         connected: ollamaStatus === "connected",
         icon: <Check className="w-3 h-3 text-green-500" />,
-        label: "Available",
+        label: t("ai.available"),
       };
     } else if (provider?.apiKey) {
       // For other providers, check if API key is configured
       return {
         connected: true,
         icon: <Check className="w-3 h-3 text-green-500" />,
-        label: "Ready",
+        label: t("ai.configured"),
       };
     } else {
       // Not configured
       return {
         connected: false,
         icon: <AlertCircle className="w-3 h-3 text-muted-foreground" />,
-        label: "Setup",
+        label: t("ai.setup"),
       };
     }
   };
@@ -210,7 +212,7 @@ export default function AIPanel({
         <Zap className="w-4 h-4 text-primary" />
         <Select value={config.provider} onValueChange={handleProviderChange}>
           <SelectTrigger className="h-8 flex-1">
-            <SelectValue placeholder="Select provider" />
+            <SelectValue placeholder={t("ai.selectProvider")} />
           </SelectTrigger>
           <SelectContent>
             {Object.values(aiProviders).map((provider) => {
@@ -252,15 +254,15 @@ export default function AIPanel({
       >
         <SelectTrigger className="h-8">
           <SelectValue
-            placeholder={loadingModels ? "Loading models..." : "Select model"}
+            placeholder={
+              loadingModels ? t("ai.loadingModels") : t("ai.selectModel")
+            }
           />
         </SelectTrigger>
         <SelectContent>
           {config.provider === "ollama" && availableModels.length === 0 ? (
             <SelectItem value="none" disabled>
-              {loadingModels
-                ? "Loading..."
-                : 'No models found. Run "ollama pull <model>"'}
+              {loadingModels ? t("ai.loadingModels") : t("ai.noModelsFound")}
             </SelectItem>
           ) : (
             availableModels.map((model) => (
@@ -280,9 +282,9 @@ export default function AIPanel({
         className="w-full h-8 text-xs"
       >
         <Settings className="w-3 h-3 mr-1" />
-        Configure AI Providers
+        {t("ai.configureProviders")}
         {!isConfigured() && (
-          <span className="ml-1 text-amber-600">(needs setup)</span>
+          <span className="ml-1 text-amber-600">{t("ai.needsSetup")}</span>
         )}
       </Button>
 
@@ -298,17 +300,17 @@ export default function AIPanel({
             </div>
             <div className="text-left">
               <span className="font-medium text-sm text-foreground">
-                Context
+                {t("ai.context")}
               </span>
               <span className="text-xs text-muted-foreground ml-1.5">
-                (Optional)
+                {t("ai.contextOptional")}
               </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {context && (
               <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                {context.length} chars
+                {context.length} {t("ai.chars")}
               </span>
             )}
             <div className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center group-hover:bg-muted transition-colors">
@@ -326,20 +328,20 @@ export default function AIPanel({
             <textarea
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder="Add context for AI actions... (e.g., 'Write for a tech-savvy audience' or 'Use a professional tone')"
+              placeholder={t("ai.contextPlaceholder")}
               className="w-full text-sm border border-input rounded-lg bg-background/50 px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               rows={3}
             />
             <div className="flex items-center justify-between mt-1.5">
               <span className="text-[10px] text-muted-foreground/60">
-                Helps AI understand your intent
+                {t("ai.contextHelp")}
               </span>
               {context && (
                 <button
                   onClick={() => setContext("")}
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Clear
+                  {t("common.clear")}
                 </button>
               )}
             </div>
@@ -351,14 +353,14 @@ export default function AIPanel({
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Zap className="w-4 h-4 text-primary" />
-          <h3 className="font-semibold text-sm">AI Actions</h3>
+          <h3 className="font-semibold text-sm">{t("ai.actions")}</h3>
         </div>
 
         <div className="space-y-4">
           {/* Generate Category */}
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
-              Generate
+              {t("ai.generate")}
             </div>
             <div className="space-y-2">
               {["generateTitles", "expandContent", "suggestComponents"].map(
@@ -381,7 +383,7 @@ export default function AIPanel({
                       ) : (
                         <span className="text-lg">{action.icon}</span>
                       )}
-                      <span>{action.name}</span>
+                      <span>{t(`ai.${action.id}` as any)}</span>
                     </button>
                   );
                 },
@@ -392,7 +394,7 @@ export default function AIPanel({
           {/* Improve Category */}
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
-              Improve
+              {t("ai.improve")}
             </div>
             <div className="space-y-2">
               {["smartFormat", "polishWithContext"].map((actionId) => {
@@ -409,7 +411,7 @@ export default function AIPanel({
                     ) : (
                       <span className="mr-2 text-base">{action.icon}</span>
                     )}
-                    {action.name}
+                    {t(`ai.${action.id}` as any)}
                   </button>
                 );
               })}
@@ -424,8 +426,8 @@ export default function AIPanel({
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold text-sm">
               {resultType === "titles"
-                ? "Generated Titles"
-                : "Component Suggestions"}
+                ? t("ai.generatedTitles")
+                : t("ai.componentSuggestions")}
             </h3>
             <Button
               size="sm"
@@ -436,7 +438,7 @@ export default function AIPanel({
               }}
               className="h-6 px-2 text-xs"
             >
-              Clear
+              {t("common.clear")}
             </Button>
           </div>
           <div className="text-sm space-y-2">
@@ -456,11 +458,11 @@ export default function AIPanel({
                       variant="ghost"
                       onClick={() => {
                         navigator.clipboard.writeText(title);
-                        alert("Copied!");
+                        alert(t("toasts.copied"));
                       }}
                       className="opacity-0 group-hover:opacity-100 h-7"
                     >
-                      Copy
+                      {t("common.copy")}
                     </Button>
                   </div>
                 ))
@@ -475,11 +477,11 @@ export default function AIPanel({
                   variant="outline"
                   onClick={() => {
                     navigator.clipboard.writeText(result);
-                    alert("Suggestions copied!");
+                    alert(t("toasts.suggestionsCopied"));
                   }}
                   className="mt-2 w-full"
                 >
-                  Copy All Suggestions
+                  {t("common.copyAll")}
                 </Button>
               </div>
             )}

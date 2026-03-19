@@ -3,12 +3,26 @@ import { templates, getAllCategories } from "@/lib/templates";
 import { FileText } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/components/Toast";
+import { useTranslation, type Language } from "@/hooks/useTranslation";
 
 interface TemplatesPanelProps {
   setMarkdown: (markdown: string) => void;
 }
 
+function getCategoryTranslationKey(category: string): string {
+  const categoryMap: Record<string, string> = {
+    Article: "templates.categoryArticle",
+    WeChat: "templates.categoryWeChat",
+    Marketing: "templates.categoryMarketing",
+    Education: "templates.categoryEducation",
+    Corporate: "templates.categoryCorporate",
+    Communication: "templates.categoryCommunication",
+  };
+  return categoryMap[category] || category;
+}
+
 export default function TemplatesPanel({ setMarkdown }: TemplatesPanelProps) {
+  const { t, language } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const { showToast } = useToast();
   const categories = ["all", ...getAllCategories()];
@@ -20,13 +34,13 @@ export default function TemplatesPanel({ setMarkdown }: TemplatesPanelProps) {
 
   const handleUseTemplate = (templateName: string, content: string) => {
     setMarkdown(content);
-    showToast(`Applied "${templateName}"`);
+    showToast(t("templates.applied").replace("{name}", templateName));
   };
 
   return (
     <div className="p-4 space-y-4">
       <div>
-        <h3 className="font-semibold text-sm mb-3">Quick Start Templates</h3>
+        <h3 className="font-semibold text-sm mb-3">{t("templates.title")}</h3>
 
         <div className="flex flex-wrap gap-1.5 mb-4">
           {categories.map((category) => (
@@ -39,7 +53,9 @@ export default function TemplatesPanel({ setMarkdown }: TemplatesPanelProps) {
                   : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               }`}
             >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {category === "all"
+                ? t("templates.all")
+                : t(getCategoryTranslationKey(category))}
             </button>
           ))}
         </div>
@@ -54,20 +70,25 @@ export default function TemplatesPanel({ setMarkdown }: TemplatesPanelProps) {
             <div className="flex items-start gap-3">
               <div className="text-2xl flex-shrink-0">{template.icon}</div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-sm mb-1">{template.name}</h4>
+                <h4 className="font-semibold text-sm mb-1">
+                  {t(template.nameKey)}
+                </h4>
                 <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                  {template.description}
+                  {t(template.descriptionKey)}
                 </p>
                 <div className="flex justify-end">
                   <Button
                     size="sm"
                     onClick={() =>
-                      handleUseTemplate(template.name, template.content)
+                      handleUseTemplate(
+                        t(template.nameKey),
+                        template.content[language as Language],
+                      )
                     }
                     className="h-7 px-3"
                   >
                     <FileText className="w-3 h-3 mr-1" />
-                    Use
+                    {t("templates.use")}
                   </Button>
                 </div>
               </div>

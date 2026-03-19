@@ -2,8 +2,8 @@
 
 export interface Theme {
   id: string;
-  name: string;
-  description: string;
+  nameKey: string; // Translation key, e.g., 'themes.wechatClassic'
+  descriptionKey: string; // Translation key, e.g., 'themes.wechatClassicDesc'
   category: "light" | "dark";
   styles: {
     background: string;
@@ -22,8 +22,8 @@ export interface Theme {
 export const themes: Record<string, Theme> = {
   "wechat-classic": {
     id: "wechat-classic",
-    name: "WeChat Classic",
-    description: "Optimized for WeChat reading experience",
+    nameKey: "themes.wechatClassic",
+    descriptionKey: "themes.wechatClassicDesc",
     category: "light",
     styles: {
       background: "#ffffff",
@@ -63,8 +63,8 @@ export const themes: Record<string, Theme> = {
 
   "apple-minimalist": {
     id: "apple-minimalist",
-    name: "Apple Minimalist",
-    description: "Clean, minimal design inspired by Apple",
+    nameKey: "themes.appleMinimalist",
+    descriptionKey: "themes.appleMinimalistDesc",
     category: "light",
     styles: {
       background: "#ffffff",
@@ -100,8 +100,8 @@ export const themes: Record<string, Theme> = {
 
   dracula: {
     id: "dracula",
-    name: "Dracula",
-    description: "Vibrant, colorful dark theme",
+    nameKey: "themes.dracula",
+    descriptionKey: "themes.draculaDesc",
     category: "dark",
     styles: {
       background: "#282a36",
@@ -137,8 +137,8 @@ export const themes: Record<string, Theme> = {
 
   "nordic-frost": {
     id: "nordic-frost",
-    name: "Nordic Frost",
-    description: "Cool, clean Scandinavian design",
+    nameKey: "themes.nordicFrost",
+    descriptionKey: "themes.nordicFrostDesc",
     category: "light",
     styles: {
       background: "#f8f9fa",
@@ -174,8 +174,8 @@ export const themes: Record<string, Theme> = {
 
   "tokyo-night": {
     id: "tokyo-night",
-    name: "Tokyo Night",
-    description: "Japanese cyberpunk aesthetic",
+    nameKey: "themes.tokyoNight",
+    descriptionKey: "themes.tokyoNightDesc",
     category: "dark",
     styles: {
       background: "#1a1b26",
@@ -211,8 +211,8 @@ export const themes: Record<string, Theme> = {
 
   midnight: {
     id: "midnight",
-    name: "Midnight",
-    description: "Pure dark, minimal distraction",
+    nameKey: "themes.midnight",
+    descriptionKey: "themes.midnightDesc",
     category: "dark",
     styles: {
       background: "#0d0d0d",
@@ -249,8 +249,8 @@ export const themes: Record<string, Theme> = {
 
   "warm-sunset": {
     id: "warm-sunset",
-    name: "Warm Sunset",
-    description: "Cozy, inviting autumn vibes",
+    nameKey: "themes.warmSunset",
+    descriptionKey: "themes.warmSunsetDesc",
     category: "light",
     styles: {
       background: "#fffbf5",
@@ -286,8 +286,8 @@ export const themes: Record<string, Theme> = {
 
   "elegant-serif": {
     id: "elegant-serif",
-    name: "Elegant Serif",
-    description: "Sophisticated, editorial design",
+    nameKey: "themes.elegantSerif",
+    descriptionKey: "themes.elegantSerifDesc",
     category: "light",
     styles: {
       background: "#fefefe",
@@ -323,8 +323,8 @@ export const themes: Record<string, Theme> = {
 
   "fresh-garden": {
     id: "fresh-garden",
-    name: "Fresh Garden",
-    description: "Natural, organic feel",
+    nameKey: "themes.freshGarden",
+    descriptionKey: "themes.freshGardenDesc",
     category: "light",
     styles: {
       background: "#f5f9f4",
@@ -360,8 +360,8 @@ export const themes: Record<string, Theme> = {
 
   "tokyo-dawn": {
     id: "tokyo-dawn",
-    name: "Tokyo Dawn",
-    description: "Vibrant, Japanese aesthetic",
+    nameKey: "themes.tokyoDawn",
+    descriptionKey: "themes.tokyoDawnDesc",
     category: "light",
     styles: {
       background: "#ffffff",
@@ -397,8 +397,8 @@ export const themes: Record<string, Theme> = {
 
   newspaper: {
     id: "newspaper",
-    name: "Newspaper",
-    description: "Classic, authoritative print journalism",
+    nameKey: "themes.newspaper",
+    descriptionKey: "themes.newspaperDesc",
     category: "light",
     styles: {
       background: "#faf9f6",
@@ -434,8 +434,8 @@ export const themes: Record<string, Theme> = {
 
   "nord-dark": {
     id: "nord-dark",
-    name: "Nord Dark",
-    description: "Arctic, cool dark theme",
+    nameKey: "themes.nordDark",
+    descriptionKey: "themes.nordDarkDesc",
     category: "dark",
     styles: {
       background: "#2e3440",
@@ -471,8 +471,8 @@ export const themes: Record<string, Theme> = {
 
   "monokai-pro": {
     id: "monokai-pro",
-    name: "Monokai Pro",
-    description: "Code editor inspired",
+    nameKey: "themes.monokaiPro",
+    descriptionKey: "themes.monokaiProDesc",
     category: "dark",
     styles: {
       background: "#2d2a2e",
@@ -508,8 +508,8 @@ export const themes: Record<string, Theme> = {
 
   coffee: {
     id: "coffee",
-    name: "Coffee",
-    description: "Warm, cozy dark theme",
+    nameKey: "themes.coffee",
+    descriptionKey: "themes.coffeeDesc",
     category: "dark",
     styles: {
       background: "#2c2418",

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { settingsManager } from "@/lib/settings";
 import { aiProviders } from "@/lib/ai-providers";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export default function SettingsModal({
   onClose,
   initialTab = "text",
 }: SettingsModalProps) {
+  const { t } = useTranslation();
   const settings = settingsManager.getSettings();
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [testingOllama, setTestingOllama] = useState(false);
@@ -114,13 +116,19 @@ export default function SettingsModal({
     status: "idle" | "testing" | "connected" | "failed",
   ) => {
     const badges = {
-      idle: { text: "Not tested", className: "text-muted-foreground bg-muted" },
+      idle: {
+        text: t("settings.disconnected"),
+        className: "text-muted-foreground bg-muted",
+      },
       testing: {
-        text: "Testing...",
+        text: t("settings.testing"),
         className: "text-yellow-600 bg-yellow-50",
       },
-      connected: { text: "Connected", className: "text-green-600 bg-green-50" },
-      failed: { text: "Failed", className: "text-red-600 bg-red-50" },
+      connected: {
+        text: t("settings.connected"),
+        className: "text-green-600 bg-green-50",
+      },
+      failed: { text: t("common.error"), className: "text-red-600 bg-red-50" },
     };
     return badges[status];
   };
@@ -140,7 +148,7 @@ export default function SettingsModal({
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <Settings className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold">Settings</h2>
+            <h2 className="font-semibold">{t("settings.title")}</h2>
           </div>
           <button
             onClick={onClose}
@@ -234,7 +242,7 @@ export default function SettingsModal({
                           </label>
                           <div className="flex gap-2">
                             <Input
-                            value={
+                              value={
                                 provider.baseUrl || "http://localhost:11434"
                               }
                               onChange={(e) =>
@@ -385,7 +393,7 @@ export default function SettingsModal({
                                 handleApiKeyChange(
                                   provider.id,
                                   e.target.value,
-                                  "image"
+                                  "image",
                                 )
                               }
                               placeholder={`Enter your ${provider.name} API key`}
@@ -393,24 +401,24 @@ export default function SettingsModal({
                               autoComplete="off"
                               spellCheck="false"
                             />
-                          {provider.apiKey && (
-                            <div className="flex justify-end gap-2 mt-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  clearProviderKey(provider.id, "image")
-                                }
-                                className="text-xs text-red-600 hover:text-red-700"
-                              >
-                                <X className="w-3 h-3 mr-1" />
-                                Clear
-                              </Button>
-                            </div>
-                          )}
+                            {provider.apiKey && (
+                              <div className="flex justify-end gap-2 mt-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    clearProviderKey(provider.id, "image")
+                                  }
+                                  className="text-xs text-red-600 hover:text-red-700"
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  Clear
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 ))}
               </div>
@@ -509,18 +517,14 @@ export default function SettingsModal({
                     variant="destructive"
                     size="sm"
                     onClick={() => {
-                      if (
-                        confirm(
-                          "Are you sure you want to clear all settings? This cannot be undone.",
-                        )
-                      ) {
+                      if (confirm(t("settings.confirmClear"))) {
                         settingsManager.clearAll();
                       }
                     }}
                     className="w-full"
                   >
                     <AlertCircle className="w-4 h-4 mr-2" />
-                    Clear All Settings
+                    {t("settings.clearAll")}
                   </Button>
                 </div>
               </div>
