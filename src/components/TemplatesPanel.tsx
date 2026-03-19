@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { templates, getAllCategories } from "@/lib/templates";
-import { FileText, Check } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useState } from "react";
+import { useToast } from "@/components/Toast";
 
 interface TemplatesPanelProps {
   setMarkdown: (markdown: string) => void;
@@ -9,7 +10,7 @@ interface TemplatesPanelProps {
 
 export default function TemplatesPanel({ setMarkdown }: TemplatesPanelProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [toast, setToast] = useState<string | null>(null);
+  const { showToast } = useToast();
   const categories = ["all", ...getAllCategories()];
 
   const filteredTemplates =
@@ -19,8 +20,7 @@ export default function TemplatesPanel({ setMarkdown }: TemplatesPanelProps) {
 
   const handleUseTemplate = (templateName: string, content: string) => {
     setMarkdown(content);
-    setToast(`Applied "${templateName}"`);
-    setTimeout(() => setToast(null), 2000);
+    showToast(`Applied "${templateName}"`);
   };
 
   return (
@@ -75,14 +75,6 @@ export default function TemplatesPanel({ setMarkdown }: TemplatesPanelProps) {
           </div>
         ))}
       </div>
-
-      {/* Toast notification */}
-      {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-foreground text-background px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 text-sm z-50">
-          <Check className="w-4 h-4" />
-          {toast}
-        </div>
-      )}
     </div>
   );
 }
