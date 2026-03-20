@@ -18,78 +18,37 @@ import {
   Sparkles,
   Image as ImageIcon,
   AlertCircle,
-  Zap,
 } from "lucide-react";
 import { settingsManager } from "@/lib/settings";
-import { aiProviders, fetchOllamaModels } from "@/lib/ai-providers";
+import { aiProviders } from "@/lib/ai-providers";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export default function SettingsPanel() {
   const { t } = useTranslation();
-  const [settingsKey, setSettingsKey] = useState(0);
+  const [, setSettingsKey] = useState(0);
   const settings = settingsManager.getSettings();
-  // Force re-render when settingsKey changes
-  useEffect(() => {
-    // This effect runs when settingsKey changes, triggering a re-render
-  }, [settingsKey]);
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [testingOllama, setTestingOllama] = useState(false);
   const [ollamaStatus, setOllamaStatus] = useState<
     "idle" | "testing" | "connected" | "failed"
   >("idle");
-  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
-  const [loadingOllamaModels, setLoadingOllamaModels] = useState(false);
 
-  const [activeSection, setActiveSection] = useState<
-    "text" | "image" | "preferences"
-  >("text");
+  const [activeSection, setActiveSection] = useState<"text" | "image">("text");
 
   const textProviders = settingsManager.getTextProviders();
   const imageProviders = settingsManager.getImageProviders();
 
-  // Force re-render when settings change
   const refreshSettings = () => {
     setSettingsKey((prev) => prev + 1);
   };
 
-  // Check Ollama connection and fetch models on mount
   useEffect(() => {
     const checkOllama = async () => {
       const connected = await settingsManager.checkOllamaConnection();
       setOllamaStatus(connected ? "connected" : "failed");
-
-      // Fetch Ollama models if connected
-      if (connected) {
-        await loadOllamaModels();
-      }
     };
     checkOllama();
   }, []);
-
-  // Fetch Ollama models when default text provider changes to ollama
-  useEffect(() => {
-    if (
-      settings.defaultTextProvider === "ollama" &&
-      ollamaModels.length === 0
-    ) {
-      loadOllamaModels();
-    }
-  }, [settings.defaultTextProvider]);
-
-  const loadOllamaModels = async () => {
-    setLoadingOllamaModels(true);
-    try {
-      const baseUrl =
-        settingsManager.getTextProvider("ollama")?.baseUrl ||
-        "http://localhost:11434";
-      const models = await fetchOllamaModels(baseUrl);
-      setOllamaModels(models);
-    } catch (error) {
-      console.error("Failed to fetch Ollama models:", error);
-    } finally {
-      setLoadingOllamaModels(false);
-    }
-  };
 
   const toggleShowKey = (providerId: string) => {
     setShowKeys((prev) => ({
@@ -129,6 +88,7 @@ export default function SettingsPanel() {
     } else {
       settingsManager.setImageProviderApiKey(providerId, "");
     }
+    refreshSettings();
   };
 
   const getProviderIcon = (_providerId: string, configured: boolean) => {
@@ -159,9 +119,12 @@ export default function SettingsPanel() {
     return badges[status];
   };
 
+  const getModelsForProvider = (providerId: string): string[] => {
+    return aiProviders[providerId]?.models || [];
+  };
+
   return (
     <div className="p-4 space-y-6">
-      {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Settings className="w-4 h-4 text-primary" />
@@ -172,11 +135,10 @@ export default function SettingsPanel() {
         </p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 p-1 bg-muted rounded-lg">
         <button
           onClick={() => setActiveSection("text")}
-          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 truncate ${
+          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 ${
             activeSection === "text"
               ? "bg-background shadow-sm text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -190,7 +152,7 @@ export default function SettingsPanel() {
         </button>
         <button
           onClick={() => setActiveSection("image")}
-          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 truncate ${
+          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 ${
             activeSection === "image"
               ? "bg-background shadow-sm text-foreground"
               : "text-muted-foreground hover:text-foreground"
@@ -200,23 +162,8 @@ export default function SettingsPanel() {
           <ImageIcon className="w-3.5 h-3.5 flex-shrink-0" />
           <span className="truncate hidden sm:inline">{t("images.title")}</span>
         </button>
-        <button
-          onClick={() => setActiveSection("preferences")}
-          className={`flex-1 px-2 py-1.5 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 truncate ${
-            activeSection === "preferences"
-              ? "bg-background shadow-sm text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-          title={t("settings.preferences")}
-        >
-          <Zap className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="truncate hidden sm:inline">
-            {t("settings.prefs")}
-          </span>
-        </button>
       </div>
 
-      {/* AI Text Providers Section */}
       {activeSection === "text" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -239,7 +186,7 @@ export default function SettingsPanel() {
                     <div className="text-xs text-muted-foreground">
                       {provider.id === "ollama"
                         ? t("settings.localLlmNoKey")
-                        : aiProviders[provider.id]?.models
+                        : getModelsForProvider(provider.id)
                             .slice(0, 2)
                             .join(", ")}
                     </div>
@@ -252,7 +199,6 @@ export default function SettingsPanel() {
                   )}
                 </div>
 
-                {/* API Key or URL input */}
                 {provider.id === "ollama" ? (
                   <div className="space-y-2">
                     <div>
@@ -293,63 +239,102 @@ export default function SettingsPanel() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  aiProviders[provider.id]?.requiresApiKey && (
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">
-                        {t("settings.apiKey")}
-                      </label>
-                      <div className="relative">
-                        <Input
-                          type={showKeys[provider.id] ? "text" : "password"}
-                          value={provider.apiKey}
-                          onChange={(e) =>
-                            handleApiKeyChange(
-                              provider.id,
-                              e.target.value,
-                              "text",
-                            )
-                          }
-                          placeholder={`${t("common.enter")} ${provider.name} ${t("settings.apiKey")}`}
-                          className="pr-10"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => toggleShowKey(provider.id)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted"
-                        >
-                          {showKeys[provider.id] ? (
-                            <EyeOff className="w-4 h-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </button>
-                      </div>
-                      {provider.apiKey && (
-                        <div className="flex justify-end gap-2 mt-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              clearProviderKey(provider.id, "text")
-                            }
-                            className="text-xs text-red-600 hover:text-red-700"
-                          >
-                            <X className="w-3 h-3 mr-1" />
-                            {t("settings.clear")}
-                          </Button>
-                        </div>
-                      )}
+                ) : aiProviders[provider.id]?.requiresApiKey ? (
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">
+                      {t("settings.apiKey")}
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type={showKeys[provider.id] ? "text" : "password"}
+                        value={provider.apiKey}
+                        onChange={(e) =>
+                          handleApiKeyChange(
+                            provider.id,
+                            e.target.value,
+                            "text",
+                          )
+                        }
+                        placeholder={`${t("common.enter")} ${provider.name} ${t("settings.apiKey")}`}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleShowKey(provider.id)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted"
+                      >
+                        {showKeys[provider.id] ? (
+                          <EyeOff className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
                     </div>
-                  )
-                )}
+                    {provider.apiKey && (
+                      <div className="flex justify-end gap-2 mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => clearProviderKey(provider.id, "text")}
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          {t("settings.clear")}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             ))}
+          </div>
+
+          <div className="mt-6 pt-4 border-t">
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t("settings.defaultImageProvider")}
+                </label>
+                <Select
+                  value={settings.defaultImageProvider}
+                  onValueChange={(value) => {
+                    settingsManager.setDefaultImageProvider(value);
+                    refreshSettings();
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {settingsManager
+                      .getConfiguredImageProviders()
+                      .map((provider) => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          {provider.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (confirm(t("settings.confirmClear"))) {
+                    settingsManager.clearAll();
+                  }
+                }}
+                className="w-full"
+              >
+                <AlertCircle className="w-4 h-4 mr-2" />
+                {t("settings.clearAll")}
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* AI Image Providers Section */}
       {activeSection === "image" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -396,7 +381,6 @@ export default function SettingsPanel() {
                     )}
                 </div>
 
-                {/* API Key input for providers that need it */}
                 {provider.id !== "picsum" &&
                   provider.id !== "gradient" &&
                   provider.id !== "pattern" && (
@@ -449,135 +433,6 @@ export default function SettingsPanel() {
                   )}
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Preferences Section */}
-      {activeSection === "preferences" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium">
-              {t("settings.defaultPreferences")}
-            </h4>
-          </div>
-
-          <div className="space-y-4">
-            {/* Default Text Provider */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">
-                {t("settings.defaultTextProvider")}
-              </label>
-              <Select
-                value={settings.defaultTextProvider}
-                onValueChange={(value) => {
-                  settingsManager.setDefaultTextProvider(value);
-                  refreshSettings();
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {settingsManager
-                    .getConfiguredTextProviders()
-                    .map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        {provider.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Default Text Model */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">
-                {t("settings.defaultTextModel")}
-              </label>
-              <Select
-                value={settings.defaultTextModel}
-                onValueChange={(value) => {
-                  settingsManager.setDefaultTextModel(value);
-                  refreshSettings();
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {settings.defaultTextProvider === "ollama" ? (
-                    loadingOllamaModels ? (
-                      <SelectItem value="loading" disabled>
-                        {t("settings.loading")}
-                      </SelectItem>
-                    ) : ollamaModels.length > 0 ? (
-                      ollamaModels.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="none" disabled>
-                        {t("settings.noModelsFound")}
-                      </SelectItem>
-                    )
-                  ) : (
-                    aiProviders[settings.defaultTextProvider]?.models.map(
-                      (model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ),
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Default Image Provider */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">
-                {t("settings.defaultImageProvider")}
-              </label>
-              <Select
-                value={settings.defaultImageProvider}
-                onValueChange={(value) => {
-                  settingsManager.setDefaultImageProvider(value);
-                  refreshSettings();
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {settingsManager
-                    .getConfiguredImageProviders()
-                    .map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        {provider.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Clear All Settings */}
-            <div className="mt-6 pt-4 border-t">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  if (confirm(t("settings.confirmClear"))) {
-                    settingsManager.clearAll();
-                  }
-                }}
-                className="w-full"
-              >
-                <AlertCircle className="w-4 h-4 mr-2" />
-                {t("settings.clearAll")}
-              </Button>
-            </div>
           </div>
         </div>
       )}

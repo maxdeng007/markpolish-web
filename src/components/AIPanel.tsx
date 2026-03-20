@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import {
   Loader2,
   ChevronDown,
@@ -16,12 +17,15 @@ import {
   Settings,
   Check,
   AlertCircle,
+  Search,
+  X,
 } from "lucide-react";
 import {
   aiProviders,
   aiActions,
   callAI,
   fetchOllamaModels,
+  fetchProviderModels,
   type AIConfig,
 } from "@/lib/ai-providers";
 import { settingsManager } from "@/lib/settings";
@@ -53,65 +57,95 @@ export default function AIPanel({
   );
   const [showContext, setShowContext] = useState(false);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
+  const [providerModels, setProviderModels] = useState<
+    Record<string, string[]>
+  >({});
   const [loadingModels, setLoadingModels] = useState(false);
   const [ollamaStatus, setOllamaStatus] = useState<
     "idle" | "testing" | "connected" | "failed"
   >("idle");
+  const [modelSearch, setModelSearch] = useState("");
+  const [modelDropOpen, setModelDropOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Get available models based on provider
-  const availableModels =
-    config.provider === "ollama"
-      ? ollamaModels
-      : aiProviders[config.provider]?.models || [];
+  const getAvailableModels = (): string[] => {
+    if (config.provider === "ollama") {
+      return ollamaModels;
+    }
+    if (providerModels[config.provider]?.length > 0) {
+      return providerModels[config.provider];
+    }
+    return aiProviders[config.provider]?.models || [];
+  };
+  const availableModels = getAvailableModels();
+
+  // Filter models based on search
+  const filteredModels = modelSearch
+    ? availableModels.filter((m) =>
+        m.toLowerCase().includes(modelSearch.toLowerCase()),
+      )
+    : availableModels;
 
   // Update config and save to settings when provider changes
   const handleProviderChange = (value: string) => {
-    setConfig({ ...config, provider: value });
+    const firstModel = aiProviders[value]?.models[0] || "";
+    setConfig({ ...config, provider: value, model: firstModel });
     settingsManager.setDefaultTextProvider(value);
+    settingsManager.setDefaultTextModel(firstModel);
   };
 
   // Update config and save to settings when model changes
   const handleModelChange = (value: string) => {
-    setConfig({ ...config, model: value });
+    setConfig((prev) => ({ ...prev, model: value }));
     settingsManager.setDefaultTextModel(value);
   };
 
   // Load models when provider changes
   useEffect(() => {
-    if (config.provider === "ollama") {
-      setLoadingModels(true);
-      const ollamaBaseUrl =
-        settingsManager.getTextProvider("ollama")?.baseUrl ||
-        "http://localhost:11434";
-      fetchOllamaModels(ollamaBaseUrl)
-        .then((models) => {
-          setOllamaModels(models);
-          if (models.length > 0 && !config.model) {
-            setConfig((prev) => ({ ...prev, model: models[0] }));
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to fetch Ollama models:", error);
-          setOllamaModels([]);
-        })
-        .finally(() => {
+    const loadModels = async () => {
+      if (config.provider === "ollama") {
+        setLoadingModels(true);
+        const ollamaBaseUrl =
+          settingsManager.getTextProvider("ollama")?.baseUrl ||
+          "http://localhost:11434";
+        fetchOllamaModels(ollamaBaseUrl)
+          .then((models) => {
+            setOllamaModels(models);
+            if (models.length > 0 && !config.model) {
+              setConfig((prev) => ({ ...prev, model: models[0] }));
+            }
+          })
+          .catch((error) => {
+            console.error("Failed to fetch Ollama models:", error);
+            setOllamaModels([]);
+          })
+          .finally(() => {
+            setLoadingModels(false);
+          });
+      } else {
+        const provider = settingsManager.getTextProvider(config.provider);
+        if (provider?.apiKey) {
+          setLoadingModels(true);
+          const baseUrl =
+            provider.baseUrl || aiProviders[config.provider]?.baseUrl;
+          const models = await fetchProviderModels(
+            config.provider,
+            baseUrl,
+            provider.apiKey,
+          );
+          setProviderModels((prev) => ({ ...prev, [config.provider]: models }));
           setLoadingModels(false);
-        });
-    }
-  }, [config.provider, config.model]);
+        }
+      }
+    };
+    loadModels();
+  }, [config.provider]);
 
   // Test Ollama connection on mount
   useEffect(() => {
     testOllamaConnection();
   }, []);
-
-  // Update default model when provider changes
-  useEffect(() => {
-    const providerModels = aiProviders[config.provider]?.models || [];
-    if (providerModels.length > 0 && !providerModels.includes(config.model)) {
-      setConfig((prev) => ({ ...prev, model: providerModels[0] }));
-    }
-  }, [config.provider, config.model]);
 
   const testOllamaConnection = async () => {
     setOllamaStatus("testing");
@@ -247,34 +281,96 @@ export default function AIPanel({
       </div>
 
       {/* Model Selector */}
-      <Select
-        value={config.model}
-        onValueChange={handleModelChange}
-        disabled={loadingModels && config.provider === "ollama"}
-      >
-        <SelectTrigger className="h-8">
-          <SelectValue
-            placeholder={
-              loadingModels ? t("ai.loadingModels") : t("ai.selectModel")
+      <div className="relative">
+        <button
+          onClick={() => {
+            setModelDropOpen(!modelDropOpen);
+            if (!modelDropOpen) {
+              setTimeout(() => searchInputRef.current?.focus(), 10);
             }
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {config.provider === "ollama" && availableModels.length === 0 ? (
-            <SelectItem value="none" disabled>
-              {loadingModels ? t("ai.loadingModels") : t("ai.noModelsFound")}
-            </SelectItem>
+          }}
+          className="w-full h-9 px-3 flex items-center gap-2 border border-input rounded-md bg-background hover:bg-accent transition-colors"
+        >
+          <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          {loadingModels ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
           ) : (
-            availableModels.map((model) => (
-              <SelectItem key={model} value={model}>
-                {model}
-              </SelectItem>
-            ))
+            <span className="truncate text-sm flex-1 text-left">
+              {config.model || t("ai.selectModel")}
+            </span>
           )}
-        </SelectContent>
-      </Select>
+          <ChevronDown
+            className={cn(
+              "w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform",
+              modelDropOpen && "rotate-180",
+            )}
+          />
+        </button>
 
-      {/* Configure button */}
+        {modelDropOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => {
+                setModelDropOpen(false);
+                setModelSearch("");
+              }}
+            />
+            <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-popover border rounded-md shadow-lg w-full">
+              <div className="flex items-center px-3 border-b">
+                <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={modelSearch}
+                  onChange={(e) => setModelSearch(e.target.value)}
+                  placeholder={t("ai.searchModels")}
+                  className="flex-1 h-9 pl-2 text-sm bg-transparent border-0 focus:outline-none focus:ring-0"
+                />
+                {modelSearch && (
+                  <button
+                    onClick={() => setModelSearch("")}
+                    className="p-1 hover:bg-muted rounded"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              <div className="max-h-64 overflow-y-auto py-1">
+                {filteredModels.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    {t("ai.noModelsFound")}
+                  </div>
+                ) : (
+                  filteredModels.map((model) => (
+                    <button
+                      key={model}
+                      onClick={() => {
+                        handleModelChange(model);
+                        setModelDropOpen(false);
+                        setModelSearch("");
+                      }}
+                      className={cn(
+                        "w-full px-3 py-2 text-left text-sm hover:bg-accent transition-colors",
+                        config.model === model && "bg-accent",
+                      )}
+                    >
+                      <span className="truncate">{model}</span>
+                      {config.model === model && (
+                        <Check className="w-3 h-3 inline ml-2 text-primary" />
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+              <div className="border-t px-3 py-1.5 text-[10px] text-muted-foreground">
+                {filteredModels.length} of {availableModels.length} models
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
       <Button
         variant="outline"
         size="sm"
@@ -366,6 +462,15 @@ export default function AIPanel({
               {["generateTitles", "expandContent", "suggestComponents"].map(
                 (actionId) => {
                   const action = aiActions[actionId];
+                  console.log(
+                    "[AIPanel] Render - config.model:",
+                    config.model,
+                    "availableModels:",
+                    availableModels.length,
+                    "provider:",
+                    config.provider,
+                  );
+
                   return (
                     <button
                       key={action.id}
