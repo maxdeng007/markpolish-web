@@ -8,7 +8,27 @@ export interface ComponentMatch {
   endIndex: number;
 }
 
-// Helper function to adjust color brightness
+const CODE_BLOCK_PATTERN =
+  /(<pre\b[^>]*>[\s\S]*?<\/pre>|<code\b[^>]*>[\s\S]*?<\/code>)/gi;
+
+export function skipCodeBlocks<T>(
+  html: string,
+  processor: (part: string) => T,
+): (string | T)[] {
+  const parts = html.split(CODE_BLOCK_PATTERN);
+  return parts.map((part, index) => (index % 2 === 1 ? part : processor(part)));
+}
+
+export function processWithoutCodeBlocks(
+  html: string,
+  processor: (part: string) => string,
+): string {
+  const parts = html.split(CODE_BLOCK_PATTERN);
+  return parts
+    .map((part, index) => (index % 2 === 1 ? part : processor(part)))
+    .join("");
+}
+
 function adjustColorHex(hex: string, percent: number): string {
   const num = parseInt(hex.replace("#", ""), 16);
   const amt = Math.round(2.55 * percent);
@@ -108,17 +128,16 @@ function markdownToHtml(markdown: string): string {
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
 
   // Code blocks FIRST (before inline code to avoid conflicts)
-  html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
-    return `<pre><code>${code.trim()}</code></pre>`;
+  html = html.replace(/```[\w-]*\n?([\s\S]*?)```/g, (_, code) => {
+    const escapedCode = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return `<pre><code class="language-plaintext">${escapedCode.trim()}</code></pre>`;
   });
 
   // Inline code (after code blocks, so triple backticks are already processed)
   html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-  // Code blocks (```...```)
-  html = html.replace(/```([\s\S]*?)```/g, (_, code) => {
-    return `<pre><code>${code.trim()}</code></pre>`;
-  });
 
   // Blockquotes (> ...)
   const bqLines = html.split("\n");
@@ -197,37 +216,39 @@ function markdownToHtml(markdown: string): string {
   }
   html = olResult.join("\n");
 
-  const tableLines = html.split("\n");
-  const tableResult: string[] = [];
-  let inTable = false;
-  let tableRows: string[] = [];
+  html = processWithoutCodeBlocks(html, (part) => {
+    const tableLines = part.split("\n");
+    const tableResult: string[] = [];
+    let inTable = false;
+    let tableRows: string[] = [];
 
-  for (const tableLine of tableLines) {
-    const trimmedLine = tableLine.trim();
-    const isTableRow = /^\|(.+)\|$/.test(trimmedLine);
-    const isSeparator = /^\|[-\s|:]+\|$/.test(trimmedLine);
+    for (const tableLine of tableLines) {
+      const trimmedLine = tableLine.trim();
+      const isTableRow = /^\|(.+)\|$/.test(trimmedLine);
+      const isSeparator = /^\|[-\s|:]+\|$/.test(trimmedLine);
 
-    if (isTableRow) {
-      if (!inTable) {
-        inTable = true;
-        tableRows = [];
+      if (isTableRow) {
+        if (!inTable) {
+          inTable = true;
+          tableRows = [];
+        }
+        if (!isSeparator) {
+          tableRows.push(trimmedLine);
+        }
+      } else {
+        if (inTable && tableRows.length > 0) {
+          tableResult.push(convertTableRows(tableRows));
+          tableRows = [];
+        }
+        inTable = false;
+        tableResult.push(tableLine);
       }
-      if (!isSeparator) {
-        tableRows.push(trimmedLine);
-      }
-    } else {
-      if (inTable && tableRows.length > 0) {
-        tableResult.push(convertTableRows(tableRows));
-        tableRows = [];
-      }
-      inTable = false;
-      tableResult.push(tableLine);
     }
-  }
-  if (inTable && tableRows.length > 0) {
-    tableResult.push(convertTableRows(tableRows));
-  }
-  html = tableResult.join("\n");
+    if (inTable && tableRows.length > 0) {
+      tableResult.push(convertTableRows(tableRows));
+    }
+    return tableResult.join("\n");
+  });
 
   // Paragraphs - wrap non-tagged content in <p>
   const lines = html.split("\n\n");
@@ -256,16 +277,19 @@ function markdownToHtml(markdown: string): string {
 export function parseCustomComponents(markdown: string): ComponentMatch[] {
   const components: ComponentMatch[] = [];
 
-  // Parse ::: components (multi-line)
-  const componentRegex = /:::([\w-]+)(.*?)\n([\s\S]*?):::/g;
+  const componentRegex = /:::([\w-]+)\s*([^\n]*)\n([\s\S]*?):::\s*/g;
   let match: RegExpExecArray | null;
 
   while ((match = componentRegex.exec(markdown)) !== null) {
     const type = match[1];
-    const propsString = match[2].trim();
-    const content = match[3].trim();
+    let propsString = match[2].trim();
+    let content = match[3].trim();
 
-    // Parse props
+    if (propsString && !propsString.includes("=")) {
+      content = propsString + "\n" + content;
+      propsString = "";
+    }
+
     const props: Record<string, string> = {};
     const propRegex = /(\w+)=["']?([^"'\s]+)["']?/g;
     let propMatch;
@@ -424,11 +448,10 @@ function renderColumns(content: string, cols: number): string {
     return markdownToHtml(cleanPart);
   });
 
-  // Use TABLE-based layout for WeChat/WeCom Code mode
   if (cols === 2 && columnItems.length >= 2) {
-    return `<table class="columns-table"><tr><td class="column-item">${columnItems[0]}</td><td class="column-item">${columnItems[1]}</td></tr></table>`;
+    return `<div class="columns-flex"><div class="column-item">${columnItems[0]}</div><div class="column-item">${columnItems[1]}</div></div>`;
   } else if (cols === 3 && columnItems.length >= 3) {
-    return `<table class="columns-table"><tr><td class="column-item">${columnItems[0]}</td><td class="column-item">${columnItems[1]}</td><td class="column-item">${columnItems[2]}</td></tr></table>`;
+    return `<div class="columns-flex"><div class="column-item">${columnItems[0]}</div><div class="column-item">${columnItems[1]}</div><div class="column-item">${columnItems[2]}</div></div>`;
   }
 
   // Fallback for fewer items than expected - stack them
@@ -698,10 +721,10 @@ export function convertMarkdownWithComponents(
   let result = markdown;
   for (const component of components) {
     const rendered = renderComponent(component, themeColors, forWeCom);
-    result =
-      result.substring(0, component.startIndex) +
-      rendered +
-      result.slice(component.endIndex);
+    const beforeContent = result.substring(0, component.startIndex);
+    const afterContent = result.slice(component.endIndex);
+
+    result = beforeContent + rendered + "\n\n" + afterContent;
   }
 
   result = markdownToHtml(result);

@@ -85,11 +85,27 @@ export const en = {
     componentSuggestions: "Component Suggestions",
     // AI action names
     generateTitles: "Generate Titles",
+    generateTitlesDesc:
+      "Create catchy, WeChat-optimized titles with diverse styles",
     expandContent: "Expand Content",
+    expandContentDesc:
+      "Add examples, data, and transitions to enrich your content",
     smartFormat: "Smart Format",
+    smartFormatDesc: "Fix grammar, spacing, and improve readability",
     suggestComponents: "Suggest Components",
+    suggestComponentsDesc: "Get recommendations for visual enhancement",
     polishWithContext: "Polish with Context",
+    polishWithContextDesc: "Refine language using your custom context",
     chars: "chars",
+    preview: "Preview Changes",
+    original: "Original",
+    previewResult: "Preview Result",
+    apply: "Apply",
+    undo: "Undo",
+    undoHint: "Press Ctrl+Z to undo",
+    streamingPreview: "Live preview",
+    waitingForResponse: "Waiting for AI response...",
+    componentApplied: "Component applied!",
   },
   templates: {
     title: "Quick Start Templates",

@@ -1,4 +1,12 @@
-import { useState, useEffect, useRef, Suspense, lazy } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  Suspense,
+  lazy,
+  useCallback,
+} from "react";
+import { flushSync } from "react-dom";
 import { useAutoSave } from "@/components/hooks/useAutoSave";
 import Header from "@/components/layout/Header";
 import Sidebar, { type SidebarTab } from "@/components/layout/Sidebar";
@@ -303,14 +311,40 @@ function App() {
   const [previewMode, setPreviewMode] = useState<"full" | "wecom">("full");
   const [showPDFExport, setShowPDFExport] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("ai");
+  const [cursorPosition, setCursorPosition] = useState<number | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get cursor position from textarea
+  const [_history, setHistory] = useState<string[]>([defaultMarkdown]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  const pushHistory = useCallback(
+    (content: string) => {
+      setHistory((prev) => {
+        const newHistory = prev.slice(0, historyIndex + 1);
+        newHistory.push(content);
+        if (newHistory.length > 50) newHistory.shift();
+        return newHistory;
+      });
+      setHistoryIndex((prev) => Math.min(prev + 1, 49));
+    },
+    [historyIndex],
+  );
+
+  useEffect(() => {
+    if (cursorPosition !== null && textareaRef.current) {
+      const pos = cursorPosition;
+      const textarea = textareaRef.current;
+      textarea.focus();
+      textarea.setSelectionRange(pos, pos);
+      textarea.scrollIntoView({ behavior: "smooth", block: "center" });
+      setCursorPosition(null);
+    }
+  }, [cursorPosition]);
+
   const getCursorPosition = (): number | null => {
     const textarea = textareaRef.current;
     if (!textarea) return null;
-    // Return the cursor position if textarea exists and has valid selection
     const pos = textarea.selectionStart;
     if (pos < 0 || pos > textarea.value.length) return null;
     return pos;
@@ -430,6 +464,121 @@ function App() {
     setTheme(project.theme);
   };
 
+  const escapeRegex = (str: string) =>
+    str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const handleInsertAtLocation = (location: string) => {
+    const lowerLocation = location.toLowerCase();
+    let targetPosition: number | null = null;
+
+    if (lowerLocation === "document start") {
+      targetPosition = 0;
+    } else if (lowerLocation === "document end") {
+      targetPosition = markdown.length;
+    } else if (lowerLocation.startsWith("near:")) {
+      const headingText = location.substring(5).trim();
+      const headingPattern = new RegExp(
+        `^#{1,6}\\s+.*${escapeRegex(headingText)}`,
+        "im",
+      );
+      const match = markdown.match(headingPattern);
+      if (match && match.index !== undefined) {
+        const afterHeading = match.index + match[0].length;
+        const nextNewline = markdown.indexOf("\n", afterHeading);
+        targetPosition = nextNewline !== -1 ? nextNewline + 1 : afterHeading;
+      }
+    } else if (lowerLocation.startsWith("position ")) {
+      const parts = lowerLocation.match(/position\s+(\d+)\/(\d+)/);
+      if (parts && parts.length === 3) {
+        const current = parseInt(parts[1]);
+        const total = parseInt(parts[2]);
+        if (total > 0) {
+          targetPosition = Math.floor((current / total) * markdown.length);
+          targetPosition = Math.min(targetPosition, markdown.length);
+        }
+      }
+    } else if (lowerLocation === "mid-document") {
+      targetPosition = Math.floor(markdown.length / 2);
+    } else if (lowerLocation === "near start") {
+      targetPosition = Math.floor(markdown.length * 0.1);
+    } else if (lowerLocation === "near end") {
+      targetPosition = Math.floor(markdown.length * 0.9);
+    }
+
+    if (targetPosition !== null) {
+      setCursorPosition(targetPosition);
+    }
+  };
+
+  interface Suggestion {
+    component: string;
+    location: string;
+    syntax: string;
+    reason: string;
+  }
+
+  const handleInsertAllComponents = (suggestions: Suggestion[]) => {
+    if (suggestions.length === 0) return;
+
+    pushHistory(markdown);
+
+    let result = markdown;
+
+    for (const suggestion of suggestions) {
+      const lowerLocation = suggestion.location.toLowerCase();
+      let insertPos: number | null = null;
+
+      if (lowerLocation === "document start") {
+        insertPos = 0;
+      } else if (lowerLocation === "document end") {
+        insertPos = result.length;
+      } else if (lowerLocation.startsWith("near:")) {
+        const headingText = suggestion.location.substring(5).trim();
+        const headingPattern = new RegExp(
+          `^#{1,6}\\s+.*${escapeRegex(headingText)}`,
+          "im",
+        );
+        const match = result.match(headingPattern);
+        if (match && match.index !== undefined) {
+          const afterHeading = match.index + match[0].length;
+          const nextNewline = result.indexOf("\n", afterHeading);
+          insertPos = nextNewline !== -1 ? nextNewline + 1 : afterHeading;
+        }
+      } else if (lowerLocation.startsWith("position ")) {
+        const parts = lowerLocation.match(/position\s+(\d+)\/(\d+)/);
+        if (parts && parts.length === 3) {
+          const current = parseInt(parts[1]);
+          const total = parseInt(parts[2]);
+          if (total > 0) {
+            insertPos = Math.floor((current / total) * result.length);
+            insertPos = Math.min(insertPos, result.length);
+          }
+        }
+      } else if (lowerLocation === "mid-document") {
+        insertPos = Math.floor(result.length / 2);
+      } else if (lowerLocation === "near start") {
+        insertPos = Math.floor(result.length * 0.1);
+      } else if (lowerLocation === "near end") {
+        insertPos = Math.floor(result.length * 0.9);
+      }
+
+      if (insertPos !== null) {
+        const before = result.substring(0, insertPos);
+        const after = result.substring(insertPos);
+        const separator =
+          insertPos === 0 || before.endsWith("\n\n") ? "" : "\n\n";
+        const afterSeparator =
+          after === "" || after.startsWith("\n\n") ? "" : "\n\n";
+        result =
+          before + separator + suggestion.syntax + afterSeparator + after;
+      }
+    }
+
+    flushSync(() => {
+      setMarkdown(result);
+    });
+  };
+
   return (
     <TranslationProvider>
       <ToastProvider>
@@ -467,6 +616,8 @@ function App() {
                   onInsertImage={handleInsertImage}
                   onOpenSettings={() => setSidebarTab("settings")}
                   getCursorPosition={getCursorPosition}
+                  onInsertAtLocation={handleInsertAtLocation}
+                  onInsertAllComponents={handleInsertAllComponents}
                 />
               </ErrorBoundary>
 

@@ -102,7 +102,7 @@ Use components!
 });
 
 describe("convertMarkdownWithComponents", () => {
-  it("should convert col-2 to HTML with columns-table class", () => {
+  it("should convert col-2 to HTML with columns-flex class", () => {
     const markdown = `:::col-2
 ### Left
 Content
@@ -111,7 +111,7 @@ Content
 Content
 :::`;
     const result = convertMarkdownWithComponents(markdown);
-    expect(result).toContain("columns-table");
+    expect(result).toContain("columns-flex");
     expect(result).toContain("column-item");
   });
 
@@ -154,7 +154,7 @@ describe("renderComponent", () => {
       endIndex: 50,
     };
     const result = renderComponent(component);
-    expect(result).toContain("columns-table");
+    expect(result).toContain("columns-flex");
     expect(result).toContain("column-item");
     expect(result).toContain("<h3>");
   });

@@ -1,5 +1,30 @@
 // AI provider integration for content enhancement
 
+function detectLanguage(text: string): "zh" | "en" | "mixed" {
+  const chineseRegex = /[\u4e00-\u9fff]/g;
+  const chineseCount = (text.match(chineseRegex) || []).length;
+  const totalChars = text.replace(/\s/g, "").length;
+
+  if (totalChars === 0) return "en";
+  const chineseRatio = chineseCount / totalChars;
+
+  if (chineseRatio > 0.3) return "zh";
+  if (chineseRatio > 0.1) return "mixed";
+  return "en";
+}
+
+function getLanguageHint(content: string): string {
+  const lang = detectLanguage(content);
+  switch (lang) {
+    case "zh":
+      return "IMPORTANT: The content is in Chinese. Generate output in Chinese.";
+    case "mixed":
+      return "The content contains both Chinese and English. Match the dominant language.";
+    default:
+      return "The content is in English. Generate output in English.";
+  }
+}
+
 export interface AIProvider {
   id: string;
   name: string;
@@ -86,9 +111,9 @@ export const aiActions: Record<string, AIAction> = {
     gradient: "from-amber-400 to-orange-500",
     hoverGradient: "hover:from-amber-500 hover:to-orange-600",
     shadowColor: "shadow-orange-500/25",
-    prompt: (
-      content: string,
-    ) => `Generate 8-10 catchy, engaging titles for the following content.
+    prompt: (content: string) => `${getLanguageHint(content)}
+
+Generate 8-10 catchy, engaging titles for the following content.
 
 Requirements:
 - Optimize for WeChat/Chinese social media (keep titles under 15-20 characters when possible)
@@ -109,10 +134,9 @@ ${content}`,
     gradient: "from-emerald-400 to-teal-500",
     hoverGradient: "hover:from-emerald-500 hover:to-teal-600",
     shadowColor: "shadow-teal-500/25",
-    prompt: (
-      content: string,
-      context?: string,
-    ) => `Expand and enrich the following content${context ? ` with this context in mind: ${context}` : ""}.
+    prompt: (content: string, context?: string) => `${getLanguageHint(content)}
+
+Expand and enrich the following content${context ? ` with this context in mind: ${context}` : ""}.
 
 Guidelines:
 - Add concrete examples, data points, or anecdotes to support key points
@@ -135,9 +159,9 @@ ${content}`,
     gradient: "from-violet-400 to-purple-500",
     hoverGradient: "hover:from-violet-500 hover:to-purple-600",
     shadowColor: "shadow-purple-500/25",
-    prompt: (
-      content: string,
-    ) => `Improve the structure and formatting of the following content for optimal readability.
+    prompt: (content: string) => `${getLanguageHint(content)}
+
+Improve the structure and formatting of the following content for optimal readability.
 
 Formatting improvements:
 - Fix grammar and spelling errors
@@ -161,13 +185,32 @@ ${content}`,
     gradient: "from-cyan-400 to-blue-500",
     hoverGradient: "hover:from-cyan-500 hover:to-blue-600",
     shadowColor: "shadow-blue-500/25",
-    prompt: (
-      content: string,
-    ) => `Analyze the following content and suggest specific custom markdown components that would enhance its visual appeal and readability.
+    prompt: (content: string) => {
+      const lines = content.split("\n").filter((l) => l.trim()).length;
+      const words = content.split(/\s+/).filter((w) => w.trim()).length;
+      const headings = (content.match(/^#{1,6}\s/gm) || []).length;
+      const hasExistingComponents = content.includes(":::");
+      const lang = detectLanguage(content);
+      const langHint =
+        lang === "zh"
+          ? "IMPORTANT: Generate output in Chinese."
+          : lang === "mixed"
+            ? "Match the dominant language in the content."
+            : "Generate output in English.";
+
+      return `${langHint}
+
+Analyze the following markdown content and suggest custom components to enhance its visual appeal and readability.
+
+Document Statistics:
+- Length: ${lines} lines, ${words} words
+- Headings: ${headings}
+- Existing components: ${hasExistingComponents ? "Yes" : "None"}
+- Document structure: ${headings === 0 ? "No headings (consider adding)" : headings <= 2 ? "Few headings" : headings <= 5 ? "Moderate structure" : "Well structured"}
 
 Available components:
 • :::hero - Eye-catching hero/intro sections with title and subtitle
-• :::col-2 / :::col-3 - Multi-column layouts for comparisons or feature lists. IMPORTANT: Use "---" (three dashes on its own line) as the separator between columns. Each column content goes above or below the --- separator.
+• :::col-2 / :::col-3 - Multi-column layouts for comparisons or feature lists. IMPORTANT: Use "---" (three dashes on its own line) as the separator between columns.
 • :::steps - Step-by-step numbered instructions
 • :::timeline - Chronological events or milestones
 • :::card - Styled cards for highlighting key information
@@ -177,21 +220,34 @@ Available components:
 • :::accordion - Collapsible expandable sections
 • [IMG: description] - Placeholder for AI-generated or stock images
 
-Provide 3-5 specific, actionable suggestions in this format:
+Guidelines:
+- Suggest components that match the document's purpose (blog, tutorial, announcement, etc.)
+- Prefer layout components (hero, columns) for documents > 200 words
+- Use callout/quote for important callouts or testimonials
+- Suggest images for visual-heavy content or when text alone is insufficient
+- Don't suggest all components - pick 3-5 most impactful ones
+- Vary component types for visual diversity
 
-━━━
-**Suggestion #N**
-Component: [component name]
-Location: [exact location - e.g., "After the second paragraph", "At the beginning"]
-Example syntax:
-\`\`\`
-[show exact syntax to use. For col-2/col-3, MUST include "---" on its own line as separator between columns]
-\`\`\`
-Reason: [why this component improves the content]
-━━━
+Return your suggestions as a JSON array. Each suggestion must be a valid JSON object with these exact fields:
+{
+  "component": ":::hero" or "[IMG: description]",
+  "location": "document-start | document-end | after-heading | before-heading",
+  "headingText": "exact heading text (only if location is after-heading or before-heading)",
+  "syntax": "exact component syntax including ::: delimiters",
+  "reason": "brief explanation of why this component improves the content"
+}
+
+For location values:
+- "document-start": Component should go at the very beginning
+- "document-end": Component should go at the very end
+- "after-heading": Component goes after a specific heading (specify headingText)
+- "before-heading": Component goes before a specific heading (specify headingText)
+
+Provide 3-5 suggestions as a JSON array. Return ONLY the JSON array, no other text.
 
 Content to analyze:
-${content}`,
+${content}`;
+    },
   },
 
   polishWithContext: {
@@ -202,10 +258,9 @@ ${content}`,
     gradient: "from-rose-400 to-pink-500",
     hoverGradient: "hover:from-rose-500 hover:to-pink-600",
     shadowColor: "shadow-pink-500/25",
-    prompt: (
-      content: string,
-      context?: string,
-    ) => `Polish and refine the following content${context ? `\n\n**Context/Goal:** ${context}` : " while preserving its original format and structure."}
+    prompt: (content: string, context?: string) => `${getLanguageHint(content)}
+
+Polish and refine the following content${context ? `\n\n**Context/Goal:** ${context}` : " while preserving its original format and structure."}
 
 Polishing guidelines:
 - Improve clarity and conciseness without losing meaning
@@ -241,9 +296,256 @@ export async function callAI(
       return await callAnthropic(config, prompt);
     case "ollama":
       return await callOllama(config, prompt);
+    case "deepseek":
+      return await callDeepSeek(config, prompt);
     default:
       // Fallback to mock for unsupported providers
       return await mockAICall(action, content);
+  }
+}
+
+// Streaming callback type
+export type StreamingCallback = (text: string) => void;
+
+// Streaming AI API calls
+export async function callAIStream(
+  config: AIConfig,
+  action: AIAction,
+  content: string,
+  context: string | undefined,
+  onChunk: StreamingCallback,
+): Promise<void> {
+  const prompt = action.prompt(content, context);
+
+  switch (config.provider) {
+    case "openai":
+      await streamOpenAI(config, prompt, onChunk);
+      break;
+    case "openrouter":
+      await streamOpenRouter(config, prompt, onChunk);
+      break;
+    case "deepseek":
+      await streamDeepSeek(config, prompt, onChunk);
+      break;
+    case "ollama":
+      await streamOllama(config, prompt, onChunk);
+      break;
+    default:
+      // Fallback to non-streaming mock
+      const result = await mockAICall(action, content);
+      onChunk(result);
+  }
+}
+
+async function streamOpenAI(
+  config: AIConfig,
+  prompt: string,
+  onChunk: StreamingCallback,
+): Promise<void> {
+  if (!config.apiKey) {
+    throw new Error("OpenAI API key is required");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [{ role: "user", content: prompt }],
+      stream: true,
+      temperature: 0.7,
+      max_tokens: 2000,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || "OpenAI API call failed");
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) onChunk(content);
+        } catch {}
+      }
+    }
+  }
+}
+
+async function streamOpenRouter(
+  config: AIConfig,
+  prompt: string,
+  onChunk: StreamingCallback,
+): Promise<void> {
+  if (!config.apiKey) {
+    throw new Error("OpenRouter API key is required");
+  }
+
+  const response = await fetch(
+    "https://openrouter.ai/api/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "MarkPolish Studio",
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [{ role: "user", content: prompt }],
+        stream: true,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("OpenRouter API call failed");
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) onChunk(content);
+        } catch {}
+      }
+    }
+  }
+}
+
+async function streamDeepSeek(
+  config: AIConfig,
+  prompt: string,
+  onChunk: StreamingCallback,
+): Promise<void> {
+  if (!config.apiKey) {
+    throw new Error("DeepSeek API key is required");
+  }
+
+  const baseUrl = config.baseUrl || "https://api.deepseek.com/v1";
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [{ role: "user", content: prompt }],
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || "DeepSeek API call failed");
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        const data = line.slice(6);
+        if (data === "[DONE]") continue;
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) onChunk(content);
+        } catch {}
+      }
+    }
+  }
+}
+
+async function streamOllama(
+  config: AIConfig,
+  prompt: string,
+  onChunk: StreamingCallback,
+): Promise<void> {
+  const baseUrl = config.baseUrl || "http://localhost:11434/v1";
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [{ role: "user", content: prompt }],
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Ollama API call failed. Make sure Ollama is running.");
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line);
+        const content = parsed.message?.content;
+        if (content) onChunk(content);
+      } catch {}
+    }
   }
 }
 
@@ -355,6 +657,35 @@ async function callOllama(config: AIConfig, prompt: string): Promise<string> {
 
   if (!response.ok) {
     throw new Error("Ollama API call failed. Make sure Ollama is running.");
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || "";
+}
+
+async function callDeepSeek(config: AIConfig, prompt: string): Promise<string> {
+  if (!config.apiKey) {
+    throw new Error("DeepSeek API key is required");
+  }
+
+  const baseUrl = config.baseUrl || "https://api.deepseek.com/v1";
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: [{ role: "user", content: prompt }],
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || "DeepSeek API call failed");
   }
 
   const data = await response.json();

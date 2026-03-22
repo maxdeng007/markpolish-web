@@ -1,5 +1,6 @@
 import {
   convertMarkdownWithComponents,
+  processWithoutCodeBlocks,
   ThemeColors,
 } from "./markdown-components";
 import { getTheme } from "./themes";
@@ -330,69 +331,60 @@ export async function exportForWeChat(
 // Convert markdown tables to HTML tables
 // Only converts proper GFM tables (with separator row like |---|)
 // Leaves ASCII art tables as plain text
+// Skips content inside <pre> and <code> blocks to preserve code formatting
 function convertMarkdownTables(
   markdown: string,
   themeColors?: ThemeColors,
 ): string {
-  const lines = markdown.split("\n");
-  const result: string[] = [];
+  return processWithoutCodeBlocks(markdown, (part) => {
+    const lines = part.split("\n");
+    const result: string[] = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
 
-    // Normalize fullwidth pipes (｜ U+FF5C) to ASCII pipes (| U+007C)
-    const normalized = trimmed.replace(/｜/g, "|");
+      const normalized = trimmed.replace(/｜/g, "|");
 
-    // Check if this line starts with | and the NEXT line is a separator (|---|)
-    // This is the pattern for a proper GFM table
-    if (normalized.startsWith("|") && normalized.endsWith("|")) {
-      const nextLine =
-        i + 1 < lines.length ? lines[i + 1].trim().replace(/｜/g, "|") : "";
+      if (normalized.startsWith("|") && normalized.endsWith("|")) {
+        const nextLine =
+          i + 1 < lines.length ? lines[i + 1].trim().replace(/｜/g, "|") : "";
 
-      // Check if next line is a separator row: |---|---| or | --- | --- |
-      const isSeparator = /^\|\s*[-:]+[-\s:|]*\|\s*$/.test(nextLine);
+        const isSeparator = /^\|\s*[-:]+[-\s:|]*\|\s*$/.test(nextLine);
 
-      if (isSeparator) {
-        // This is a proper markdown table! Collect all rows.
-        const tableRows: string[] = [];
-        let j = i;
+        if (isSeparator) {
+          const tableRows: string[] = [];
+          let j = i;
 
-        // Collect header row
-        tableRows.push(normalized);
-        j++;
+          tableRows.push(normalized);
+          j++;
 
-        // Skip separator row
-        j++;
+          j++;
 
-        // Collect body rows (all consecutive lines starting/ending with |)
-        while (j < lines.length) {
-          const bodyLine = lines[j].trim().replace(/｜/g, "|");
-          if (bodyLine.startsWith("|") && bodyLine.endsWith("|")) {
-            // Skip if it's another separator (shouldn't happen in body, but be safe)
-            if (!/^\|\s*[-:]+[-\s:|]*\|\s*$/.test(bodyLine)) {
-              tableRows.push(bodyLine);
+          while (j < lines.length) {
+            const bodyLine = lines[j].trim().replace(/｜/g, "|");
+            if (bodyLine.startsWith("|") && bodyLine.endsWith("|")) {
+              if (!/^\|\s*[-:]+[-\s:|]*\|\s*$/.test(bodyLine)) {
+                tableRows.push(bodyLine);
+              }
+              j++;
+            } else {
+              break;
             }
-            j++;
-          } else {
-            break;
           }
+
+          result.push(renderMarkdownTableHTML(tableRows, themeColors?.accent));
+
+          i = j - 1;
+          continue;
         }
-
-        // Render the table
-        result.push(renderMarkdownTableHTML(tableRows, themeColors?.accent));
-
-        // Skip the lines we've processed
-        i = j - 1;
-        continue;
       }
+
+      result.push(line);
     }
 
-    // Not a table or not a proper markdown table - keep as-is
-    result.push(line);
-  }
-
-  return result.join("\n");
+    return result.join("\n");
+  });
 }
 
 function renderMarkdownTableHTML(rows: string[], accentColor?: string): string {

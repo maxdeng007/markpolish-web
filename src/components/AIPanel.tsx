@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/Toast";
 import {
   Select,
   SelectContent,
@@ -8,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Undo2, MapPin, Lightbulb } from "lucide-react";
 import {
   Loader2,
   ChevronDown,
@@ -23,7 +26,7 @@ import {
 import {
   aiProviders,
   aiActions,
-  callAI,
+  callAIStream,
   fetchOllamaModels,
   fetchProviderModels,
   type AIConfig,
@@ -31,18 +34,651 @@ import {
 import { settingsManager } from "@/lib/settings";
 import { useTranslation } from "@/hooks/useTranslation";
 
+interface Suggestion {
+  component: string;
+  location: string;
+  syntax: string;
+  reason: string;
+}
+
+const COMPONENT_ICONS: Record<string, string> = {
+  ":::hero": "🎯",
+  ":::col-2": "📊",
+  ":::col-3": "📈",
+  ":::steps": "📝",
+  ":::timeline": "⏱️",
+  ":::card": "🎴",
+  ":::callout": "💡",
+  ":::quote": "💬",
+  ":::tabs": "📑",
+  ":::accordion": "📂",
+  ":::video": "🎥",
+  ":::ai-image": "🎨",
+  ":::local-image": "🖼️",
+};
+
+function getPreviewStyle(component: string): {
+  bg: string;
+  border: string;
+  text: string;
+} {
+  const lower = component.toLowerCase();
+
+  if (lower.includes("hero")) {
+    return {
+      bg: "bg-gradient-to-br from-blue-500 to-blue-700",
+      border: "border-blue-400",
+      text: "text-white",
+    };
+  }
+  if (lower.includes("callout")) {
+    return {
+      bg: "bg-amber-50",
+      border: "border-amber-200",
+      text: "text-amber-800",
+    };
+  }
+  if (lower.includes("quote")) {
+    return {
+      bg: "bg-slate-50",
+      border: "border-l-4 border-slate-400",
+      text: "text-slate-700",
+    };
+  }
+  if (lower.includes("card")) {
+    return {
+      bg: "bg-white",
+      border: "border-slate-200",
+      text: "text-slate-700",
+    };
+  }
+  if (lower.includes("col-2") || lower.includes("col-3")) {
+    return {
+      bg: "bg-gradient-to-r from-blue-50 to-green-50",
+      border: "border-blue-200",
+      text: "text-slate-700",
+    };
+  }
+  if (lower.includes("steps")) {
+    return {
+      bg: "bg-slate-50",
+      border: "border-slate-200",
+      text: "text-slate-700",
+    };
+  }
+  if (lower.includes("timeline")) {
+    return {
+      bg: "bg-slate-50",
+      border: "border-l-4 border-primary",
+      text: "text-slate-700",
+    };
+  }
+  if (lower.includes("tabs")) {
+    return {
+      bg: "bg-white",
+      border: "border-slate-200",
+      text: "text-slate-700",
+    };
+  }
+  if (lower.includes("accordion")) {
+    return {
+      bg: "bg-white",
+      border: "border-slate-200",
+      text: "text-slate-700",
+    };
+  }
+  if (lower.includes("img")) {
+    return {
+      bg: "bg-gradient-to-br from-purple-100 to-pink-100",
+      border: "border-purple-200",
+      text: "text-purple-700",
+    };
+  }
+
+  return {
+    bg: "bg-muted",
+    border: "border-border",
+    text: "text-muted-foreground",
+  };
+}
+
+function getComponentIcon(component: string): string {
+  const lower = component.toLowerCase();
+  for (const [key, icon] of Object.entries(COMPONENT_ICONS)) {
+    if (lower.includes(key.replace(":::", "").replace("-", ""))) {
+      return icon;
+    }
+  }
+  return "📦";
+}
+
+function getPreviewContent(syntax: string): {
+  title: string;
+  subtitle: string;
+} {
+  const lines = syntax.split("\n").filter((l) => l.trim());
+
+  const h1Match = syntax.match(/^#\s+(.+)/m);
+  const h2Match = syntax.match(/^##\s+(.+)/m);
+  const h3Match = syntax.match(/^###\s+(.+)/m);
+
+  let title = h1Match?.[1] || h2Match?.[1] || h3Match?.[1] || "Preview";
+
+  const lower = syntax.toLowerCase();
+  if (lower.includes("hero")) {
+    const subtitle =
+      lines.find((l) => l.includes("**") || l.includes("*")) || "";
+    return { title, subtitle };
+  }
+  if (lower.includes("callout")) {
+    const typeMatch = syntax.match(/type=["'](\w+)["']/);
+    const type = typeMatch?.[1] || "info";
+    return {
+      title: type.charAt(0).toUpperCase() + type.slice(1),
+      subtitle: "Information message",
+    };
+  }
+  if (lower.includes("quote")) {
+    const authorMatch = syntax.match(/author=["']([^"']+)["']/);
+    return {
+      title: title.substring(0, 50),
+      subtitle: authorMatch ? `— ${authorMatch[1]}` : "Author",
+    };
+  }
+  if (lower.includes("card")) {
+    return { title: title.substring(0, 40), subtitle: "Highlighted content" };
+  }
+  if (lower.includes("col-2") || lower.includes("col-3")) {
+    const count = lower.includes("col-3") ? "3" : "2";
+    return { title: `${count} Columns`, subtitle: "Side by side layout" };
+  }
+  if (lower.includes("steps")) {
+    return { title: "Steps", subtitle: "Numbered instructions" };
+  }
+  if (lower.includes("timeline")) {
+    return { title: "Timeline", subtitle: "Chronological events" };
+  }
+  if (lower.includes("tabs")) {
+    return { title: "Tabs", subtitle: "Tabbed content sections" };
+  }
+  if (lower.includes("accordion")) {
+    return { title: "Accordion", subtitle: "Expandable sections" };
+  }
+  if (lower.includes("img")) {
+    const imgMatch = syntax.match(/\[IMG:\s*([^\]]+)\]/);
+    return {
+      title: "AI Image",
+      subtitle: imgMatch?.[1]?.substring(0, 30) || "Generate image",
+    };
+  }
+
+  return { title: title.substring(0, 30), subtitle: "Component preview" };
+}
+
+function parseSuggestions(text: string): Suggestion[] {
+  const jsonResult = tryParseJSON(text);
+  if (jsonResult) {
+    return jsonResult;
+  }
+
+  return parseSuggestionsLegacy(text);
+}
+
+function tryParseJSON(text: string): Suggestion[] | null {
+  const trimmed = text.trim();
+
+  let jsonMatch = trimmed.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+  if (!jsonMatch) return null;
+
+  try {
+    let data = JSON.parse(jsonMatch[0]);
+
+    if (!Array.isArray(data)) {
+      if (data.suggestions && Array.isArray(data.suggestions)) {
+        data = data.suggestions;
+      } else {
+        return null;
+      }
+    }
+
+    const suggestions: Suggestion[] = [];
+    for (const item of data) {
+      if (item.component && item.syntax) {
+        suggestions.push({
+          component: item.component,
+          location: normalizeLocation(item.location, item.headingText),
+          syntax: item.syntax,
+          reason: item.reason || "",
+        });
+      }
+    }
+
+    return suggestions.length > 0 ? suggestions : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeLocation(location: string, headingText?: string): string {
+  if (!location) return "Position 1/5";
+
+  const loc = location.toLowerCase();
+
+  if (
+    loc === "document-start" ||
+    loc === "document start" ||
+    loc === "beginning" ||
+    loc === "start" ||
+    loc === "top"
+  ) {
+    return "Document start";
+  }
+
+  if (
+    loc === "document-end" ||
+    loc === "document end" ||
+    loc === "end" ||
+    loc === "bottom" ||
+    loc === "conclusion" ||
+    loc === "final"
+  ) {
+    return "Document end";
+  }
+
+  if (
+    loc === "after-heading" ||
+    loc === "after heading" ||
+    loc === "after" ||
+    loc === "mid-document" ||
+    loc === "mid document" ||
+    loc === "middle"
+  ) {
+    if (headingText) {
+      return `Near: ${headingText.substring(0, 30)}${headingText.length > 30 ? "..." : ""}`;
+    }
+    return "Mid-document";
+  }
+
+  if (
+    loc === "before-heading" ||
+    loc === "before heading" ||
+    loc === "before"
+  ) {
+    if (headingText) {
+      return `Near: ${headingText.substring(0, 30)}${headingText.length > 30 ? "..." : ""}`;
+    }
+    return "Near start";
+  }
+
+  return location;
+}
+
+function parseSuggestionsLegacy(text: string): Suggestion[] {
+  const suggestions: Suggestion[] = [];
+
+  const codeBlockRegex = /```[\s\S]*?```/g;
+  const codeBlocks = text.match(codeBlockRegex) || [];
+
+  const sections = text.split(codeBlockRegex);
+
+  for (let idx = 0; idx < codeBlocks.length; idx++) {
+    const codeBlock = codeBlocks[idx];
+    if (!codeBlock) continue;
+
+    let syntax = codeBlock
+      .replace(/```[\w]*\n?/, "")
+      .replace(/```$/, "")
+      .trim();
+
+    const firstColon = syntax.indexOf(":::");
+    const lastColon = syntax.lastIndexOf(":::");
+    if (firstColon !== -1 && lastColon !== -1 && lastColon > firstColon + 2) {
+      syntax = syntax.substring(firstColon, lastColon + 3);
+    }
+
+    if (!syntax.includes(":::")) continue;
+
+    const componentMatch = syntax.match(/:::([\w-]+)/);
+    const componentName = componentMatch
+      ? `:::${componentMatch[1]}`
+      : `Suggestion ${suggestions.length + 1}`;
+
+    const textBefore = sections[idx] || "";
+    const textAfter = sections[idx + 1] || "";
+    const context = (textBefore + " " + textAfter).trim();
+
+    suggestions.push({
+      component: componentName,
+      location: detectLocation(context, idx, codeBlocks.length),
+      syntax,
+      reason: extractReason(context),
+    });
+  }
+
+  return suggestions;
+}
+
+const HEADING_PATTERNS = [
+  /(?:after|before|under|below|following)\s+(?:the\s+)?(?:first|second|third|1st|2nd|3rd|#?\s*\d+)?\s*(?:heading|section|chapter|part|paragraph)?\s*(?:titled?|called?|["']([^"']+)["'])?/i,
+  /(?:under|below)\s+["']([^"']+)["']/i,
+  /#\s*(\d+)\s*(?:heading|section)/i,
+  /(?:between)\s+[^.]+/i,
+];
+
+const POSITION_PATTERNS = [
+  {
+    regex:
+      /\b(at the (very )?(top|start|beginning|opening|head)|at\s+start|\bat\s+top\b|opening (section|with)|beginning of|start of (your |the )?(article|document|content)|as (your |an )?opening|use (as|at) (an? )?(opening|intro(duction)?)|intro(ductory)? section)/i,
+    result: "Document start",
+  },
+  {
+    regex:
+      /\b(at the (very )?(end|bottom|conclusion|closing)|at\s+end|\bat\s+bottom\b|end of (your |the )?(article|document|content)|concluding|closing (section|with)|as (a )?conclusion|conclusion section|final section)/i,
+    result: "Document end",
+  },
+  {
+    regex:
+      /\b(in the (middle|center)|mid-?(document|article)|between|after (the )?(intro|introduction)|following (the )?(intro|introduction))/i,
+    result: "Mid-document",
+  },
+  {
+    regex:
+      /\b(after (the )?(conclusion|summary|final|last)|before (the )?(conclusion|summary|final)|following the)/i,
+    result: "Near end",
+  },
+  {
+    regex:
+      /\b(after (the )?(intro|introduction|opening)|following (the )?(intro|introduction)|before (the )?(main|body)|introduction section)/i,
+    result: "Near start",
+  },
+];
+
+const SECTION_KEYWORDS = [
+  {
+    keywords: ["intro", "beginning", "overview", "about"],
+    result: "Near start",
+  },
+  {
+    keywords: ["feature", "benefit", "advantage", "what"],
+    result: "Mid-document",
+  },
+  {
+    keywords: ["conclusion", "summary", "final", "next step"],
+    result: "Near end",
+  },
+];
+
+function detectLocation(context: string, index: number, total: number): string {
+  const lowerContext = context.toLowerCase();
+
+  if (index === 0) return "Document start";
+  if (index === total - 1 && total > 1) return "Document end";
+
+  for (const pattern of HEADING_PATTERNS) {
+    const match = context.match(pattern);
+    if (match) {
+      const heading = match[1] || match[2];
+      return heading
+        ? `Near: ${heading.substring(0, 30)}${heading.length > 30 ? "..." : ""}`
+        : `Position ${index + 1}/${total}`;
+    }
+  }
+
+  for (const { regex, result } of POSITION_PATTERNS) {
+    if (regex.test(lowerContext)) return result;
+  }
+
+  for (const { keywords, result } of SECTION_KEYWORDS) {
+    if (keywords.some((k) => lowerContext.includes(k))) return result;
+  }
+
+  return `Position ${index + 1}/${total}`;
+}
+
+const REASON_PATTERNS = [
+  /because\s+(.+?)(?:\.|$)/i,
+  /this (?:works|is|helps|serves) (?:to |for )?(.+?)(?:\.|$)/i,
+  /ideal for\s+(.+?)(?:\.|$)/i,
+  /perfect for\s+(.+?)(?:\.|$)/i,
+  /great for\s+(.+?)(?:\.|$)/i,
+  /use this (?:to |when |for )?(.+?)(?:\.|$)/i,
+  /(?:adds?|creates?|provides?|offers?)\s+(.+?)(?:\.|$)/i,
+];
+
+function extractReason(context: string): string {
+  if (!context) return "";
+
+  for (const pattern of REASON_PATTERNS) {
+    const match = context.match(pattern);
+    if (match?.[1] && match[1].length > 10 && match[1].length < 150) {
+      return match[1].trim().charAt(0).toUpperCase() + match[1].trim().slice(1);
+    }
+  }
+
+  const sentences = context.split(/[.!?]+/).filter((s) => s.trim().length > 20);
+  if (sentences.length > 0) {
+    const lastSentence = sentences[sentences.length - 1].trim();
+    return (
+      lastSentence.substring(0, 100) + (lastSentence.length > 100 ? "..." : "")
+    );
+  }
+
+  return "";
+}
+
+interface ComponentSuggestionsProps {
+  content: string;
+  suggestions: Suggestion[];
+  onCopy: (syntax: string) => void;
+  onCopyAll: () => void;
+  onInsertAtLocation?: (location: string) => void;
+  onInsertAllComponents?: (suggestions: Suggestion[]) => void;
+  isLoading?: boolean;
+  t: (key: string) => string;
+}
+
+function ComponentSuggestions({
+  content,
+  suggestions,
+  onCopy,
+  onCopyAll,
+  onInsertAtLocation,
+  onInsertAllComponents,
+  isLoading,
+  t,
+}: ComponentSuggestionsProps) {
+  const isStreaming = isLoading && suggestions.length > 0;
+
+  if (isLoading && suggestions.length === 0) {
+    return (
+      <div className="text-center py-8 px-4">
+        <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Analyzing content...</span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Looking for component opportunities...
+        </p>
+      </div>
+    );
+  }
+
+  if (suggestions.length === 0) {
+    const trimmed = content.trim();
+    const hasContent = trimmed.length > 0;
+
+    if (!hasContent) {
+      return (
+        <div className="text-center py-8 px-4">
+          <div className="text-4xl mb-3">🤔</div>
+          <p className="text-sm text-muted-foreground">
+            No suggestions yet. Enter some content and try again.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <span className="text-lg">💡</span>
+            <div className="text-sm text-amber-800 dark:text-amber-200">
+              <p className="font-medium mb-1">No components suggested</p>
+              <p className="text-xs opacity-80">
+                Try adding more paragraphs or headings to your content for
+                better suggestions.
+              </p>
+            </div>
+          </div>
+        </div>
+        <pre className="whitespace-pre-wrap text-xs bg-background p-3 rounded border overflow-auto max-h-64">
+          {content}
+        </pre>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onCopyAll}
+          className="w-full"
+        >
+          {t("common.copyAll")}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs text-muted-foreground">
+          {suggestions.length} suggestion{suggestions.length !== 1 ? "s" : ""}
+          {isStreaming && (
+            <span className="ml-2 inline-flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>more coming...</span>
+            </span>
+          )}
+        </span>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => onInsertAllComponents?.(suggestions)}
+          className="h-7 px-3 text-xs gap-1"
+        >
+          <Sparkles className="w-3 h-3" />
+          Insert All
+        </Button>
+      </div>
+      {suggestions.map((suggestion, index) => {
+        const previewStyle = getPreviewStyle(suggestion.syntax);
+        const previewContent = getPreviewContent(suggestion.syntax);
+        const icon = getComponentIcon(suggestion.component);
+
+        return (
+          <div
+            key={index}
+            className="border rounded-lg overflow-hidden bg-background/50 hover:bg-background transition-colors"
+          >
+            <div className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{icon}</span>
+                  <span className="text-sm font-medium">
+                    {suggestion.component}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onCopy(suggestion.syntax)}
+                  className="h-7 px-2 text-xs"
+                >
+                  {t("common.copy")}
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
+                <MapPin className="w-3 h-3" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onInsertAtLocation?.(suggestion.location);
+                  }}
+                  className="h-auto px-1 py-0.5 text-xs font-normal text-muted-foreground hover:text-primary"
+                  title="Click to jump to this location in editor"
+                >
+                  {suggestion.location}
+                </Button>
+              </div>
+
+              <div
+                className={`rounded-lg p-3 mb-3 border ${previewStyle.bg} ${previewStyle.border}`}
+              >
+                <div className={`font-semibold text-sm ${previewStyle.text}`}>
+                  {previewContent.title}
+                </div>
+                <div className={`text-xs mt-1 opacity-80 ${previewStyle.text}`}>
+                  {previewContent.subtitle}
+                </div>
+              </div>
+
+              <pre className="text-xs bg-muted/50 p-2 rounded border overflow-auto max-h-32 whitespace-pre-wrap font-mono">
+                {suggestion.syntax}
+              </pre>
+
+              {suggestion.reason && (
+                <div className="flex items-start gap-1 mt-2 text-xs text-muted-foreground">
+                  <Lightbulb className="w-3 h-3 shrink-0 mt-0.5" />
+                  <span>{suggestion.reason}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onInsertAllComponents?.(suggestions)}
+          className="flex-1 gap-1"
+        >
+          <Sparkles className="w-3 h-3" />
+          Insert All
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onCopyAll}
+          className="flex-1"
+        >
+          {t("common.copyAll")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 interface AIPanelProps {
   markdown: string;
   setMarkdown: (markdown: string) => void;
   onOpenSettings?: () => void;
+  onInsertAtLocation?: (location: string) => void;
+  onInsertAllComponents?: (suggestions: Suggestion[]) => void;
 }
 
 export default function AIPanel({
   markdown,
   setMarkdown,
   onOpenSettings,
+  onInsertAtLocation,
+  onInsertAllComponents,
 }: AIPanelProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const settings = settingsManager.getSettings();
   const [config, setConfig] = useState<AIConfig>({
     provider: settings.defaultTextProvider,
@@ -55,6 +691,7 @@ export default function AIPanel({
   const [resultType, setResultType] = useState<"titles" | "components" | null>(
     null,
   );
+  const [streamingText, setStreamingText] = useState("");
   const [showContext, setShowContext] = useState(false);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [providerModels, setProviderModels] = useState<
@@ -66,7 +703,53 @@ export default function AIPanel({
   >("idle");
   const [modelSearch, setModelSearch] = useState("");
   const [modelDropOpen, setModelDropOpen] = useState(false);
+  const [streamingPreview, setStreamingPreview] = useState<{
+    action: string;
+    content: string;
+    original: string;
+  } | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const pushHistory = useCallback(
+    (content: string) => {
+      setHistory((prev) => {
+        const newHistory = prev.slice(0, historyIndex + 1);
+        newHistory.push(content);
+        if (newHistory.length > 50) newHistory.shift();
+        return newHistory;
+      });
+      setHistoryIndex((prev) => Math.min(prev + 1, 49));
+    },
+    [historyIndex],
+  );
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setMarkdown(history[newIndex]);
+    }
+  }, [historyIndex, history]);
+
+  useEffect(() => {
+    if (history.length === 0) {
+      setHistory([markdown]);
+      setHistoryIndex(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo]);
 
   // Get available models based on provider
   const getAvailableModels = (): string[] => {
@@ -166,11 +849,10 @@ export default function AIPanel({
 
   const handleAction = async (actionId: string) => {
     if (!markdown.trim()) {
-      alert(t("toasts.noContent"));
+      showToast(t("toasts.noContent"), "error");
       return;
     }
 
-    // Check if provider is configured
     const providerConfig = settingsManager.getTextProvider(config.provider);
     if (config.provider !== "ollama" && !providerConfig?.apiKey) {
       onOpenSettings?.();
@@ -179,24 +861,76 @@ export default function AIPanel({
 
     setLoading(true);
     setResult("");
+    setStreamingText("");
+    setStreamingPreview(null);
 
     try {
       const action = aiActions[actionId];
-      const response = await callAI(config, action, markdown, context);
 
       if (actionId === "generateTitles" || actionId === "suggestComponents") {
-        setResult(response);
         setResultType(actionId === "generateTitles" ? "titles" : "components");
+
+        let fullText = "";
+        try {
+          await callAIStream(config, action, markdown, context, (chunk) => {
+            try {
+              fullText += chunk;
+              setStreamingText(fullText);
+            } catch (e) {
+              console.debug("Chunk processing error:", e);
+            }
+          });
+          setResult(fullText);
+        } catch (streamError) {
+          console.error("Streaming error:", streamError);
+          showToast(t("toasts.configRequired"), "error");
+        }
       } else {
-        setMarkdown(response);
-        setResultType(null);
+        setStreamingPreview({
+          action: t(`ai.${actionId}` as any),
+          content: "",
+          original: markdown,
+        });
+
+        let fullText = "";
+        try {
+          await callAIStream(config, action, markdown, context, (chunk) => {
+            try {
+              fullText += chunk;
+              setStreamingPreview((prev) =>
+                prev ? { ...prev, content: fullText } : null,
+              );
+            } catch (e) {
+              console.debug("Chunk processing error:", e);
+            }
+          });
+        } catch (streamError) {
+          console.error("Streaming error:", streamError);
+          setStreamingPreview(null);
+          showToast(t("toasts.configRequired"), "error");
+        }
       }
     } catch (error) {
       console.error("AI action failed:", error);
-      alert(t("toasts.configRequired"));
+      showToast(t("toasts.configRequired"), "error");
     } finally {
       setLoading(false);
+      setStreamingText("");
     }
+  };
+
+  const handleApplyPreview = () => {
+    if (streamingPreview) {
+      pushHistory(markdown);
+      flushSync(() => {
+        setMarkdown(streamingPreview.content);
+        setStreamingPreview(null);
+      });
+    }
+  };
+
+  const handleCancelPreview = () => {
+    setStreamingPreview(null);
   };
 
   // Check if current provider is configured
@@ -447,9 +1181,20 @@ export default function AIPanel({
 
       {/* AI Actions */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-4 h-4 text-primary" />
-          <h3 className="font-semibold text-sm">{t("ai.actions")}</h3>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
+            <h3 className="font-semibold text-sm">{t("ai.actions")}</h3>
+          </div>
+          {historyIndex > 0 && (
+            <button
+              onClick={undo}
+              title={t("ai.undo")}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors"
+            >
+              <Undo2 className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -459,29 +1204,48 @@ export default function AIPanel({
               {t("ai.generate")}
             </div>
             <div className="space-y-2">
-              {["generateTitles", "expandContent", "suggestComponents"].map(
+              {["generateTitles", "suggestComponents"].map((actionId) => {
+                const action = aiActions[actionId];
+                return (
+                  <button
+                    key={action.id}
+                    title={
+                      t(`ai.${action.id}Desc` as any) || action.description
+                    }
+                    onClick={() => handleAction(action.id)}
+                    disabled={loading || !isConfigured()}
+                    className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} shadow-lg ${action.shadowColor} hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span className="text-lg">{action.icon}</span>
+                    )}
+                    <span>{t(`ai.${action.id}` as any)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Improve Category */}
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
+              {t("ai.improve")}
+            </div>
+            <div className="space-y-2">
+              {["expandContent", "smartFormat", "polishWithContext"].map(
                 (actionId) => {
                   const action = aiActions[actionId];
-                  console.log(
-                    "[AIPanel] Render - config.model:",
-                    config.model,
-                    "availableModels:",
-                    availableModels.length,
-                    "provider:",
-                    config.provider,
-                  );
-
                   return (
                     <button
                       key={action.id}
+                      title={
+                        t(`ai.${action.id}Desc` as any) || action.description
+                      }
                       onClick={() => handleAction(action.id)}
                       disabled={loading || !isConfigured()}
-                      className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium
-                        bg-gradient-to-r ${action.gradient} ${action.hoverGradient}
-                        shadow-lg ${action.shadowColor} hover:shadow-xl
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                        transition-all duration-200 transform hover:-translate-y-0.5
-                      `}
+                      className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} shadow-lg ${action.shadowColor} hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {loading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -495,44 +1259,20 @@ export default function AIPanel({
               )}
             </div>
           </div>
-
-          {/* Improve Category */}
-          <div>
-            <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
-              {t("ai.improve")}
-            </div>
-            <div className="space-y-2">
-              {["smartFormat", "polishWithContext"].map((actionId) => {
-                const action = aiActions[actionId];
-                return (
-                  <button
-                    key={action.id}
-                    onClick={() => handleAction(action.id)}
-                    disabled={loading || !isConfigured()}
-                    className={`w-full flex items-center justify-start h-10 px-4 rounded-lg text-white font-medium text-sm transition-all duration-200 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} shadow-lg ${action.shadowColor} hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <span className="mr-2 text-base">{action.icon}</span>
-                    )}
-                    {t(`ai.${action.id}` as any)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
 
       {/* AI Result Panel */}
-      {result && resultType && (
+      {(result || streamingText) && resultType && (
         <div className="border rounded-lg p-3 bg-muted/30">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-sm">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
               {resultType === "titles"
                 ? t("ai.generatedTitles")
                 : t("ai.componentSuggestions")}
+              {loading && (
+                <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+              )}
             </h3>
             <Button
               size="sm"
@@ -548,8 +1288,7 @@ export default function AIPanel({
           </div>
           <div className="text-sm space-y-2">
             {resultType === "titles" ? (
-              // Render titles as simple list
-              result
+              (streamingText || result)
                 .split("\n")
                 .filter((line) => line.trim())
                 .map((title, i) => (
@@ -563,7 +1302,7 @@ export default function AIPanel({
                       variant="ghost"
                       onClick={() => {
                         navigator.clipboard.writeText(title);
-                        alert(t("toasts.copied"));
+                        showToast(t("toasts.copied"), "success");
                       }}
                       className="opacity-0 group-hover:opacity-100 h-7"
                     >
@@ -572,25 +1311,67 @@ export default function AIPanel({
                   </div>
                 ))
             ) : (
-              // Render component suggestions with formatted blocks
-              <div className="prose prose-sm max-w-none">
-                <pre className="whitespace-pre-wrap text-xs bg-background p-3 rounded border overflow-auto max-h-64">
-                  {result}
-                </pre>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(result);
-                    alert(t("toasts.suggestionsCopied"));
-                  }}
-                  className="mt-2 w-full"
-                >
-                  {t("common.copyAll")}
-                </Button>
+              <div className="space-y-3">
+                {streamingText || result ? (
+                  <ComponentSuggestions
+                    content={streamingText || result}
+                    suggestions={parseSuggestions(streamingText || result)}
+                    isLoading={loading && !result}
+                    onCopy={(syntax) => {
+                      navigator.clipboard.writeText(syntax);
+                      showToast(t("toasts.copied"), "success");
+                    }}
+                    onCopyAll={() => {
+                      navigator.clipboard.writeText(result);
+                      showToast(t("toasts.copied"), "success");
+                    }}
+                    onInsertAtLocation={onInsertAtLocation}
+                    onInsertAllComponents={onInsertAllComponents}
+                    t={t}
+                  />
+                ) : null}
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {streamingPreview && (
+        <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {streamingPreview.action}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {t("ai.streamingPreview")}
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleCancelPreview}
+              className="h-6 px-2 text-xs"
+            >
+              {t("common.cancel")}
+            </Button>
+          </div>
+
+          <pre className="text-xs bg-background p-3 rounded border overflow-auto max-h-48 whitespace-pre-wrap">
+            {streamingPreview.content || t("ai.waitingForResponse")}
+          </pre>
+
+          {streamingPreview.content && (
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={handleCancelPreview}>
+                {t("common.cancel")}
+              </Button>
+              <Button size="sm" onClick={handleApplyPreview}>
+                {t("ai.apply")}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

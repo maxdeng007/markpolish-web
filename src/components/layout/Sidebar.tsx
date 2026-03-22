@@ -44,6 +44,15 @@ interface SidebarProps {
   onInsertImage: (url: string, filename: string) => void;
   onOpenSettings?: () => void;
   getCursorPosition?: () => number | null;
+  onInsertAtLocation?: (location: string) => void;
+  onInsertAllComponents?: (suggestions: Suggestion[]) => void;
+}
+
+interface Suggestion {
+  component: string;
+  location: string;
+  syntax: string;
+  reason: string;
 }
 
 export default function Sidebar({
@@ -57,6 +66,8 @@ export default function Sidebar({
   onInsertImage,
   onOpenSettings,
   getCursorPosition,
+  onInsertAtLocation,
+  onInsertAllComponents,
 }: SidebarProps) {
   const { t } = useTranslation();
 
@@ -122,6 +133,8 @@ export default function Sidebar({
               markdown={markdown}
               setMarkdown={onMarkdownChange}
               onOpenSettings={onOpenSettings}
+              onInsertAtLocation={onInsertAtLocation}
+              onInsertAllComponents={onInsertAllComponents}
             />
           </TabsContent>
 

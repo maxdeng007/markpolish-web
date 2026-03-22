@@ -30,7 +30,7 @@ export default function Preview({
                 "px-3 py-1 text-xs rounded-sm transition-colors",
                 previewMode === "full"
                   ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               Full
@@ -41,7 +41,7 @@ export default function Preview({
                 "px-3 py-1 text-xs rounded-sm transition-colors",
                 previewMode === "wecom"
                   ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               WeCom

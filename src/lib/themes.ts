@@ -56,7 +56,7 @@ export const themes: Record<string, Theme> = {
       .preview-content a:hover { text-decoration: underline; }
       .preview-content img { max-width: 100%; display: block; margin: 16px auto; border-radius: 4px; }
       .preview-content code { background: #f7f7f7; padding: 2px 6px; border-radius: 4px; font-family: "SF Mono", Menlo, Monaco, monospace; font-size: 0.9em; }
-      .preview-content pre { background: #f7f7f7; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #f7f7f7; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content pre code { background: none; padding: 0; }
     `,
   },
@@ -93,7 +93,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 17px; line-height: 1.7; margin: 16px 0; }
       .preview-content a { color: #0071e3; text-decoration: none; }
       .preview-content code { background: #f5f5f7; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-      .preview-content pre { background: #f5f5f7; padding: 16px; border-radius: 12px; overflow-x: auto; }
+      .preview-content pre { background: #f5f5f7; padding: 16px; border-radius: 12px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #d2d2d7; padding-left: 16px; margin: 16px 0; color: #86868b; font-style: italic; }
     `,
   },
@@ -130,7 +130,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #8be9fd; text-decoration: none; }
       .preview-content code { background: #44475a; padding: 2px 6px; border-radius: 4px; color: #50fa7b; }
-      .preview-content pre { background: #44475a; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #44475a; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #bd93f9; padding: 16px 20px; margin: 20px 0; color: #6272a4; font-style: italic; }
     `,
   },
@@ -167,7 +167,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #5e81ac; text-decoration: underline; text-decoration-color: rgba(94, 129, 172, 0.3); }
       .preview-content code { background: #eceff4; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-      .preview-content pre { background: #eceff4; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #eceff4; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #5e81ac; padding-left: 16px; margin: 16px 0; color: #4c566a; font-style: italic; }
     `,
   },
@@ -204,7 +204,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #7dcfff; text-decoration: none; }
       .preview-content code { background: #24283b; padding: 2px 6px; border-radius: 4px; color: #9ece6a; }
-      .preview-content pre { background: #24283b; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #24283b; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #bb9af7; padding: 16px 20px; margin: 20px 0; color: #565f89; font-style: italic; }
     `,
   },
@@ -242,7 +242,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #60a5fa; text-decoration: none; }
       .preview-content code { background: #1a1a1a; padding: 2px 6px; border-radius: 4px; color: #fbbf24; }
-      .preview-content pre { background: #1a1a1a; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #1a1a1a; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #60a5fa; padding: 16px 20px; margin: 20px 0; color: #a1a1aa; font-style: italic; }
     `,
   },
@@ -279,7 +279,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #c45d1a; text-decoration: underline; }
       .preview-content code { background: #f5efe8; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #c45d1a; }
-      .preview-content pre { background: #f5efe8; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #f5efe8; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #e07a38; padding: 16px 20px; margin: 20px 0; color: #7a6b5a; font-style: italic; background: #fff8f0; }
     `,
   },
@@ -316,7 +316,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 17px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #8b6f47; text-decoration: none; border-bottom: 1px solid #c7a27c; }
       .preview-content code { background: #f5f3f0; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-      .preview-content pre { background: #f5f3f0; padding: 16px; border-radius: 4px; overflow-x: auto; }
+      .preview-content pre { background: #f5f3f0; padding: 16px; border-radius: 4px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #c7a27c; padding: 16px 20px; margin: 20px 0; color: #7a7a7a; font-style: italic; }
     `,
   },
@@ -353,7 +353,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #5a9a7c; text-decoration: none; border-bottom: 1px dashed #86c8bc; }
       .preview-content code { background: #e8f2e6; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #5a9a7c; }
-      .preview-content pre { background: #e8f2e6; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #e8f2e6; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #86c8bc; padding: 16px 20px; margin: 20px 0; color: #6b7a68; font-style: italic; background: #edf5eb; }
     `,
   },
@@ -390,7 +390,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.9; margin: 16px 0; }
       .preview-content a { color: #e8788a; text-decoration: none; border-bottom: 1px solid #ffb7c5; }
       .preview-content code { background: #fef6f7; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #e8788a; }
-      .preview-content pre { background: #fef6f7; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #fef6f7; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #ffb7c5; padding: 16px 20px; margin: 20px 0; color: #888888; font-style: italic; background: #fefafa; }
     `,
   },
@@ -427,7 +427,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 17px; line-height: 1.8; margin: 16px 0; text-align: justify; }
       .preview-content a { color: #c41e3a; text-decoration: underline; }
       .preview-content code { background: #f0efec; padding: 2px 6px; border-radius: 2px; font-size: 0.9em; font-family: 'Courier New', monospace; }
-      .preview-content pre { background: #f0efec; padding: 16px; border-radius: 2px; overflow-x: auto; border-left: 4px solid #c41e3a; }
+      .preview-content pre { background: #f0efec; padding: 16px; border-radius: 2px; overflow-x: auto; border-left: 4px solid #c41e3a; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #c41e3a; padding: 16px 20px; margin: 20px 0; color: #555555; font-style: italic; background: #f5f4f1; }
     `,
   },
@@ -464,7 +464,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #88c0d0; text-decoration: none; }
       .preview-content code { background: #3b4252; padding: 2px 6px; border-radius: 4px; color: #81a1c1; }
-      .preview-content pre { background: #3b4252; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #3b4252; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #88c0d0; padding: 16px 20px; margin: 20px 0; color: #a8b4c4; font-style: italic; }
     `,
   },
@@ -501,7 +501,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #ff6188; text-decoration: none; }
       .preview-content code { background: #363337; padding: 2px 6px; border-radius: 4px; color: #a9dc76; }
-      .preview-content pre { background: #363337; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #363337; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #ffd866; padding: 16px 20px; margin: 20px 0; color: #727072; font-style: italic; }
     `,
   },
@@ -538,7 +538,7 @@ export const themes: Record<string, Theme> = {
       .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
       .preview-content a { color: #e8b86d; text-decoration: none; }
       .preview-content code { background: #3d3226; padding: 2px 6px; border-radius: 4px; color: #a8c97f; }
-      .preview-content pre { background: #3d3226; padding: 16px; border-radius: 8px; overflow-x: auto; }
+      .preview-content pre { background: #3d3226; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #d4a574; padding: 16px 20px; margin: 20px 0; color: #8b7355; font-style: italic; background: #352d20; }
     `,
   },

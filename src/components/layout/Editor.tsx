@@ -5,6 +5,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface EditorProps {
   markdown: string;
   onChange: (value: string) => void;
+  isHighlighted?: boolean;
 }
 
 const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
