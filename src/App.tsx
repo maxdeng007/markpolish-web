@@ -579,6 +579,23 @@ function App() {
     });
   };
 
+  const handleApplyTitle = (title: string) => {
+    pushHistory(markdown);
+
+    const h1Match = markdown.match(/^#\s+.+$/m);
+
+    let newMarkdown: string;
+    if (h1Match) {
+      newMarkdown = markdown.replace(/^#\s+.+$/m, `# ${title}`);
+    } else {
+      newMarkdown = `# ${title}\n\n${markdown}`;
+    }
+
+    flushSync(() => {
+      setMarkdown(newMarkdown);
+    });
+  };
+
   return (
     <TranslationProvider>
       <ToastProvider>
@@ -618,6 +635,8 @@ function App() {
                   getCursorPosition={getCursorPosition}
                   onInsertAtLocation={handleInsertAtLocation}
                   onInsertAllComponents={handleInsertAllComponents}
+                  onApplyTitle={handleApplyTitle}
+                  onPushHistory={() => pushHistory(markdown)}
                 />
               </ErrorBoundary>
 

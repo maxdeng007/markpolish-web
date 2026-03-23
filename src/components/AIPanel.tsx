@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/Toast";
@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Undo2, MapPin, Lightbulb } from "lucide-react";
+import { MapPin, Lightbulb } from "lucide-react";
 import {
   Loader2,
   ChevronDown,
@@ -39,6 +39,70 @@ interface Suggestion {
   location: string;
   syntax: string;
   reason: string;
+}
+
+type DiffLineType = "equal" | "add" | "remove";
+
+interface DiffSegment {
+  type: DiffLineType;
+  text: string;
+}
+
+function computeDiff(original: string, modified: string): DiffSegment[] {
+  const originalLines = original.split("\n");
+  const modifiedLines = modified.split("\n");
+  const result: DiffSegment[] = [];
+
+  const maxLines = 30;
+  const origSlice = originalLines.slice(0, maxLines);
+  const modSlice = modifiedLines.slice(0, maxLines);
+
+  let start = 0;
+  while (
+    start < origSlice.length &&
+    start < modSlice.length &&
+    origSlice[start] === modSlice[start]
+  ) {
+    start++;
+  }
+
+  let end = 0;
+  while (
+    end < origSlice.length - start &&
+    end < modSlice.length - start &&
+    origSlice[origSlice.length - 1 - end] ===
+      modSlice[modSlice.length - 1 - end]
+  ) {
+    end++;
+  }
+
+  for (let i = 0; i < start; i++) {
+    result.push({ type: "equal", text: origSlice[i] });
+  }
+
+  const origEnd = origSlice.length - end;
+  const modEnd = modSlice.length - end;
+
+  for (let i = start; i < origEnd; i++) {
+    result.push({ type: "remove", text: origSlice[i] });
+  }
+
+  for (let i = start; i < modEnd; i++) {
+    result.push({ type: "add", text: modSlice[i] });
+  }
+
+  for (let i = origSlice.length - end; i < origSlice.length; i++) {
+    result.push({ type: "equal", text: origSlice[i] });
+  }
+
+  if (modifiedLines.length > maxLines) {
+    result.push({
+      type: "equal",
+      text: `... (${modifiedLines.length - maxLines} more lines)`,
+    });
+  }
+
+  return result;
 }
 
 const COMPONENT_ICONS: Record<string, string> = {
@@ -668,6 +732,8 @@ interface AIPanelProps {
   onOpenSettings?: () => void;
   onInsertAtLocation?: (location: string) => void;
   onInsertAllComponents?: (suggestions: Suggestion[]) => void;
+  onApplyTitle?: (title: string) => void;
+  onPushHistory?: () => void;
 }
 
 export default function AIPanel({
@@ -676,6 +742,8 @@ export default function AIPanel({
   onOpenSettings,
   onInsertAtLocation,
   onInsertAllComponents,
+  onApplyTitle,
+  onPushHistory,
 }: AIPanelProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -708,48 +776,7 @@ export default function AIPanel({
     content: string;
     original: string;
   } | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const pushHistory = useCallback(
-    (content: string) => {
-      setHistory((prev) => {
-        const newHistory = prev.slice(0, historyIndex + 1);
-        newHistory.push(content);
-        if (newHistory.length > 50) newHistory.shift();
-        return newHistory;
-      });
-      setHistoryIndex((prev) => Math.min(prev + 1, 49));
-    },
-    [historyIndex],
-  );
-
-  const undo = useCallback(() => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      setMarkdown(history[newIndex]);
-    }
-  }, [historyIndex, history]);
-
-  useEffect(() => {
-    if (history.length === 0) {
-      setHistory([markdown]);
-      setHistoryIndex(0);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
-        e.preventDefault();
-        undo();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [undo]);
 
   // Get available models based on provider
   const getAvailableModels = (): string[] => {
@@ -921,7 +948,7 @@ export default function AIPanel({
 
   const handleApplyPreview = () => {
     if (streamingPreview) {
-      pushHistory(markdown);
+      onPushHistory?.();
       flushSync(() => {
         setMarkdown(streamingPreview.content);
         setStreamingPreview(null);
@@ -1181,20 +1208,9 @@ export default function AIPanel({
 
       {/* AI Actions */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-sm">{t("ai.actions")}</h3>
-          </div>
-          {historyIndex > 0 && (
-            <button
-              onClick={undo}
-              title={t("ai.undo")}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors"
-            >
-              <Undo2 className="w-4 h-4 text-muted-foreground" />
-            </button>
-          )}
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-4 h-4 text-primary" />
+          <h3 className="font-semibold text-sm">{t("ai.actions")}</h3>
         </div>
 
         <div className="space-y-4">
@@ -1288,28 +1304,58 @@ export default function AIPanel({
           </div>
           <div className="text-sm space-y-2">
             {resultType === "titles" ? (
-              (streamingText || result)
-                .split("\n")
-                .filter((line) => line.trim())
-                .map((title, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between group p-2 hover:bg-background rounded"
-                  >
-                    <span className="flex-1">{title}</span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        navigator.clipboard.writeText(title);
-                        showToast(t("toasts.copied"), "success");
-                      }}
-                      className="opacity-0 group-hover:opacity-100 h-7"
+              <div className="space-y-2">
+                {(streamingText || result)
+                  .split("\n")
+                  .filter((line) => line.trim())
+                  .map((title, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between group p-2 hover:bg-background rounded border border-transparent hover:border-border transition-colors"
                     >
-                      {t("common.copy")}
-                    </Button>
-                  </div>
-                ))
+                      <span className="flex-1 pr-2">{title}</span>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => {
+                            onApplyTitle?.(title);
+                            showToast(t("ai.titleApplied"), "success");
+                          }}
+                          className="h-7 px-2 text-xs bg-primary"
+                        >
+                          {t("ai.apply")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            navigator.clipboard.writeText(title);
+                            showToast(t("toasts.copied"), "success");
+                          }}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {t("common.copy")}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const allTitles = (streamingText || result)
+                      .split("\n")
+                      .filter((line) => line.trim())
+                      .join("\n- ");
+                    navigator.clipboard.writeText(`- ${allTitles}`);
+                    showToast(t("toasts.copied"), "success");
+                  }}
+                  className="w-full mt-2 text-xs"
+                >
+                  {t("ai.copyAllAsList")}
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 {streamingText || result ? (
@@ -1363,14 +1409,81 @@ export default function AIPanel({
           </pre>
 
           {streamingPreview.content && (
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handleCancelPreview}>
-                {t("common.cancel")}
-              </Button>
-              <Button size="sm" onClick={handleApplyPreview}>
-                {t("ai.apply")}
-              </Button>
-            </div>
+            <>
+              <div className="border rounded bg-background overflow-auto max-h-64 text-xs font-mono">
+                <div className="px-3 py-1.5 bg-muted/50 border-b flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {t("ai.changesPreview")}
+                  </span>
+                  <div className="flex gap-3 text-[10px]">
+                    <span className="text-green-600 dark:text-green-400">
+                      +
+                      {streamingPreview.content.split("\n").length -
+                        streamingPreview.original.split("\n").length}{" "}
+                      {t("ai.addedLines")}
+                    </span>
+                    <span className="text-red-600 dark:text-red-400">
+                      -
+                      {streamingPreview.original.split("\n").length -
+                        streamingPreview.content.split("\n").length}{" "}
+                      {t("ai.removedLines")}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-2 space-y-0.5">
+                  {computeDiff(
+                    streamingPreview.original,
+                    streamingPreview.content,
+                  ).map((segment, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "px-2 py-0.5 rounded leading-5",
+                        segment.type === "add" &&
+                          "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
+                        segment.type === "remove" &&
+                          "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 line-through opacity-60",
+                        segment.type === "equal" && "text-muted-foreground",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "select-none mr-2 inline-block w-4 text-center",
+                          segment.type === "add" &&
+                            "text-green-600 dark:text-green-400",
+                          segment.type === "remove" &&
+                            "text-red-600 dark:text-red-400",
+                        )}
+                      >
+                        {segment.type === "add"
+                          ? "+"
+                          : segment.type === "remove"
+                            ? "-"
+                            : " "}
+                      </span>
+                      {segment.text || " "}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCancelPreview}
+                  className="flex-1"
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleApplyPreview}
+                  className="flex-1"
+                >
+                  {t("ai.apply")}
+                </Button>
+              </div>
+            </>
           )}
         </div>
       )}

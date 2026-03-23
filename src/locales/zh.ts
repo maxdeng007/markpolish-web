@@ -106,6 +106,11 @@ export const zh: Translations = {
     streamingPreview: "实时预览",
     waitingForResponse: "等待 AI 响应中...",
     componentApplied: "组件已应用！",
+    titleApplied: "标题已应用！",
+    copyAllAsList: "复制为列表",
+    changesPreview: "变更预览",
+    addedLines: "新增",
+    removedLines: "删除",
   },
   templates: {
     title: "快速开始模板",
@@ -446,6 +451,7 @@ export const zh: Translations = {
     versionRestored: "版本已恢复！",
     noContent: "请先添加一些内容",
     configRequired: "AI 操作失败，请检查设置中的配置。",
+    titleApplied: "标题已应用！",
   },
   errors: {
     generic: "发生错误",

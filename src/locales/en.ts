@@ -106,6 +106,11 @@ export const en = {
     streamingPreview: "Live preview",
     waitingForResponse: "Waiting for AI response...",
     componentApplied: "Component applied!",
+    titleApplied: "Title applied!",
+    copyAllAsList: "Copy All as List",
+    changesPreview: "Changes Preview",
+    addedLines: "Added",
+    removedLines: "Removed",
   },
   templates: {
     title: "Quick Start Templates",
@@ -448,6 +453,7 @@ export const en = {
     noContent: "Please add some content first",
     configRequired:
       "AI action failed. Please check your configuration in Settings.",
+    titleApplied: "Title applied!",
   },
   errors: {
     generic: "An error occurred",

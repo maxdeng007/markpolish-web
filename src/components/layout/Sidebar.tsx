@@ -46,6 +46,8 @@ interface SidebarProps {
   getCursorPosition?: () => number | null;
   onInsertAtLocation?: (location: string) => void;
   onInsertAllComponents?: (suggestions: Suggestion[]) => void;
+  onApplyTitle?: (title: string) => void;
+  onPushHistory?: () => void;
 }
 
 interface Suggestion {
@@ -68,6 +70,8 @@ export default function Sidebar({
   getCursorPosition,
   onInsertAtLocation,
   onInsertAllComponents,
+  onApplyTitle,
+  onPushHistory,
 }: SidebarProps) {
   const { t } = useTranslation();
 
@@ -135,6 +139,8 @@ export default function Sidebar({
               onOpenSettings={onOpenSettings}
               onInsertAtLocation={onInsertAtLocation}
               onInsertAllComponents={onInsertAllComponents}
+              onApplyTitle={onApplyTitle}
+              onPushHistory={onPushHistory}
             />
           </TabsContent>
 
