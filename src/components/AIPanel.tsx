@@ -1384,25 +1384,10 @@ export default function AIPanel({
 
       {streamingPreview && (
         <div className="border rounded-lg bg-muted/30 overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/20">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">
-                {streamingPreview.action}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {loading ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
-                    {t("ai.streamingPreview")}
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-3 h-3 text-green-500 inline mr-1" />
-                    {t("ai.complete")}
-                  </>
-                )}
-              </span>
-            </div>
+          <div className="flex items-center justify-between px-3 py-2 border-b">
+            <span className="text-sm font-medium">
+              {streamingPreview.action}
+            </span>
             <Button
               size="sm"
               variant="ghost"
@@ -1411,6 +1396,19 @@ export default function AIPanel({
             >
               {t("common.cancel")}
             </Button>
+          </div>
+          <div className="px-3 py-1.5 text-xs text-muted-foreground border-b bg-muted/20">
+            {loading ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
+                {t("ai.streamingPreview")}
+              </>
+            ) : (
+              <>
+                <Check className="w-3 h-3 text-green-500 inline mr-1" />
+                {t("ai.complete")}
+              </>
+            )}
           </div>
 
           <div className="p-2">
