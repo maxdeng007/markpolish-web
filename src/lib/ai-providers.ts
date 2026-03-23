@@ -1,6 +1,6 @@
 // AI provider integration for content enhancement
 
-function detectLanguage(text: string): "zh" | "en" | "mixed" {
+export function detectLanguage(text: string): "zh" | "en" | "mixed" {
   const chineseRegex = /[\u4e00-\u9fff]/g;
   const chineseCount = (text.match(chineseRegex) || []).length;
   const totalChars = text.replace(/\s/g, "").length;
@@ -13,7 +13,7 @@ function detectLanguage(text: string): "zh" | "en" | "mixed" {
   return "en";
 }
 
-function getLanguageHint(content: string): string {
+export function getLanguageHint(content: string): string {
   const lang = detectLanguage(content);
   switch (lang) {
     case "zh":
@@ -146,6 +146,7 @@ Guidelines:
 - Maintain the original tone and structure
 - Keep the content engaging and readable
 - DO NOT change the original meaning or add fictional claims
+- CRITICAL: Preserve ALL markdown formatting including headers (# ## ###), bold (**text**), italic (*text*), blockquotes (>), code blocks (\`\`\`), lists (- or 1.), links ([text](url)), and all other syntax
 
 Original content:
 ${content}`,
@@ -172,6 +173,7 @@ Formatting improvements:
 - Add emphasis (**bold**, *italic*) to key terms
 - Optimize for mobile reading (WeChat-friendly)
 - Keep the same content and meaning
+- CRITICAL: Preserve ALL markdown formatting. Do NOT strip blockquotes (>), code blocks, or any other markdown syntax. Only improve and enhance the formatting.
 
 Content to format:
 ${content}`,

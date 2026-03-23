@@ -21,7 +21,16 @@ import { Button } from "@/components/ui/button";
 import { ToastProvider, ToastContainer } from "@/components/Toast";
 import { TranslationProvider, useTranslation } from "@/hooks/useTranslation";
 import { settingsManager } from "@/lib/settings";
-import { callAIStream, type AIConfig } from "@/lib/ai-providers";
+import {
+  callAIStream,
+  type AIConfig,
+  getLanguageHint,
+} from "@/lib/ai-providers";
+import {
+  extractTextWithFormatting,
+  restoreFormatting,
+  FormattingWrapper,
+} from "@/lib/utils";
 
 // Lazy load PDF Export Button for better bundle size
 const PDFExportModal = lazy(() => import("@/components/PDFExportModal"));
@@ -323,6 +332,7 @@ function App() {
     text: string;
     start: number;
     end: number;
+    wrappers?: FormattingWrapper[];
   } | null>(null);
 
   const [_history, setHistory] = useState<string[]>([defaultMarkdown]);
@@ -361,7 +371,7 @@ function App() {
   };
 
   const handleInlineAction = async (
-    _actionId: string,
+    actionId: string,
     selectedText: string,
     start: number,
     end: number,
@@ -373,13 +383,18 @@ function App() {
       return;
     }
 
+    const { plainText, wrappers } = extractTextWithFormatting(selectedText);
+
     setInlineLoading(true);
     setInlinePreview(null);
     setInlineSelection({
       text: selectedText,
       start,
       end,
+      wrappers,
     });
+
+    const langHint = getLanguageHint(plainText);
 
     const config: AIConfig = {
       provider: settings.defaultTextProvider,
@@ -387,24 +402,51 @@ function App() {
       apiKey: provider?.apiKey || "",
     };
 
-    const prompt = `Improve this text, making it clearer, more engaging, and better structured:\n\n${selectedText}`;
+    const prompts: Record<string, { name: string; prompt: string }> = {
+      "inline-improve": {
+        name: "Improve",
+        prompt: `${langHint}\n\nYou are a professional editor. Rewrite and improve the following text to make it clearer, more engaging, well-structured, and grammatically correct. Only output the improved text, no explanations:\n\n${plainText}`,
+      },
+      "inline-shorten": {
+        name: "Shorten",
+        prompt: `${langHint}\n\nYou are a professional editor. Rewrite the following text to be significantly shorter and more concise while preserving all essential meaning and key points. Remove redundancy, filler words, and unnecessary details. Output ONLY the shortened text, no explanations:\n\n${plainText}`,
+      },
+      "inline-expand": {
+        name: "Expand",
+        prompt: `${langHint}\n\nYou are a professional writer. Expand the following text with more relevant details, examples, explanations, and context to make it more comprehensive and informative. Maintain the original tone and meaning. Only output the expanded text, no explanations:\n\n${plainText}`,
+      },
+      "inline-fix": {
+        name: "Fix",
+        prompt: `${langHint}\n\nYou are a professional proofreader. Fix all grammar, spelling, punctuation, and formatting errors in the following text. Keep the content and meaning exactly the same. Only output the corrected text, no explanations:\n\n${plainText}`,
+      },
+    };
+
+    const actionConfig = prompts[actionId] || prompts["inline-improve"];
+
+    const action = {
+      id: actionId,
+      name: actionConfig.name,
+      description: `${actionConfig.name} selected text`,
+      icon: "✨",
+      prompt: () => actionConfig.prompt,
+    };
 
     let fullText = "";
     try {
-      await callAIStream(
-        config,
-        { prompt } as any,
-        selectedText,
-        "",
-        (chunk) => {
-          fullText += chunk;
-          setInlinePreview(fullText);
-        },
-      );
+      await callAIStream(config, action, plainText, "", (chunk) => {
+        fullText += chunk;
+        const formattedResult = restoreFormatting(wrappers, fullText);
+        setInlinePreview(formattedResult);
+      });
     } catch {
       setInlineLoading(false);
       setInlinePreview(null);
       setInlineSelection(null);
+    }
+
+    if (fullText) {
+      const formattedResult = restoreFormatting(wrappers, fullText);
+      setInlinePreview(formattedResult);
     }
     setInlineLoading(false);
   };
