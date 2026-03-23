@@ -20,6 +20,8 @@ import { getDefaultTheme } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 import { ToastProvider, ToastContainer } from "@/components/Toast";
 import { TranslationProvider, useTranslation } from "@/hooks/useTranslation";
+import { settingsManager } from "@/lib/settings";
+import { callAIStream, type AIConfig } from "@/lib/ai-providers";
 
 // Lazy load PDF Export Button for better bundle size
 const PDFExportModal = lazy(() => import("@/components/PDFExportModal"));
@@ -315,6 +317,14 @@ function App() {
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [inlineLoading, setInlineLoading] = useState(false);
+  const [inlinePreview, setInlinePreview] = useState<string | null>(null);
+  const [inlineSelection, setInlineSelection] = useState<{
+    text: string;
+    start: number;
+    end: number;
+  } | null>(null);
+
   const [_history, setHistory] = useState<string[]>([defaultMarkdown]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
@@ -348,6 +358,69 @@ function App() {
     const pos = textarea.selectionStart;
     if (pos < 0 || pos > textarea.value.length) return null;
     return pos;
+  };
+
+  const handleInlineAction = async (
+    _actionId: string,
+    selectedText: string,
+  ) => {
+    setInlineLoading(true);
+    setInlinePreview(null);
+    setInlineSelection({
+      text: selectedText,
+      start: 0,
+      end: selectedText.length,
+    });
+
+    const settings = settingsManager.getSettings();
+    const config: AIConfig = {
+      provider: settings.defaultTextProvider,
+      model: settings.defaultTextModel,
+      apiKey:
+        settings.textProviders[settings.defaultTextProvider]?.apiKey || "",
+    };
+
+    const prompt = `Improve this text, making it clearer, more engaging, and better structured:\n\n${selectedText}`;
+
+    let fullText = "";
+    try {
+      await callAIStream(
+        config,
+        { prompt } as any,
+        selectedText,
+        "",
+        (chunk) => {
+          fullText += chunk;
+          setInlinePreview(fullText);
+        },
+      );
+    } catch {
+      setInlineLoading(false);
+      setInlinePreview(null);
+      setInlineSelection(null);
+    }
+    setInlineLoading(false);
+  };
+
+  const handleApplyInline = () => {
+    if (inlineSelection && inlinePreview !== null) {
+      pushHistory(markdown);
+      const before = markdown.substring(0, inlineSelection.start);
+      const after = markdown.substring(inlineSelection.end);
+      const newMarkdown = before + inlinePreview + after;
+      flushSync(() => {
+        setMarkdown(newMarkdown);
+        setInlineLoading(false);
+        setInlinePreview(null);
+        setInlineSelection(null);
+      });
+    }
+  };
+
+  const handleCancelInline = () => {
+    setInlineLoading(false);
+    setInlinePreview(null);
+    setInlineSelection(null);
   };
 
   // Auto-save hook
@@ -646,6 +719,11 @@ function App() {
                   markdown={markdown}
                   onChange={setMarkdown}
                   ref={textareaRef}
+                  onInlineAction={handleInlineAction}
+                  inlineLoading={inlineLoading}
+                  inlinePreview={inlinePreview}
+                  onApplyInline={handleApplyInline}
+                  onCancelInline={handleCancelInline}
                 />
               </ErrorBoundary>
 
