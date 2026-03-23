@@ -14,7 +14,6 @@ interface InlineAction {
   id: string;
   icon: React.ReactNode;
   label: string;
-  labelZh: string;
   prompt: (text: string) => string;
 }
 
@@ -33,7 +32,6 @@ const inlineActions: InlineAction[] = [
     id: "inline-improve",
     icon: <Sparkles className="w-3.5 h-3.5" />,
     label: "Improve",
-    labelZh: "润色",
     prompt: (text) =>
       `Improve this text, making it clearer, more engaging, and better structured:\n\n${text}`,
   },
@@ -41,7 +39,6 @@ const inlineActions: InlineAction[] = [
     id: "inline-shorten",
     icon: <Scissors className="w-3.5 h-3.5" />,
     label: "Shorten",
-    labelZh: "精简",
     prompt: (text) =>
       `Make this text more concise while keeping the key points:\n\n${text}`,
   },
@@ -49,7 +46,6 @@ const inlineActions: InlineAction[] = [
     id: "inline-expand",
     icon: <AlignLeft className="w-3.5 h-3.5" />,
     label: "Expand",
-    labelZh: "扩展",
     prompt: (text) =>
       `Expand this text with more details, examples, and context:\n\n${text}`,
   },
@@ -57,7 +53,6 @@ const inlineActions: InlineAction[] = [
     id: "inline-fix",
     icon: <CheckCircle className="w-3.5 h-3.5" />,
     label: "Fix",
-    labelZh: "修正",
     prompt: (text) =>
       `Fix any grammar, spelling, or punctuation errors:\n\n${text}`,
   },
@@ -101,18 +96,12 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
       });
 
       const rect = textarea.getBoundingClientRect();
-      const lineHeight = 24;
-      const lines = value.substring(0, selectionStart).split("\n");
-      const currentLine = lines.length;
-      const charIndex = lines[lines.length - 1].length;
-      const charWidth = 8;
-
-      const top = rect.top + currentLine * lineHeight - 52;
-      const left = rect.left + charIndex * charWidth + 60;
+      const cursorTop = rect.top + 10;
+      const cursorLeft = rect.left + 20;
 
       setToolbarPosition({
-        top: Math.max(10, top),
-        left: Math.min(left, window.innerWidth - 400),
+        top: cursorTop,
+        left: Math.min(cursorLeft, window.innerWidth - 400),
       });
       setIsVisible(true);
     } else {
@@ -187,9 +176,6 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
             >
               {action.icon}
               <span>{action.label}</span>
-              <span className="text-[10px] text-muted-foreground/70">
-                ({action.labelZh})
-              </span>
             </button>
           ))}
         </div>
