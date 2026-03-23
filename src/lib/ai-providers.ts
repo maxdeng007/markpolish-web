@@ -210,9 +210,9 @@ Document Statistics:
 - Existing components: ${hasExistingComponents ? "Yes" : "None"}
 - Document structure: ${headings === 0 ? "No headings (consider adding)" : headings <= 2 ? "Few headings" : headings <= 5 ? "Moderate structure" : "Well structured"}
 
-Available components:
-• :::hero - Eye-catching hero/intro sections with title and subtitle
-• :::col-2 / :::col-3 - Multi-column layouts for comparisons or feature lists. IMPORTANT: Use "---" (three dashes on its own line) as the separator between columns.
+Available components (MUST use TRIPLE colons: :::):
+• :::hero - Hero section with title and subtitle (MUST be :::hero, NOT ::hero)
+• :::col-2 / :::col-3 - Multi-column layouts. Use "---" (three dashes on its own line) as the separator between columns.
 • :::steps - Step-by-step numbered instructions
 • :::timeline - Chronological events or milestones
 • :::card - Styled cards for highlighting key information
@@ -221,6 +221,12 @@ Available components:
 • :::tabs - Tabbed content sections
 • :::accordion - Collapsible expandable sections
 • [IMG: description] - Placeholder for AI-generated or stock images
+
+CRITICAL SYNTAX RULES:
+- ALWAYS use TRIPLE colons (:::) at the start and end: :::hero ... :::
+- NEVER use double colons (::hero) - this is WRONG
+- CORRECT: :::hero\n# Title\n## Subtitle\n:::
+- WRONG: ::hero\n# Title\n## Subtitle\n:::
 
 Guidelines:
 - Suggest components that match the document's purpose (blog, tutorial, announcement, etc.)
@@ -232,12 +238,15 @@ Guidelines:
 
 Return your suggestions as a JSON array. Each suggestion must be a valid JSON object with these exact fields:
 {
-  "component": ":::hero" or "[IMG: description]",
+  "component": ":::hero" (MUST be triple colons, NOT double colons),
   "location": "document-start | document-end | after-heading | before-heading",
   "headingText": "exact heading text (only if location is after-heading or before-heading)",
-  "syntax": "exact component syntax including ::: delimiters",
+  "syntax": "EXACT component syntax with ::: delimiters (triple colons)",
   "reason": "brief explanation of why this component improves the content"
 }
+
+Example correct syntax:
+":::hero\n# Main Title\n## Subtitle\n:::"
 
 For location values:
 - "document-start": Component should go at the very beginning

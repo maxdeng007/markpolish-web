@@ -1,5 +1,5 @@
 import { Textarea } from "@/components/ui/textarea";
-import { forwardRef, useState, useEffect, useCallback } from "react";
+import { forwardRef, useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import {
   Sparkles,
@@ -8,6 +8,8 @@ import {
   AlignLeft,
   CheckCircle,
   Loader2,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import { settingsManager } from "@/lib/settings";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -32,15 +34,17 @@ interface EditorProps {
   inlinePreview?: string | null;
   onApplyInline?: () => void;
   onCancelInline?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  historyIndex?: number;
+  historyLength?: number;
 }
 
-const inlineActions: InlineAction[] = [
-  {
-    id: "inline-improve",
-    icon: <Sparkles className="w-3.5 h-3.5" />,
-    label: "Improve",
-    prompt: (text) =>
-      `You are a professional editor improving MARKDOWN content. This is CRITICAL:
+const getPrompt = (actionId: string, text: string): string => {
+  const prompts: Record<string, string> = {
+    "inline-improve": `You are a professional editor improving MARKDOWN content. This is CRITICAL:
 
 INPUT: A blockquote like "> **text**" should output "> **improved text**" with the > preserved.
 INPUT: A bold phrase like "**text**" should output "**improved text**" with ** preserved.
@@ -51,13 +55,7 @@ DO NOT strip any markdown syntax. Do NOT convert markdown to plain text. Preserv
 Rewrite and improve the following markdown text, keeping ALL formatting:
 
 ${text}`,
-  },
-  {
-    id: "inline-shorten",
-    icon: <Scissors className="w-3.5 h-3.5" />,
-    label: "Shorten",
-    prompt: (text) =>
-      `You are a professional editor shortening MARKDOWN content. This is CRITICAL:
+    "inline-shorten": `You are a professional editor shortening MARKDOWN content. This is CRITICAL:
 
 INPUT: "> **quoted text**" should output "> **shortened**" with > and ** preserved.
 INPUT: "**bold**" should output "**shorter**" with ** preserved.
@@ -68,13 +66,7 @@ DO NOT strip any markdown syntax. Preserve every markdown character.
 Rewrite the following markdown text to be shorter and more concise:
 
 ${text}`,
-  },
-  {
-    id: "inline-expand",
-    icon: <AlignLeft className="w-3.5 h-3.5" />,
-    label: "Expand",
-    prompt: (text) =>
-      `You are a professional writer expanding MARKDOWN content. This is CRITICAL:
+    "inline-expand": `You are a professional writer expanding MARKDOWN content. This is CRITICAL:
 
 INPUT: "> **quote**" should output "> **expanded quote**" with > and ** preserved.
 INPUT: "- list item" should output "- expanded list item" with - preserved.
@@ -85,13 +77,7 @@ DO NOT strip any markdown syntax. Preserve every markdown character.
 Expand the following markdown text with more details:
 
 ${text}`,
-  },
-  {
-    id: "inline-fix",
-    icon: <CheckCircle className="w-3.5 h-3.5" />,
-    label: "Fix",
-    prompt: (text) =>
-      `You are a professional proofreader fixing MARKDOWN content. This is CRITICAL:
+    "inline-fix": `You are a professional proofreader fixing MARKDOWN content. This is CRITICAL:
 
 INPUT: "> **text**" should output "> **text**" with > and ** preserved unchanged.
 INPUT: "**bold**" should output "**bold**" with ** preserved unchanged.
@@ -103,8 +89,9 @@ Preserve every markdown character exactly.
 Fix the following markdown text:
 
 ${text}`,
-  },
-];
+  };
+  return prompts[actionId] || prompts["inline-improve"];
+};
 
 const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
   {
@@ -115,6 +102,12 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
     inlinePreview,
     onApplyInline,
     onCancelInline,
+    onUndo,
+    onRedo,
+    canUndo = false,
+    canRedo = false,
+    historyIndex = 0,
+    historyLength = 1,
   },
   ref,
 ) {
@@ -128,6 +121,36 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
   const [isVisible, setIsVisible] = useState(false);
   const [isAIReady, setIsAIReady] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
+
+  const inlineActions: InlineAction[] = useMemo(
+    () => [
+      {
+        id: "inline-improve",
+        icon: <Sparkles className="w-3.5 h-3.5" />,
+        label: t("editor.inlineActions.improve"),
+        prompt: (text) => getPrompt("inline-improve", text),
+      },
+      {
+        id: "inline-shorten",
+        icon: <Scissors className="w-3.5 h-3.5" />,
+        label: t("editor.inlineActions.shorten"),
+        prompt: (text) => getPrompt("inline-shorten", text),
+      },
+      {
+        id: "inline-expand",
+        icon: <AlignLeft className="w-3.5 h-3.5" />,
+        label: t("editor.inlineActions.expand"),
+        prompt: (text) => getPrompt("inline-expand", text),
+      },
+      {
+        id: "inline-fix",
+        icon: <CheckCircle className="w-3.5 h-3.5" />,
+        label: t("editor.inlineActions.fix"),
+        prompt: (text) => getPrompt("inline-fix", text),
+      },
+    ],
+    [t],
+  );
 
   useEffect(() => {
     const checkAI = () => {
@@ -200,7 +223,30 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
   return (
     <div className="flex-1 flex flex-col border-r border-border pb-11 relative">
       <div className="border-b border-border px-4 py-2 bg-muted/30 flex items-center justify-between">
-        <h3 className="text-sm font-medium">{t("editor.title")}</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium">{t("editor.title")}</h3>
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg px-2 py-1">
+            <button
+              onClick={() => onUndo?.()}
+              disabled={!canUndo}
+              className="p-1 rounded hover:bg-background/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title={t("editor.history.undo") + " (Ctrl+Z)"}
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onRedo?.()}
+              disabled={!canRedo}
+              className="p-1 rounded hover:bg-background/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title={t("editor.history.redo") + " (Ctrl+Shift+Z)"}
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-[10px] text-muted-foreground ml-1">
+              {historyIndex + 1}/{historyLength}
+            </span>
+          </div>
+        </div>
         <button
           onClick={() => {
             if (markdown) {
@@ -310,11 +356,13 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
                     </div>
                     <div>
                       <span className="text-sm font-semibold text-foreground">
-                        {inlineLoading ? "AI Processing..." : "Preview Ready"}
+                        {inlineLoading
+                          ? t("editor.inlineActions.processing")
+                          : t("editor.inlineActions.previewReady")}
                       </span>
                       {inlineLoading && (
                         <span className="ml-2 text-[10px] text-muted-foreground animate-pulse">
-                          Generating response...
+                          {t("editor.inlineActions.generating")}
                         </span>
                       )}
                     </div>
@@ -325,14 +373,14 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
                       disabled={inlineLoading}
                       className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                     <button
                       onClick={onApplyInline}
                       disabled={inlineLoading || !inlinePreview}
                       className="px-4 py-1.5 text-xs font-semibold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:from-violet-500 hover:to-purple-500"
                     >
-                      Apply
+                      {t("common.apply")}
                     </button>
                   </div>
                 </div>
@@ -348,7 +396,7 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
                       />
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      Generating...
+                      {t("editor.inlineActions.generating")}
                     </span>
                   </div>
                 ) : (

@@ -7,6 +7,19 @@ export const en = {
     title: "Editor",
     placeholder: "Start writing your WeChat content here...",
     confirmClear: "Clear all editor content?",
+    inlineActions: {
+      improve: "Improve",
+      shorten: "Shorten",
+      expand: "Expand",
+      fix: "Fix",
+      processing: "AI Processing...",
+      previewReady: "Preview Ready",
+      generating: "Generating...",
+    },
+    history: {
+      undo: "Undo",
+      redo: "Redo",
+    },
   },
   common: {
     save: "Save",

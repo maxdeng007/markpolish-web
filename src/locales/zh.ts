@@ -9,6 +9,19 @@ export const zh: Translations = {
     title: "编辑器",
     placeholder: "开始编写您的企微内容...",
     confirmClear: "确定要清除所有编辑器内容吗？",
+    inlineActions: {
+      improve: "优化",
+      shorten: "精简",
+      expand: "扩展",
+      fix: "修正",
+      processing: "AI 处理中...",
+      previewReady: "预览就绪",
+      generating: "生成中...",
+    },
+    history: {
+      undo: "撤销",
+      redo: "重做",
+    },
   },
   common: {
     save: "保存",

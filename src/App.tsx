@@ -337,19 +337,86 @@ function App() {
 
   const [_history, setHistory] = useState<string[]>([defaultMarkdown]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const lastSavedContent = useRef<string>(defaultMarkdown);
+  const historyRef = useRef(_history);
+  const historyIndexRef = useRef(historyIndex);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const pushHistory = useCallback(
-    (content: string) => {
-      setHistory((prev) => {
-        const newHistory = prev.slice(0, historyIndex + 1);
-        newHistory.push(content);
-        if (newHistory.length > 50) newHistory.shift();
-        return newHistory;
-      });
-      setHistoryIndex((prev) => Math.min(prev + 1, 49));
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < _history.length - 1;
+
+  useEffect(() => {
+    historyRef.current = _history;
+    historyIndexRef.current = historyIndex;
+  }, [_history, historyIndex]);
+
+  const pushHistory = useCallback((content: string, force = false) => {
+    if (!force && content === lastSavedContent.current) {
+      return;
+    }
+    lastSavedContent.current = content;
+    setHistory((prev) => {
+      const currentIndex = historyIndexRef.current;
+      const newHistory = prev.slice(0, currentIndex + 1);
+      newHistory.push(content);
+      if (newHistory.length > 100) newHistory.shift();
+      return newHistory;
+    });
+    setHistoryIndex((prev) => Math.min(prev + 1, 99));
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const idx = historyIndexRef.current;
+    const hist = historyRef.current;
+    if (idx <= 0) return;
+    const newIdx = idx - 1;
+    const content = hist[newIdx];
+    lastSavedContent.current = content;
+    historyIndexRef.current = newIdx;
+    setHistoryIndex(newIdx);
+    setMarkdown(content);
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const idx = historyIndexRef.current;
+    const hist = historyRef.current;
+    if (idx >= hist.length - 1) return;
+    const newIdx = idx + 1;
+    const content = hist[newIdx];
+    lastSavedContent.current = content;
+    historyIndexRef.current = newIdx;
+    setHistoryIndex(newIdx);
+    setMarkdown(content);
+  }, []);
+
+  const setMarkdownWithHistory = useCallback(
+    (newContent: string) => {
+      setMarkdown(newContent);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        pushHistory(newContent);
+      }, 1000);
     },
-    [historyIndex],
+    [pushHistory],
   );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (cursorPosition !== null && textareaRef.current) {
@@ -453,12 +520,19 @@ function App() {
 
   const handleApplyInline = () => {
     if (inlineSelection && inlinePreview !== null) {
-      pushHistory(markdown);
       const before = markdown.substring(0, inlineSelection.start);
       const after = markdown.substring(inlineSelection.end);
       const newMarkdown = before + inlinePreview + after;
+
+      // Save original state for undo
+      pushHistory(markdown, true);
+
       flushSync(() => {
         setMarkdown(newMarkdown);
+        // Save new state for redo - need to do this after setMarkdown
+        setTimeout(() => {
+          pushHistory(newMarkdown, true);
+        }, 0);
         setInlineLoading(false);
         setInlinePreview(null);
         setInlineSelection(null);
@@ -490,8 +564,8 @@ function App() {
       },
       bold: () => insertFormatting("**", "**"),
       italic: () => insertFormatting("*", "*"),
-      undo: () => document.execCommand("undo"),
-      redo: () => document.execCommand("redo"),
+      undo: () => handleUndo(),
+      redo: () => handleRedo(),
       find: () => {
         const search = prompt("Find:");
         if (search && textareaRef.current) {
@@ -514,12 +588,11 @@ function App() {
       toggleTheme: () => {
         const newIsDark = !isDark;
         setIsDark(newIsDark);
-        // Auto-switch theme to match dark/light mode
         const defaultTheme = getDefaultTheme(newIsDark);
         setTheme(defaultTheme.id);
       },
     });
-  }, [markdown, theme, isDark]);
+  }, [markdown, theme, isDark, handleUndo, handleRedo]);
 
   // Dark mode effect
   useEffect(() => {
@@ -550,9 +623,9 @@ function App() {
       after +
       markdown.substring(end);
 
+    pushHistory(markdown, true);
     setMarkdown(newText);
 
-    // Restore cursor position
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, end + before.length);
@@ -563,6 +636,7 @@ function App() {
     const imageMarkdown = `\n![${filename}](${url})\n`;
     const textarea = textareaRef.current;
     if (!textarea) {
+      pushHistory(markdown, true);
       setMarkdown(markdown + imageMarkdown);
       return;
     }
@@ -570,6 +644,7 @@ function App() {
     const start = textarea.selectionStart;
     const newText =
       markdown.substring(0, start) + imageMarkdown + markdown.substring(start);
+    pushHistory(markdown, true);
     setMarkdown(newText);
 
     setTimeout(() => {
@@ -766,13 +841,19 @@ function App() {
               <ErrorBoundary>
                 <Editor
                   markdown={markdown}
-                  onChange={setMarkdown}
+                  onChange={setMarkdownWithHistory}
                   ref={textareaRef}
                   onInlineAction={handleInlineAction}
                   inlineLoading={inlineLoading}
                   inlinePreview={inlinePreview}
                   onApplyInline={handleApplyInline}
                   onCancelInline={handleCancelInline}
+                  onUndo={handleUndo}
+                  onRedo={handleRedo}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  historyIndex={historyIndex}
+                  historyLength={_history.length}
                 />
               </ErrorBoundary>
 
