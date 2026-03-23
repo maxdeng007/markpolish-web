@@ -363,21 +363,28 @@ function App() {
   const handleInlineAction = async (
     _actionId: string,
     selectedText: string,
+    start: number,
+    end: number,
   ) => {
+    const settings = settingsManager.getSettings();
+    const provider = settings.textProviders[settings.defaultTextProvider];
+
+    if (settings.defaultTextProvider !== "ollama" && !provider?.apiKey) {
+      return;
+    }
+
     setInlineLoading(true);
     setInlinePreview(null);
     setInlineSelection({
       text: selectedText,
-      start: 0,
-      end: selectedText.length,
+      start,
+      end,
     });
 
-    const settings = settingsManager.getSettings();
     const config: AIConfig = {
       provider: settings.defaultTextProvider,
       model: settings.defaultTextModel,
-      apiKey:
-        settings.textProviders[settings.defaultTextProvider]?.apiKey || "",
+      apiKey: provider?.apiKey || "",
     };
 
     const prompt = `Improve this text, making it clearer, more engaging, and better structured:\n\n${selectedText}`;

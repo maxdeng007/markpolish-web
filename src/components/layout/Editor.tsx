@@ -9,6 +9,7 @@ import {
   CheckCircle,
   Loader2,
 } from "lucide-react";
+import { settingsManager } from "@/lib/settings";
 
 interface InlineAction {
   id: string;
@@ -20,7 +21,12 @@ interface InlineAction {
 interface EditorProps {
   markdown: string;
   onChange: (value: string) => void;
-  onInlineAction?: (actionId: string, selectedText: string) => void;
+  onInlineAction?: (
+    actionId: string,
+    selectedText: string,
+    start: number,
+    end: number,
+  ) => void;
   inlineLoading?: boolean;
   inlinePreview?: string | null;
   onApplyInline?: () => void;
@@ -78,6 +84,18 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
   } | null>(null);
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
   const [isVisible, setIsVisible] = useState(false);
+  const [isAIReady, setIsAIReady] = useState(false);
+
+  useEffect(() => {
+    const checkAI = () => {
+      const settings = settingsManager.getSettings();
+      const provider = settings.textProviders[settings.defaultTextProvider];
+      const ready =
+        settings.defaultTextProvider === "ollama" || !!provider?.apiKey;
+      setIsAIReady(ready);
+    };
+    checkAI();
+  }, []);
 
   const handleSelectionChange = useCallback(() => {
     const textarea = document.querySelector(
@@ -128,7 +146,7 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
 
   const handleAction = (action: InlineAction) => {
     if (selection && onInlineAction) {
-      onInlineAction(action.id, selection.text);
+      onInlineAction(action.id, selection.text, selection.start, selection.end);
     }
   };
 
@@ -157,7 +175,7 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
         placeholder={t("editor.placeholder")}
       />
 
-      {selection && isVisible && !showPreview && (
+      {selection && isVisible && !showPreview && isAIReady && (
         <div
           className="fixed z-[100] flex items-center gap-1 px-2 py-1.5 bg-background/95 backdrop-blur-sm border border-border/50 rounded-xl shadow-xl shadow-black/10"
           style={{ top: toolbarPosition.top, left: toolbarPosition.left }}
