@@ -111,6 +111,7 @@ export const en = {
     changesPreview: "Changes Preview",
     addedLines: "Added",
     removedLines: "Removed",
+    complete: "Complete",
   },
   templates: {
     title: "Quick Start Templates",

@@ -111,6 +111,7 @@ export const zh: Translations = {
     changesPreview: "变更预览",
     addedLines: "新增",
     removedLines: "删除",
+    complete: "已完成",
   },
   templates: {
     title: "快速开始模板",
