@@ -1383,19 +1383,24 @@ export default function AIPanel({
       )}
 
       {streamingPreview && (
-        <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="border rounded-lg bg-muted/30 overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/20">
             <div className="flex items-center gap-2">
-              {loading ? (
-                <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-              ) : (
-                <Check className="w-3 h-3 text-green-500" />
-              )}
               <span className="text-sm font-medium">
                 {streamingPreview.action}
               </span>
               <span className="text-xs text-muted-foreground">
-                {loading ? t("ai.streamingPreview") : t("ai.complete")}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin inline mr-1" />
+                    {t("ai.streamingPreview")}
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3 h-3 text-green-500 inline mr-1" />
+                    {t("ai.complete")}
+                  </>
+                )}
               </span>
             </div>
             <Button
@@ -1408,14 +1413,12 @@ export default function AIPanel({
             </Button>
           </div>
 
-          {loading && (
-            <pre className="text-xs bg-background p-3 rounded border overflow-auto max-h-48 whitespace-pre-wrap">
-              {streamingPreview.content || t("ai.waitingForResponse")}
-            </pre>
-          )}
-
-          {!loading && streamingPreview.content && (
-            <>
+          <div className="p-2">
+            {loading ? (
+              <pre className="text-xs bg-background p-3 rounded border overflow-auto max-h-48 whitespace-pre-wrap">
+                {streamingPreview.content || t("ai.waitingForResponse")}
+              </pre>
+            ) : (
               <div className="border rounded bg-background overflow-auto max-h-64 text-xs font-mono">
                 <div className="px-3 py-1.5 bg-muted/50 border-b flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
@@ -1472,24 +1475,23 @@ export default function AIPanel({
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2 mt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCancelPreview}
-                  className="flex-1"
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleApplyPreview}
-                  className="flex-1"
-                >
-                  {t("ai.apply")}
-                </Button>
-              </div>
-            </>
+            )}
+          </div>
+
+          {!loading && streamingPreview.content && (
+            <div className="flex gap-2 px-2 pb-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCancelPreview}
+                className="flex-1"
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button size="sm" onClick={handleApplyPreview} className="flex-1">
+                {t("ai.apply")}
+              </Button>
+            </div>
           )}
         </div>
       )}
