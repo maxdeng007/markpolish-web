@@ -226,7 +226,7 @@ export async function exportForWeChat(
   markdown: string,
   aiImageStates: Record<string, AIImageExportState> = {},
   themeId: string = "wechat-classic",
-): Promise<void> {
+): Promise<{ success: boolean; message: string }> {
   const theme = getTheme(themeId);
   const isDark = theme.category === "dark";
   const sharedStyles = getWeComExportStyles(
@@ -317,14 +317,19 @@ export async function exportForWeChat(
   // WeCom Code mode preserves <style> blocks in <head>
   try {
     await navigator.clipboard.writeText(fullHtml);
-    alert(
-      "Full HTML document copied! Paste into Code mode (代码模式) in WeCom editor.",
-    );
+    return {
+      success: true,
+      message: "Copied! Paste into Code mode (代码模式) in WeCom editor.",
+    };
   } catch (err) {
     console.error("Failed to copy:", err);
     // Fallback: download as HTML file
     const blob = new Blob([fullHtml], { type: "text/html" });
     downloadBlob(blob, "wechat-article.html");
+    return {
+      success: false,
+      message: "Downloaded as HTML file.",
+    };
   }
 }
 
@@ -880,7 +885,7 @@ function wrapOrphanText(html: string): string {
 export async function exportToPDF(
   element: HTMLElement,
   filename: string = "document.pdf",
-) {
+): Promise<{ success: boolean; message: string }> {
   try {
     const html2canvas = (await import("html2canvas")).default;
     const jsPDF = (await import("jspdf")).jsPDF;
@@ -955,9 +960,13 @@ export async function exportToPDF(
     }
 
     pdf.save(filename);
+    return { success: true, message: "PDF exported successfully." };
   } catch (error) {
     console.error("PDF export failed:", error);
-    alert("PDF export failed. Please try HTML export instead.");
+    return {
+      success: false,
+      message: "PDF export failed. Please try HTML export instead.",
+    };
   }
 }
 

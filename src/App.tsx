@@ -15,7 +15,7 @@ import Preview from "@/components/layout/Preview";
 import CompactStats from "@/components/CompactStats";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { shortcuts, setupDefaultShortcuts } from "@/lib/keyboard-shortcuts";
-import { fileOps, type Project } from "@/lib/file-operations";
+import { fileOps } from "@/lib/file-operations";
 import { getDefaultTheme } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 import { ToastProvider, ToastContainer } from "@/components/Toast";
@@ -656,11 +656,6 @@ function App() {
     }, 0);
   };
 
-  const handleLoadProject = (project: Project) => {
-    setMarkdown(project.content);
-    setTheme(project.theme);
-  };
-
   const escapeRegex = (str: string) =>
     str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -805,13 +800,11 @@ function App() {
               isDark={isDark}
               onToggleDark={() => setIsDark(!isDark)}
               onMarkdownChange={setMarkdown}
-              onThemeChange={setTheme}
               showShortcutsHelp={showShortcutsHelp}
               onToggleShortcutsHelp={() =>
                 setShowShortcutsHelp(!showShortcutsHelp)
               }
               aiImageStates={aiImageStates}
-              defaultMarkdown={defaultMarkdown}
               onShowPDFExport={() => setShowPDFExport(true)}
             />
 
@@ -826,7 +819,6 @@ function App() {
                   onTabChange={setSidebarTab}
                   onMarkdownChange={setMarkdown}
                   onThemeChange={setTheme}
-                  onLoadProject={handleLoadProject}
                   onInsertImage={handleInsertImage}
                   onOpenSettings={() => setSidebarTab("settings")}
                   getCursorPosition={getCursorPosition}

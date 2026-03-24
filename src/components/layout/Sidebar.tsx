@@ -1,6 +1,5 @@
 import {
   Wand2,
-  FolderOpen,
   FileText,
   Layout,
   Palette,
@@ -17,16 +16,13 @@ import AIPanel from "@/components/AIPanel";
 import TemplatesPanel from "@/components/TemplatesPanel";
 import ComponentsPanel from "@/components/ComponentsPanel";
 import ThemesPanel from "@/components/ThemesPanel";
-import ProjectManager from "@/components/ProjectManager";
 import ImageLibraryPanel from "@/components/ImageLibraryPanel";
 import AIImagePanel from "@/components/AIImagePanel";
 import SettingsPanel from "@/components/SettingsPanel";
-import { type Project } from "@/lib/file-operations";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export type SidebarTab =
   | "ai"
-  | "projects"
   | "templates"
   | "components"
   | "themes"
@@ -40,7 +36,6 @@ interface SidebarProps {
   onTabChange: (tab: SidebarTab) => void;
   onMarkdownChange: (markdown: string) => void;
   onThemeChange: (theme: string) => void;
-  onLoadProject: (project: Project) => void;
   onInsertImage: (url: string, filename: string) => void;
   onOpenSettings?: () => void;
   getCursorPosition?: () => number | null;
@@ -64,7 +59,6 @@ export default function Sidebar({
   onTabChange,
   onMarkdownChange,
   onThemeChange,
-  onLoadProject,
   onInsertImage,
   onOpenSettings,
   getCursorPosition,
@@ -90,12 +84,6 @@ export default function Sidebar({
               icon={<Wand2 className="w-4 h-4" />}
               label={t("sidebar.ai")}
               isActive={activeTab === "ai"}
-            />
-            <TabButton
-              value="projects"
-              icon={<FolderOpen className="w-4 h-4" />}
-              label={t("sidebar.projects")}
-              isActive={activeTab === "projects"}
             />
             <TabButton
               value="templates"
@@ -141,14 +129,6 @@ export default function Sidebar({
               onInsertAllComponents={onInsertAllComponents}
               onApplyTitle={onApplyTitle}
               onPushHistory={onPushHistory}
-            />
-          </TabsContent>
-
-          <TabsContent value="projects" className="m-0 h-full">
-            <ProjectManager
-              currentContent={markdown}
-              currentTheme={theme}
-              onLoadProject={onLoadProject}
             />
           </TabsContent>
 

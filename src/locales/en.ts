@@ -51,7 +51,7 @@ export const en = {
   },
   header: {
     newProject: "New Project",
-    saveProject: "Save Project",
+    saveProject: "Export MD",
     loadProject: "Load Project",
     export: "Export",
     preview: "Preview",

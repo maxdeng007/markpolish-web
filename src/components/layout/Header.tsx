@@ -8,11 +8,13 @@ import {
   Sparkles,
   Keyboard,
   FileDown,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fileOps } from "@/lib/file-operations";
-import { exportToHTML, exportForWeChat } from "@/lib/export";
+import { Dropdown } from "@/components/ui/dropdown";
+import { exportToHTML, exportToMarkdown, exportForWeChat } from "@/lib/export";
 import { LanguageSwitcher, useTranslation } from "@/hooks/useTranslation";
+import { useToast } from "@/components/Toast";
 
 interface HeaderProps {
   markdown: string;
@@ -20,7 +22,6 @@ interface HeaderProps {
   isDark: boolean;
   onToggleDark: () => void;
   onMarkdownChange: (markdown: string) => void;
-  onThemeChange: (theme: string) => void;
   showShortcutsHelp: boolean;
   onToggleShortcutsHelp: () => void;
   aiImageStates: Record<
@@ -32,7 +33,6 @@ interface HeaderProps {
       status: "idle" | "generating" | "done" | "error";
     }
   >;
-  defaultMarkdown: string;
   onShowPDFExport: () => void;
 }
 
@@ -42,14 +42,13 @@ export default function Header({
   isDark,
   onToggleDark,
   onMarkdownChange,
-  onThemeChange,
   showShortcutsHelp: _showShortcutsHelp,
   onToggleShortcutsHelp,
   aiImageStates,
-  defaultMarkdown,
   onShowPDFExport,
 }: HeaderProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -65,31 +64,48 @@ export default function Header({
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(markdown);
-    alert(t("toasts.copied"));
+    showToast(t("toasts.copied"), "success");
   };
 
   const handleExportHTML = () => {
     exportToHTML(markdown, theme, aiImageStates, "wechat-article.html");
   };
 
-  const handleExportWeChat = () => {
-    exportForWeChat(markdown, aiImageStates, theme);
+  const handleExportWeChat = async () => {
+    const result = await exportForWeChat(markdown, aiImageStates, theme);
+    showToast(result.message, result.success ? "success" : "error");
   };
 
-  const handleSave = () => {
-    fileOps.saveProject({ name: "Quick Save", content: markdown, theme });
-    alert(t("toasts.projectSaved"));
+  const handleExportMD = () => {
+    const filename = `markpolish-${new Date().toISOString().slice(0, 10)}.md`;
+    exportToMarkdown(markdown, filename);
   };
 
-  const handleNewProject = () => {
-    if (confirm(t("projects.confirmDelete"))) {
-      onMarkdownChange(defaultMarkdown);
-      onThemeChange("wechat-classic");
-    }
-  };
+  const exportItems = [
+    {
+      label: t("export.wecom"),
+      icon: <Sparkles className="w-4 h-4 shrink-0" />,
+      onClick: handleExportWeChat,
+    },
+    {
+      label: "HTML",
+      icon: <FileText className="w-4 h-4 shrink-0" />,
+      onClick: handleExportHTML,
+    },
+    {
+      label: "PDF",
+      icon: <FileDown className="w-4 h-4 shrink-0" />,
+      onClick: onShowPDFExport,
+    },
+    {
+      label: "Markdown (.md)",
+      icon: <FileText className="w-4 h-4 shrink-0" />,
+      onClick: handleExportMD,
+    },
+  ];
 
   return (
-    <header className="border-b border-border px-4 py-3 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="relative z-[100] border-b border-border px-4 py-3 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white">
           <Sparkles className="w-6 h-6" />
@@ -112,15 +128,6 @@ export default function Header({
         <Button
           variant="outline"
           size="icon"
-          onClick={handleNewProject}
-          title={t("header.newProject")}
-        >
-          <FileText className="w-4 h-4" />
-        </Button>
-
-        <Button
-          variant="outline"
-          size="icon"
           onClick={() => document.getElementById("file-upload")?.click()}
           title={t("header.loadProject")}
         >
@@ -136,41 +143,16 @@ export default function Header({
           <Copy className="w-4 h-4" />
         </Button>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleSave}
-          title={t("header.saveProject")}
-        >
-          <Download className="w-4 h-4" />
-        </Button>
-
-        <Button
-          variant="outline"
-          onClick={handleExportHTML}
-          title={t("export.html")}
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          {t("export.html")}
-        </Button>
-
-        <Button
-          variant="default"
-          onClick={handleExportWeChat}
-          title={t("export.wecom")}
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          {t("export.wecom")}
-        </Button>
-
-        <Button
-          variant="outline"
-          onClick={onShowPDFExport}
-          title={t("export.pdf")}
-        >
-          <FileDown className="w-4 h-4 mr-2" />
-          {t("export.pdf")}
-        </Button>
+        <Dropdown
+          trigger={
+            <Button variant="default" className="gap-2">
+              <Download className="w-4 h-4" />
+              Export
+              <ChevronDown className="w-3 h-3 opacity-70" />
+            </Button>
+          }
+          items={exportItems}
+        />
 
         <Button
           variant="outline"

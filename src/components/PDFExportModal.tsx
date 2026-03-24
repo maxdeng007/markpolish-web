@@ -10,6 +10,7 @@ import { exportToPDF } from "@/lib/export";
 import { getTheme } from "@/lib/themes";
 import { convertMarkdownWithComponents } from "@/lib/markdown-components";
 import { getAllPreviewStyles } from "@/lib/preview-styles";
+import { useToast } from "@/components/Toast";
 
 interface AIImageState {
   description: string;
@@ -33,6 +34,7 @@ export default function PDFExportModal({
 }: PDFExportModalProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [previewRef, setPreviewRef] = useState<HTMLDivElement | null>(null);
+  const { showToast } = useToast();
 
   const currentTheme = getTheme(theme);
   const themeColors = {
@@ -60,11 +62,17 @@ export default function PDFExportModal({
 
     setIsExporting(true);
     try {
-      await exportToPDF(previewRef, "document.pdf");
-      onClose();
+      const result = await exportToPDF(previewRef, "document.pdf");
+      showToast(result.message, result.success ? "success" : "error");
+      if (result.success) {
+        onClose();
+      }
     } catch (error) {
       console.error("PDF export failed:", error);
-      alert("Failed to export PDF. Please try HTML export instead.");
+      showToast(
+        "Failed to export PDF. Please try HTML export instead.",
+        "error",
+      );
     } finally {
       setIsExporting(false);
     }

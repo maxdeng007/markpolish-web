@@ -53,7 +53,7 @@ export const zh: Translations = {
   },
   header: {
     newProject: "新建项目",
-    saveProject: "保存项目",
+    saveProject: "导出 MD",
     loadProject: "加载项目",
     export: "导出",
     preview: "预览",
