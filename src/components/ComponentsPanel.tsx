@@ -30,7 +30,6 @@ export default function ComponentsPanel({
     getComponent("card"),
     getComponent("video"),
     getComponent("aiImage"),
-    getComponent("localImage"),
     getComponent("callout"),
     getComponent("quote"),
     getComponent("tabs"),
@@ -42,8 +41,7 @@ export default function ComponentsPanel({
     const templateId = componentId
       .replace("col2", "col-2")
       .replace("col3", "col-3")
-      .replace("aiImage", "ai-image")
-      .replace("localImage", "local-image");
+      .replace("aiImage", "ai-image");
     const template =
       componentTemplates[templateId as keyof typeof componentTemplates];
     if (template) {
@@ -155,7 +153,6 @@ function getIcon(id: string): string {
     card: "🎴",
     video: "🎥",
     aiImage: "🎨",
-    localImage: "🖼️",
     callout: "💡",
     quote: "💬",
     tabs: "📑",

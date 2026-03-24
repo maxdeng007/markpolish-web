@@ -38,6 +38,15 @@ function adjustColorHex(hex: string, percent: number): string {
   return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function convertTableRows(rows: string[]): string {
   if (rows.length === 0) return "";
 
@@ -121,19 +130,20 @@ function markdownToHtml(markdown: string): string {
   // Italic
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-
-  // Images
+  // Images (must be BEFORE links - processes ![...](url))
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+
+  // Links (now safe - images already processed)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
   // Code blocks FIRST (before inline code to avoid conflicts)
   html = html.replace(/```[\w-]*\n?([\s\S]*?)```/g, (_, code) => {
     const escapedCode = code
+      .trim()
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
-    return `<pre><code class="language-plaintext">${escapedCode.trim()}</code></pre>`;
+    return `<pre><code>${escapedCode}</code></pre>`;
   });
 
   // Inline code (after code blocks, so triple backticks are already processed)
@@ -350,12 +360,19 @@ export function parseCustomComponents(markdown: string): ComponentMatch[] {
     });
   }
 
-  // Parse [LOCAL: filename] for local images
-  const localImgRegex = /\[LOCAL:\s*([^\]]+)\]/g;
-  while ((match = localImgRegex.exec(markdown)) !== null) {
+  // Parse [IMAGE: url|alt|ratio|caption] for URL-based images
+  const imageRegex =
+    /\[IMAGE:\s*([^\]|]+)(?:\|([^\]|]*))?(?:\|([^\]|]*))?(?:\|([^\]]*))?\]/g;
+  while ((match = imageRegex.exec(markdown)) !== null) {
+    const [, url, alt, ratio, caption] = match;
     components.push({
-      type: "local-image",
-      content: match[1],
+      type: "image",
+      content: JSON.stringify({
+        url: url.trim(),
+        alt: alt?.trim() || "",
+        ratio: ratio?.trim() || "",
+        caption: caption?.trim() || "",
+      }),
       startIndex: match.index,
       endIndex: match.index + match[0].length,
     });
@@ -397,8 +414,8 @@ export function renderComponent(
       return renderVideo(component.props || {});
     case "ai-image":
       return renderAIImage(component.content);
-    case "local-image":
-      return renderLocalImage(component.content);
+    case "image":
+      return renderImage(component.content);
     case "callout":
       return renderCallout(component.props || {}, component.content);
     case "quote":
@@ -606,8 +623,27 @@ function renderAIImage(description: string): string {
   return `<div class="ai-image-placeholder" data-description="${escapedDesc}" data-ratio="1:1"><div class="ai-image-icon">🎨</div><div class="ai-image-ratio-selector"><button class="ai-image-ratio-btn active" data-ratio="1:1">1:1</button><button class="ai-image-ratio-btn" data-ratio="16:9">16:9</button><button class="ai-image-ratio-btn" data-ratio="9:16">9:16</button><button class="ai-image-ratio-btn" data-ratio="4:3">4:3</button><button class="ai-image-ratio-btn" data-ratio="3:4">3:4</button></div><button class="ai-image-generate-btn" data-description="${escapedDesc}">✨ Generate Image</button><div class="ai-image-status"></div></div>`;
 }
 
-function renderLocalImage(filename: string): string {
-  return `<div class="local-image-wrapper"><img src="/projects/images/${filename}" alt="${filename}" class="local-image" /><div class="local-image-caption">${filename}</div></div>`;
+interface ImageData {
+  url: string;
+  alt: string;
+  ratio: string;
+  caption: string;
+}
+
+function renderImage(content: string): string {
+  try {
+    const data: ImageData = JSON.parse(content);
+    const { url, alt, ratio, caption } = data;
+
+    const aspectRatioClass = ratio ? `aspect-${ratio.replace(":", "-")}` : "";
+    const captionHtml = caption
+      ? `<div class="image-caption">${escapeHtml(caption)}</div>`
+      : "";
+
+    return `<figure class="image-wrapper ${aspectRatioClass}"><img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" />${captionHtml}</figure>`;
+  } catch {
+    return "";
+  }
 }
 
 function renderCallout(props: Record<string, string>, content: string): string {

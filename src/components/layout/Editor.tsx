@@ -121,6 +121,7 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
   const [isVisible, setIsVisible] = useState(false);
   const [isAIReady, setIsAIReady] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const inlineActions: InlineAction[] = useMemo(
     () => [
@@ -220,8 +221,40 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
 
   const showPreview = inlinePreview !== null && inlinePreview !== undefined;
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        const placeholder = `\n[IMAGE: your-image-url.png]\n`;
+        onChange(markdown + placeholder);
+      }
+    }
+  };
+
   return (
-    <div className="flex-1 flex flex-col border-r border-border pb-11 relative">
+    <div
+      className="flex-1 flex flex-col border-r border-border pb-11 relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="border-b border-border px-4 py-2 bg-muted/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-medium">{t("editor.title")}</h3>
@@ -266,6 +299,31 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
         className="flex-1 resize-none rounded-none border-0 focus-visible:ring-0 font-mono text-sm leading-relaxed p-6 editor-textarea"
         placeholder={t("editor.placeholder")}
       />
+
+      {isDragging && (
+        <div className="absolute inset-0 bg-primary/5 border-2 border-dashed border-primary/30 rounded-lg flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-background/90 backdrop-blur-sm rounded-xl px-6 py-4 shadow-lg flex flex-col items-center gap-2">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <svg
+                className="w-6 h-6 text-primary"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <span className="text-sm font-medium text-foreground">
+              Drop image to insert URL placeholder
+            </span>
+          </div>
+        </div>
+      )}
 
       {selection && isVisible && !showPreview && isAIReady && (
         <div

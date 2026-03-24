@@ -11,6 +11,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useToast } from "@/components/Toast";
 
 interface AIImagePanelProps {
   onInsertImage?: (url: string, filename: string) => void;
@@ -18,6 +19,7 @@ interface AIImagePanelProps {
 
 export default function AIImagePanel({ onInsertImage }: AIImagePanelProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [apiKey, setApiKey] = useState(aiImageGen.getApiKey() || "");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -121,10 +123,10 @@ export default function AIImagePanel({ onInsertImage }: AIImagePanelProps) {
         imageLibrary.add({
           filename: `ai-generated-${Date.now()}.png`,
           url: base64,
-          description: prompt,
+          alt: prompt,
           tags: ["ai-generated"],
         });
-        alert(t("images.imageAdded"));
+        showToast(t("images.imageAdded"), "success");
       }
     } catch (error) {
       setError(t("images.failedAddImageToLibrary"));
@@ -134,7 +136,7 @@ export default function AIImagePanel({ onInsertImage }: AIImagePanelProps) {
   const handleInsert = () => {
     if (!generatedImage || !onInsertImage) return;
     onInsertImage(generatedImage, `ai-generated-${Date.now()}.png`);
-    alert(t("images.imageInserted"));
+    showToast(t("images.imageInserted"), "success");
   };
 
   return (

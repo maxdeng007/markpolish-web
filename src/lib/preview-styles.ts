@@ -96,7 +96,30 @@ export const standardMarkdownStyles = `
   .preview-content pre .function { color: #89b4fa; }
   .preview-content pre .number { color: #fab387; }
   .preview-content pre .operator { color: #94e2d5; }
-  .preview-content img { max-width: 100%; border-radius: 8px; margin: 12px 0; }
+  .preview-content img { max-width: 100%; border-radius: 8px; margin: 12px auto; display: block; }
+
+  .preview-content .image-wrapper {
+    margin: 20px 0;
+    text-align: center;
+  }
+  .preview-content .image-wrapper img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 0 auto;
+    display: block;
+  }
+  .preview-content .image-wrapper.aspect-1-1 img { aspect-ratio: 1/1; object-fit: cover; }
+  .preview-content .image-wrapper.aspect-16-9 img { aspect-ratio: 16/9; object-fit: cover; }
+  .preview-content .image-wrapper.aspect-9-16 img { aspect-ratio: 9/16; object-fit: cover; width: 50%; }
+  .preview-content .image-wrapper.aspect-4-3 img { aspect-ratio: 4/3; object-fit: cover; }
+  .preview-content .image-wrapper.aspect-3-4 img { aspect-ratio: 3/4; object-fit: cover; width: 60%; }
+  .preview-content .image-caption {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: var(--foreground, #666);
+    font-style: italic;
+    text-align: center;
+  }
 `;
 
 export const aiImageStyles = `
@@ -332,7 +355,7 @@ export const wechatStyles = `
 .preview-content li { margin: 8px 0; }
 .preview-content code { background: var(--accent, #576b95); background: rgba(87, 107, 149, 0.12); padding: 3px 8px; border-radius: 4px; font-size: 0.9em; font-family: 'SF Mono', 'Monaco', 'Menlo', monospace; color: var(--accent, #576b95); }
 .preview-content pre { background: #f7f8fa; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 16px 0; border: 1px solid #e5e5e5; white-space: pre; tab-size: 2; }
-.preview-content pre code { background: none; padding: 0; color: #333; font-size: 0.9em; line-height: 1.6; white-space: pre; font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace; }
+.preview-content pre code { background: none; padding: 0; font-size: 0.9em; line-height: 1.6; white-space: pre; font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', 'Courier New', monospace; color: #abb2bf; }
 
 /* Blockquote */
 .preview-content blockquote { margin: 20px 0; padding: 16px 20px 16px 24px; border: none; border-left: 4px solid var(--accent, #576b95); background: rgba(87, 107, 149, 0.06); border-radius: 0 8px 8px 0; }
