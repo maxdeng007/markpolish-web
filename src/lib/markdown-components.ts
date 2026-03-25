@@ -396,6 +396,7 @@ export function renderComponent(
   component: ComponentMatch,
   themeColors?: ThemeColors,
   forWeCom: boolean = false,
+  aiImageIndex?: number,
 ): string {
   switch (component.type) {
     case "hero":
@@ -413,7 +414,7 @@ export function renderComponent(
     case "video":
       return renderVideo(component.props || {});
     case "ai-image":
-      return renderAIImage(component.content);
+      return renderAIImage(component.content, aiImageIndex);
     case "image":
       return renderImage(component.content);
     case "callout":
@@ -510,8 +511,6 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
   }
 
   const accentColor = themeColors?.accent || "#576b95";
-  const borderColor = themeColors?.border || "#e5e5e5";
-  const bgColor = themeColors?.background || "#ffffff";
   const fgColor = themeColors?.foreground || "#333333";
 
   const stepsHtml = steps
@@ -533,11 +532,11 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
         titleHtml = titleHtml.slice(3, -4);
       }
 
-      return `<table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid ${borderColor}; border-radius: 8px; background: ${bgColor};"><tr><td style="width: 40px; padding: 12px; text-align: center; vertical-align: top;"><div style="width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: ${accentColor}; color: white; font-weight: bold; display: inline-block;">${step.number}</div></td><td style="padding: 12px; vertical-align: top;"><div style="font-weight: 600; margin-bottom: 4px;">${titleHtml}</div>${descHtml}</td></tr></table>`;
+      return `<table style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 12px; border-radius: 8px; overflow: hidden;"><tr><td style="width: 50px; padding: 14px; text-align: center; vertical-align: top;"><div style="width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: ${accentColor}; color: white; font-weight: bold; display: inline-block;">${step.number}</div></td><td style="padding: 14px; vertical-align: top;"><div style="font-weight: 600; margin-bottom: 4px;">${titleHtml}</div>${descHtml}</td></tr></table>`;
     })
     .join("");
 
-  return `<div style="margin: 16px 0;">${stepsHtml}</div>`;
+  return `<div class="steps-component">${stepsHtml}</div>`;
 }
 
 function renderTimeline(content: string, themeColors?: ThemeColors): string {
@@ -620,9 +619,11 @@ function renderVideo(props: Record<string, string>): string {
   return `<div class="video-component">${videoHtml}${captionHtml}</div>`;
 }
 
-function renderAIImage(description: string): string {
+function renderAIImage(description: string, index?: number): string {
   const escapedDesc = description.replace(/"/g, "&#34;").replace(/'/g, "&#39;");
-  return `<div class="ai-image-placeholder" data-description="${escapedDesc}" data-ratio="1:1"><div class="ai-image-icon">🎨</div><div class="ai-image-ratio-selector"><button class="ai-image-ratio-btn active" data-ratio="1:1">1:1</button><button class="ai-image-ratio-btn" data-ratio="16:9">16:9</button><button class="ai-image-ratio-btn" data-ratio="9:16">9:16</button><button class="ai-image-ratio-btn" data-ratio="4:3">4:3</button><button class="ai-image-ratio-btn" data-ratio="3:4">3:4</button></div><button class="ai-image-generate-btn" data-description="${escapedDesc}">✨ Generate Image</button><div class="ai-image-status"></div></div>`;
+  const initialId = index !== undefined ? `ai-img-${index}` : "";
+  const aiIdAttr = initialId ? ` data-ai-id="${initialId}"` : "";
+  return `<div class="ai-image-placeholder"${aiIdAttr} data-description="${escapedDesc}" data-ratio="1:1"><div class="ai-image-icon">🎨</div><div class="ai-image-ratio-selector"><button class="ai-image-ratio-btn active" data-ratio="1:1">1:1</button><button class="ai-image-ratio-btn" data-ratio="16:9">16:9</button><button class="ai-image-ratio-btn" data-ratio="9:16">9:16</button><button class="ai-image-ratio-btn" data-ratio="4:3">4:3</button><button class="ai-image-ratio-btn" data-ratio="3:4">3:4</button></div><button class="ai-image-generate-btn" data-description="${escapedDesc}">✨ Generate Image</button><div class="ai-image-status"></div></div>`;
 }
 
 interface ImageData {
@@ -754,11 +755,23 @@ export function convertMarkdownWithComponents(
 ): string {
   const components = parseCustomComponents(markdown);
 
+  let aiImageIndex = 0;
+  const aiImageIndices = new Map<string, number>();
+  for (const comp of components) {
+    if (comp.type === "ai-image") {
+      aiImageIndices.set(comp.content, aiImageIndex++);
+    }
+  }
+
   components.sort((a, b) => b.startIndex - a.startIndex);
 
   let result = markdown;
   for (const component of components) {
-    const rendered = renderComponent(component, themeColors, forWeCom);
+    const aiIndex =
+      component.type === "ai-image"
+        ? aiImageIndices.get(component.content)
+        : undefined;
+    const rendered = renderComponent(component, themeColors, forWeCom, aiIndex);
     const beforeContent = result.substring(0, component.startIndex);
     const afterContent = result.slice(component.endIndex);
 
