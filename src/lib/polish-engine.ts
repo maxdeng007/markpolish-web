@@ -137,8 +137,19 @@ export function polishMarkdown(
   return polished;
 }
 
-export function analyzeReadability(markdown: string) {
-  // Remove markdown syntax for analysis
+export interface EnhancedReadability {
+  fleschScore: number;
+  gradeLevel: number;
+  avgWordsPerSentence: number;
+  avgSyllablesPerWord: number;
+  interpretation: string;
+  chineseScore: number;
+  chineseInterpretation: string;
+  hasChinese: boolean;
+  isMixedLanguage: boolean;
+}
+
+export function analyzeReadability(markdown: string): EnhancedReadability {
   const plainText = markdown
     .replace(/#{1,6}\s/g, "")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
@@ -148,23 +159,35 @@ export function analyzeReadability(markdown: string) {
     .replace(/```[\s\S]*?```/g, "");
 
   const sentences = plainText
-    .split(/[.!?]+/)
+    .split(/[.!?。！？]+/)
     .filter((s) => s.trim().length > 0);
   const words = plainText.split(/\s+/).filter((w) => w.length > 0);
+
+  const chineseChars = (plainText.match(/[\u4e00-\u9fff]/g) || []).length;
+  const hasChinese = chineseChars > 0;
+  const isMixedLanguage = hasChinese && words.length > 0;
+
   const syllables = words.reduce(
     (count, word) => count + countSyllables(word),
     0,
   );
 
-  // Flesch Reading Ease Score
   const avgWordsPerSentence = words.length / Math.max(sentences.length, 1);
   const avgSyllablesPerWord = syllables / Math.max(words.length, 1);
   const fleschScore =
     206.835 - 1.015 * avgWordsPerSentence - 84.6 * avgSyllablesPerWord;
 
-  // Flesch-Kincaid Grade Level
   const gradeLevel =
     0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59;
+
+  const chineseSentenceRatio =
+    sentences.length > 0
+      ? sentences.filter((s) => /[\u4e00-\u9fff]/.test(s)).length /
+        sentences.length
+      : 0;
+  const chineseScore = hasChinese
+    ? Math.max(0, Math.min(100, 60 + (1 - chineseSentenceRatio) * 40))
+    : 100;
 
   return {
     fleschScore: Math.max(0, Math.min(100, fleschScore)),
@@ -172,6 +195,10 @@ export function analyzeReadability(markdown: string) {
     avgWordsPerSentence,
     avgSyllablesPerWord,
     interpretation: getFleschInterpretation(fleschScore),
+    chineseScore,
+    chineseInterpretation: getChineseInterpretation(chineseScore),
+    hasChinese,
+    isMixedLanguage,
   };
 }
 
@@ -194,6 +221,89 @@ function getFleschInterpretation(score: number): string {
   if (score >= 50) return "stats.fleschFairlyDifficult";
   if (score >= 30) return "stats.fleschDifficult";
   return "stats.fleschVeryDifficult";
+}
+
+function getChineseInterpretation(score: number): string {
+  if (score >= 80) return "stats.chineseEasy";
+  if (score >= 60) return "stats.chineseStandard";
+  if (score >= 40) return "stats.chineseComplex";
+  return "stats.chineseVeryComplex";
+}
+
+export interface WeChatAnalysis {
+  titleLength: number;
+  titleStatus: "good" | "warning" | "error";
+  titleSuggestion: string;
+  coverImageStatus: "good" | "warning" | "error";
+  coverSuggestion: string;
+  emojiCount: number;
+  ctaCount: number;
+  ctaSuggestions: string[];
+  keywordDensity: { word: string; density: number }[];
+  readingProgress: number;
+  visualBalance: number;
+}
+
+export function analyzeWeChatSpecifics(markdown: string): WeChatAnalysis {
+  const lines = markdown.split("\n");
+  const firstLine = lines.find((l) => l.trim().startsWith("#")) || "";
+  const titleLength = firstLine.replace(/^#+\s*/, "").length;
+  const emojiRegex =
+    /[\u{1F000}-\u{1FFFF}]|[\u2600-\u26FF]|[\u2700-\u27BF]|[👍👏🔥✨💡📌⭐❤️💬📖🎯]/gu;
+  const emojiCount = (markdown.match(emojiRegex) || []).length;
+  const ctaPatterns = [
+    /关注|订阅|转发|点赞|点在看|分享/g,
+    /follow|subscribe|share|like|retweet/gi,
+  ];
+  const ctaCount = ctaPatterns.reduce((count, pattern) => {
+    return count + (markdown.match(pattern) || []).length;
+  }, 0);
+
+  const wordFreq: Record<string, number> = {};
+  const words = markdown.toLowerCase().match(/[a-z\u4e00-\u9fff]{2,}/g) || [];
+  words.forEach((w) => {
+    wordFreq[w] = (wordFreq[w] || 0) + 1;
+  });
+  const totalWords = words.length;
+  const keywordDensity = Object.entries(wordFreq)
+    .filter(([word]) => word.length > 2)
+    .map(([word, count]) => ({
+      word,
+      density: totalWords > 0 ? (count / totalWords) * 100 : 0,
+    }))
+    .filter((k) => k.density > 1)
+    .sort((a, b) => b.density - a.density)
+    .slice(0, 5);
+
+  const hasImages = (markdown.match(/!\[.*?\]\(.*?\)/g) || []).length;
+  const imageCount = hasImages;
+  const paragraphs = markdown
+    .split(/\n\n+/)
+    .filter((p) => p.trim().length > 0).length;
+  const visualBalance = Math.min(100, imageCount * 20 + paragraphs * 5);
+
+  const readingTime = getDocumentStats(markdown).readingTime;
+  const readingProgress = readingTime <= 5 ? 100 : readingTime <= 10 ? 70 : 40;
+
+  return {
+    titleLength,
+    titleStatus:
+      titleLength <= 30 ? "good" : titleLength <= 64 ? "warning" : "error",
+    titleSuggestion:
+      titleLength <= 30
+        ? "stats.titleGood"
+        : titleLength <= 64
+          ? "stats.titleWarning"
+          : "stats.titleTooLong",
+    coverImageStatus: imageCount >= 1 ? "good" : "warning",
+    coverSuggestion: imageCount >= 1 ? "stats.coverGood" : "stats.coverMissing",
+    emojiCount,
+    ctaCount,
+    ctaSuggestions: ctaCount === 0 ? ["stats.addCta"] : [],
+    keywordDensity,
+    readingProgress,
+    visualBalance,
+  };
 }
 
 export function validateLinks(

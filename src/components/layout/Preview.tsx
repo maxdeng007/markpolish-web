@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import MarkdownPreview, { AIImageState } from "@/components/MarkdownPreview";
 import { cn } from "@/lib/utils";
 
@@ -8,16 +9,21 @@ interface PreviewProps {
   onPreviewModeChange: (mode: "full" | "wecom") => void;
   aiImageStates: Record<string, AIImageState>;
   onAIImageStatesChange: (states: Record<string, AIImageState>) => void;
+  scrollRef?: React.Ref<HTMLDivElement>;
 }
 
-export default function Preview({
-  markdown,
-  theme,
-  previewMode,
-  onPreviewModeChange,
-  aiImageStates,
-  onAIImageStatesChange,
-}: PreviewProps) {
+const Preview = forwardRef<HTMLDivElement, PreviewProps>(function Preview(
+  {
+    markdown,
+    theme,
+    previewMode,
+    onPreviewModeChange,
+    aiImageStates,
+    onAIImageStatesChange,
+    scrollRef,
+  },
+  _ref,
+) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">
       <div className="border-b border-border px-4 py-2 bg-muted/50 flex items-center justify-between sticky top-0 z-10">
@@ -50,7 +56,7 @@ export default function Preview({
         </div>
         <span className="text-xs text-muted-foreground">{theme}</span>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div ref={scrollRef} className="flex-1 overflow-auto">
         <MarkdownPreview
           markdown={markdown}
           theme={theme}
@@ -61,4 +67,6 @@ export default function Preview({
       </div>
     </div>
   );
-}
+});
+
+export default Preview;

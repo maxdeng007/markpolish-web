@@ -2,6 +2,8 @@ import {
   Moon,
   Sun,
   Monitor,
+  Link2,
+  Link2Off,
   Download,
   Upload,
   Copy,
@@ -24,6 +26,8 @@ interface HeaderProps {
   theme: string;
   themeMode: ThemeMode;
   onThemeModeChange: (mode: ThemeMode) => void;
+  scrollSync: boolean;
+  onToggleScrollSync: () => void;
   onMarkdownChange: (markdown: string) => void;
   showShortcutsHelp: boolean;
   onToggleShortcutsHelp: () => void;
@@ -44,6 +48,8 @@ export default function Header({
   theme,
   themeMode,
   onThemeModeChange,
+  scrollSync,
+  onToggleScrollSync,
   onMarkdownChange,
   showShortcutsHelp: _showShortcutsHelp,
   onToggleShortcutsHelp,
@@ -186,6 +192,19 @@ export default function Header({
         </Button>
 
         <div className="w-px h-6 bg-border mx-1" />
+
+        <Button
+          variant={scrollSync ? "default" : "outline"}
+          size="icon"
+          onClick={onToggleScrollSync}
+          title={t("header.scrollSync")}
+        >
+          {scrollSync ? (
+            <Link2 className="w-4 h-4" />
+          ) : (
+            <Link2Off className="w-4 h-4" />
+          )}
+        </Button>
 
         <Button
           variant="outline"

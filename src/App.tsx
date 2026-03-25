@@ -31,6 +31,7 @@ import {
   restoreFormatting,
   FormattingWrapper,
 } from "@/lib/utils";
+import { useEditorScrollSync } from "@/hooks/useScrollSync";
 
 // Lazy load PDF Export Button for better bundle size
 const PDFExportModal = lazy(() => import("@/components/PDFExportModal"));
@@ -322,10 +323,13 @@ function App() {
   >({});
   const [previewMode, setPreviewMode] = useState<"full" | "wecom">("full");
   const [showPDFExport, setShowPDFExport] = useState(false);
+  const [scrollSync, setScrollSync] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("ai");
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
+  const previewScrollRef = useRef<HTMLDivElement>(null);
 
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlinePreview, setInlinePreview] = useState<string | null>(null);
@@ -345,6 +349,10 @@ function App() {
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < _history.length - 1;
+
+  useEditorScrollSync(editorScrollRef, previewScrollRef, {
+    enabled: scrollSync,
+  });
 
   useEffect(() => {
     historyRef.current = _history;
@@ -829,6 +837,8 @@ function App() {
               theme={theme}
               themeMode={themeMode}
               onThemeModeChange={setThemeMode}
+              scrollSync={scrollSync}
+              onToggleScrollSync={() => setScrollSync(!scrollSync)}
               onMarkdownChange={setMarkdown}
               showShortcutsHelp={showShortcutsHelp}
               onToggleShortcutsHelp={() =>
@@ -865,6 +875,7 @@ function App() {
                   markdown={markdown}
                   onChange={setMarkdownWithHistory}
                   ref={textareaRef}
+                  scrollRef={editorScrollRef}
                   onInlineAction={handleInlineAction}
                   inlineLoading={inlineLoading}
                   inlinePreview={inlinePreview}
@@ -880,21 +891,17 @@ function App() {
               </ErrorBoundary>
 
               {/* Preview - Right */}
-              <div
-                className="flex-1 flex flex-col overflow-hidden"
-                ref={previewRef}
-              >
-                <ErrorBoundary>
-                  <Preview
-                    markdown={markdown}
-                    theme={theme}
-                    previewMode={previewMode}
-                    onPreviewModeChange={setPreviewMode}
-                    aiImageStates={aiImageStates}
-                    onAIImageStatesChange={setAIImageStates}
-                  />
-                </ErrorBoundary>
-              </div>
+              <ErrorBoundary>
+                <Preview
+                  markdown={markdown}
+                  theme={theme}
+                  previewMode={previewMode}
+                  onPreviewModeChange={setPreviewMode}
+                  aiImageStates={aiImageStates}
+                  onAIImageStatesChange={setAIImageStates}
+                  scrollRef={previewScrollRef}
+                />
+              </ErrorBoundary>
             </div>
 
             {/* Compact Stats - Sticky at Bottom */}

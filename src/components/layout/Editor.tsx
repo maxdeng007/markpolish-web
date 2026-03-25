@@ -42,6 +42,7 @@ interface EditorProps {
   canRedo?: boolean;
   historyIndex?: number;
   historyLength?: number;
+  scrollRef?: React.Ref<HTMLDivElement>;
 }
 
 const getPrompt = (actionId: string, text: string): string => {
@@ -129,6 +130,7 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
     canRedo = false,
     historyIndex = 0,
     historyLength = 1,
+    scrollRef,
   },
   ref,
 ) {
@@ -283,7 +285,8 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
 
   return (
     <div
-      className="flex-1 flex flex-col border-r border-border pb-11 relative"
+      ref={scrollRef}
+      className="flex-1 flex flex-col border-r border-border pb-11 relative overflow-auto"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
