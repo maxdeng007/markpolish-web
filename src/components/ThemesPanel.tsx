@@ -28,7 +28,6 @@ export default function ThemesPanel({
         </p>
       </div>
 
-      {/* Tab Buttons */}
       <div className="flex gap-2 p-1 bg-muted rounded-lg">
         <button
           onClick={() => setActiveTab("light")}
@@ -54,7 +53,6 @@ export default function ThemesPanel({
         </button>
       </div>
 
-      {/* Theme List */}
       <div className="space-y-2">
         {themes.map((theme) => (
           <button

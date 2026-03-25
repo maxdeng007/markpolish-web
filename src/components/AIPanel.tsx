@@ -756,9 +756,9 @@ export default function AIPanel({
   const [loading, setLoading] = useState(false);
   const [context, setContext] = useState("");
   const [result, setResult] = useState("");
-  const [resultType, setResultType] = useState<"titles" | "components" | null>(
-    null,
-  );
+  const [resultType, setResultType] = useState<
+    "titles" | "components" | "viral" | "seo" | null
+  >(null);
   const [streamingText, setStreamingText] = useState("");
   const [showContext, setShowContext] = useState(false);
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
@@ -894,9 +894,8 @@ export default function AIPanel({
     try {
       const action = aiActions[actionId];
 
-      if (actionId === "generateTitles" || actionId === "suggestComponents") {
-        setResultType(actionId === "generateTitles" ? "titles" : "components");
-
+      if (actionId === "generateTitles") {
+        setResultType("titles");
         let fullText = "";
         try {
           await callAIStream(config, action, markdown, context, (chunk) => {
@@ -910,6 +909,71 @@ export default function AIPanel({
           setResult(fullText);
         } catch (streamError) {
           console.error("Streaming error:", streamError);
+          showToast(t("toasts.configRequired"), "error");
+        }
+      } else if (actionId === "suggestComponents") {
+        setResultType("components");
+        let fullText = "";
+        try {
+          await callAIStream(config, action, markdown, context, (chunk) => {
+            try {
+              fullText += chunk;
+              setStreamingText(fullText);
+            } catch (e) {
+              console.debug("Chunk processing error:", e);
+            }
+          });
+          setResult(fullText);
+        } catch (streamError) {
+          console.error("Streaming error:", streamError);
+          showToast(t("toasts.configRequired"), "error");
+        }
+      } else if (actionId === "suggestViral") {
+        setResultType("viral");
+        setStreamingPreview({
+          action: t(`ai.${actionId}` as any),
+          content: "",
+          original: markdown,
+        });
+        let fullText = "";
+        try {
+          await callAIStream(config, action, markdown, context, (chunk) => {
+            try {
+              fullText += chunk;
+              setStreamingPreview((prev) =>
+                prev ? { ...prev, content: fullText } : null,
+              );
+            } catch (e) {
+              console.debug("Chunk processing error:", e);
+            }
+          });
+        } catch (streamError) {
+          console.error("Streaming error:", streamError);
+          setStreamingPreview(null);
+          showToast(t("toasts.configRequired"), "error");
+        }
+      } else if (actionId === "suggestSEO") {
+        setResultType("seo");
+        setStreamingPreview({
+          action: t(`ai.${actionId}` as any),
+          content: "",
+          original: markdown,
+        });
+        let fullText = "";
+        try {
+          await callAIStream(config, action, markdown, context, (chunk) => {
+            try {
+              fullText += chunk;
+              setStreamingPreview((prev) =>
+                prev ? { ...prev, content: fullText } : null,
+              );
+            } catch (e) {
+              console.debug("Chunk processing error:", e);
+            }
+          });
+        } catch (streamError) {
+          console.error("Streaming error:", streamError);
+          setStreamingPreview(null);
           showToast(t("toasts.configRequired"), "error");
         }
       } else {
@@ -1244,6 +1308,36 @@ export default function AIPanel({
             </div>
           </div>
 
+          {/* Optimize Category */}
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
+              {t("ai.optimize")}
+            </div>
+            <div className="space-y-2">
+              {["suggestViral", "suggestSEO"].map((actionId) => {
+                const action = aiActions[actionId];
+                return (
+                  <button
+                    key={action.id}
+                    title={
+                      t(`ai.${action.id}Desc` as any) || action.description
+                    }
+                    onClick={() => handleAction(action.id)}
+                    disabled={loading || !isConfigured()}
+                    className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} shadow-lg ${action.shadowColor} hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span className="text-lg">{action.icon}</span>
+                    )}
+                    <span>{t(`ai.${action.id}` as any)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Improve Category */}
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
@@ -1285,7 +1379,11 @@ export default function AIPanel({
             <h3 className="font-semibold text-sm flex items-center gap-2">
               {resultType === "titles"
                 ? t("ai.generatedTitles")
-                : t("ai.componentSuggestions")}
+                : resultType === "components"
+                  ? t("ai.componentSuggestions")
+                  : resultType === "viral"
+                    ? t("ai.suggestViral")
+                    : t("ai.suggestSEO")}
               {loading && (
                 <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
               )}

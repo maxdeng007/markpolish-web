@@ -302,11 +302,12 @@ function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+type ThemeMode = "light" | "dark" | "system";
+
 function App() {
   const [markdown, setMarkdown] = useState(defaultMarkdown);
-  const [isDark, setIsDark] = useState(false);
+  const [themeMode, setThemeMode] = useState<ThemeMode>("system");
   const [theme, setTheme] = useState("wechat-classic");
-  const [autoSaveEnabled] = useState(true);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [aiImageStates, setAIImageStates] = useState<
     Record<
@@ -486,6 +487,14 @@ function App() {
         name: "Fix",
         prompt: `${langHint}\n\nYou are a professional proofreader. Fix all grammar, spelling, punctuation, and formatting errors in the following text. Keep the content and meaning exactly the same. Only output the corrected text, no explanations:\n\n${plainText}`,
       },
+      "inline-translate": {
+        name: "Translate",
+        prompt: `${langHint}\n\nYou are a professional translator. Detect the language of the input text. If it's Chinese, translate to English. If it's English, translate to Chinese. Preserve all markdown formatting (headers #, bold **, italic *, lists - *, blockquotes >). Only output the translated text, no explanations:\n\n${plainText}`,
+      },
+      "inline-tone": {
+        name: "Tone",
+        prompt: `${langHint}\n\nYou are a professional writer. Adjust the tone of the following text to be more engaging, conversational, and relatable for WeChat/social media readers. Use a friendly, personal voice. Preserve all markdown formatting. Only output the adjusted text, no explanations:\n\n${plainText}`,
+      },
     };
 
     const actionConfig = prompts[actionId] || prompts["inline-improve"];
@@ -547,12 +556,13 @@ function App() {
   };
 
   // Auto-save hook
+  const settings = settingsManager.getSettings();
   useAutoSave({
-    enabled: autoSaveEnabled,
+    enabled: settings.autoSave,
     getContent: () => markdown,
     getTheme: () => theme,
     projectName: "Auto-saved Project",
-    interval: 30000,
+    interval: (settings.autoSaveInterval || 30) * 1000,
   });
 
   // Keyboard shortcuts setup
@@ -586,15 +596,19 @@ function App() {
         previewRef.current?.scrollIntoView({ behavior: "smooth" });
       },
       toggleTheme: () => {
-        const newIsDark = !isDark;
-        setIsDark(newIsDark);
-        const defaultTheme = getDefaultTheme(newIsDark);
-        setTheme(defaultTheme.id);
+        const modes: ThemeMode[] = ["system", "light", "dark"];
+        const currentIndex = modes.indexOf(themeMode);
+        const nextMode = modes[(currentIndex + 1) % modes.length];
+        setThemeMode(nextMode);
       },
     });
-  }, [markdown, theme, isDark, handleUndo, handleRedo]);
+  }, [markdown, theme, themeMode, handleUndo, handleRedo]);
 
-  // Dark mode effect
+  const isDark =
+    themeMode === "dark" ||
+    (themeMode === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
@@ -603,11 +617,27 @@ function App() {
     }
   }, [isDark]);
 
-  // Auto-switch theme when dark mode changes
   useEffect(() => {
-    const defaultTheme = getDefaultTheme(isDark);
+    const actualIsDark =
+      themeMode === "dark" ||
+      (themeMode === "system" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const defaultTheme = getDefaultTheme(actualIsDark);
     setTheme(defaultTheme.id);
-  }, [isDark]);
+  }, [themeMode]);
+
+  useEffect(() => {
+    if (themeMode !== "system") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => {
+      const defaultTheme = getDefaultTheme(e.matches);
+      setTheme(defaultTheme.id);
+    };
+
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, [themeMode]);
 
   const insertFormatting = (before: string, after: string) => {
     const textarea = textareaRef.current;
@@ -797,8 +827,8 @@ function App() {
             <Header
               markdown={markdown}
               theme={theme}
-              isDark={isDark}
-              onToggleDark={() => setIsDark(!isDark)}
+              themeMode={themeMode}
+              onThemeModeChange={setThemeMode}
               onMarkdownChange={setMarkdown}
               showShortcutsHelp={showShortcutsHelp}
               onToggleShortcutsHelp={() =>

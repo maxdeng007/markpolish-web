@@ -286,6 +286,60 @@ Polishing guidelines:
 Content to polish:
 ${content}`,
   },
+
+  suggestViral: {
+    id: "suggestViral",
+    name: "Make Viral",
+    description: "Optimize for viral potential",
+    icon: "🔥",
+    gradient: "from-red-400 to-orange-500",
+    hoverGradient: "hover:from-red-500 hover:to-orange-600",
+    shadowColor: "shadow-orange-500/25",
+    prompt: (content: string) => `${getLanguageHint(content)}
+
+You are a viral content expert. Rewrite the following content to maximize its viral potential on WeChat/social media.
+
+Make it more shareable by:
+- Creating a stronger opening hook
+- Adding emotional triggers
+- Including attention-grabbing elements
+- Making it more relatable
+- Adding share-worthy elements (questions, surprising facts)
+
+Keep the core message and meaning. Preserve all markdown formatting (headers, bold, italic, lists, blockquotes, etc.).
+
+Return ONLY the rewritten content, no explanations.
+
+Original content:
+${content}`,
+  },
+
+  suggestSEO: {
+    id: "suggestSEO",
+    name: "SEO Optimize",
+    description: "Improve search ranking",
+    icon: "🔍",
+    gradient: "from-green-400 to-emerald-500",
+    hoverGradient: "hover:from-green-500 hover:to-emerald-600",
+    shadowColor: "shadow-emerald-500/25",
+    prompt: (content: string) => `${getLanguageHint(content)}
+
+You are an SEO expert. Rewrite the following content to improve its search engine ranking.
+
+Optimize by:
+- Including relevant keywords naturally
+- Improving heading structure
+- Enhancing content depth
+- Better readability
+- Clear structure
+
+Keep the content natural and valuable. Preserve all markdown formatting (headers, bold, italic, lists, blockquotes, etc.).
+
+Return ONLY the rewritten content, no explanations.
+
+Original content:
+${content}`,
+  },
 };
 
 // Real AI API calls

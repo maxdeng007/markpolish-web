@@ -232,6 +232,15 @@ export async function exportForWeChat(
   const sharedStyles = getWeComExportStyles(
     theme.styles.accent,
     theme.styles.blockquoteBg || "#f8f9fa",
+    isDark,
+    {
+      background: theme.styles.background,
+      foreground: theme.styles.foreground,
+      heading: theme.styles.heading,
+      border: theme.styles.border,
+      calloutBg: theme.styles.background,
+      tabHeaderBg: theme.styles.background,
+    },
   );
 
   // Convert markdown to HTML with proper component handling and theme colors

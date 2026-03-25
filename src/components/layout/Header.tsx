@@ -1,6 +1,7 @@
 import {
   Moon,
   Sun,
+  Monitor,
   Download,
   Upload,
   Copy,
@@ -16,11 +17,13 @@ import { exportToHTML, exportToMarkdown, exportForWeChat } from "@/lib/export";
 import { LanguageSwitcher, useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/components/Toast";
 
+type ThemeMode = "light" | "dark" | "system";
+
 interface HeaderProps {
   markdown: string;
   theme: string;
-  isDark: boolean;
-  onToggleDark: () => void;
+  themeMode: ThemeMode;
+  onThemeModeChange: (mode: ThemeMode) => void;
   onMarkdownChange: (markdown: string) => void;
   showShortcutsHelp: boolean;
   onToggleShortcutsHelp: () => void;
@@ -39,8 +42,8 @@ interface HeaderProps {
 export default function Header({
   markdown,
   theme,
-  isDark,
-  onToggleDark,
+  themeMode,
+  onThemeModeChange,
   onMarkdownChange,
   showShortcutsHelp: _showShortcutsHelp,
   onToggleShortcutsHelp,
@@ -49,6 +52,25 @@ export default function Header({
 }: HeaderProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
+
+  const cycleThemeMode = () => {
+    const modes: ThemeMode[] = ["system", "light", "dark"];
+    const currentIndex = modes.indexOf(themeMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    onThemeModeChange(nextMode);
+  };
+
+  const getThemeIcon = () => {
+    if (themeMode === "system") return <Monitor className="w-4 h-4" />;
+    if (themeMode === "dark") return <Moon className="w-4 h-4" />;
+    return <Sun className="w-4 h-4" />;
+  };
+
+  const getThemeTooltip = () => {
+    if (themeMode === "system") return t("header.themeSystem");
+    if (themeMode === "dark") return t("header.themeDark");
+    return t("header.themeLight");
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -168,10 +190,10 @@ export default function Header({
         <Button
           variant="outline"
           size="icon"
-          onClick={onToggleDark}
-          title={t("header.toggleTheme")}
+          onClick={cycleThemeMode}
+          title={getThemeTooltip()}
         >
-          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {getThemeIcon()}
         </Button>
 
         <LanguageSwitcher />

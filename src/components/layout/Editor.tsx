@@ -10,6 +10,8 @@ import {
   Loader2,
   Undo2,
   Redo2,
+  Languages,
+  MessageCircle,
 } from "lucide-react";
 import { settingsManager } from "@/lib/settings";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -89,6 +91,25 @@ Preserve every markdown character exactly.
 Fix the following markdown text:
 
 ${text}`,
+    "inline-translate": `You are a professional translator for MARKDOWN content. This is CRITICAL:
+
+Detect the language of the input text. If it's Chinese, translate to English. If it's English, translate to Chinese.
+DO NOT strip any markdown syntax. Preserve every markdown character exactly as it appears.
+Keep all formatting: headers (#), bold (**), italic (*), lists (-, *), blockquotes (>).
+
+Translate the following markdown text:
+
+${text}`,
+    "inline-tone": `You are a professional writer adjusting the TONE of MARKDOWN content. This is CRITICAL:
+
+Write in a more engaging, conversational tone that resonates with WeChat readers.
+Make it feel personal and relatable, like chatting with a friend.
+DO NOT strip any markdown syntax. Preserve every markdown character exactly.
+Keep all formatting: headers (#), bold (**), italic (*), lists (-, *), blockquotes (>).
+
+Adjust the tone of the following markdown text to be more engaging:
+
+${text}`,
   };
   return prompts[actionId] || prompts["inline-improve"];
 };
@@ -148,6 +169,18 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
         icon: <CheckCircle className="w-3.5 h-3.5" />,
         label: t("editor.inlineActions.fix"),
         prompt: (text) => getPrompt("inline-fix", text),
+      },
+      {
+        id: "inline-translate",
+        icon: <Languages className="w-3.5 h-3.5" />,
+        label: t("editor.inlineActions.translate"),
+        prompt: (text) => getPrompt("inline-translate", text),
+      },
+      {
+        id: "inline-tone",
+        icon: <MessageCircle className="w-3.5 h-3.5" />,
+        label: t("editor.inlineActions.tone"),
+        prompt: (text) => getPrompt("inline-tone", text),
       },
     ],
     [t],

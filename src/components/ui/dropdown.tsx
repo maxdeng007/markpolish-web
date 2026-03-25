@@ -5,6 +5,7 @@ interface DropdownItem {
   icon?: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  active?: boolean;
 }
 
 interface DropdownProps {
@@ -16,10 +17,7 @@ interface DropdownProps {
 export function Dropdown({ trigger, items, align = "left" }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState<{
-    top: number;
-    left: number;
-  } | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,28 +33,19 @@ export function Dropdown({ trigger, items, align = "left" }: DropdownProps) {
   }, []);
 
   const handleToggle = () => {
-    if (!isOpen && dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + 4,
-        left: align === "right" ? rect.right : rect.left,
-      });
-    }
     setIsOpen(!isOpen);
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <div onClick={handleToggle}>{trigger}</div>
-      {isOpen && position && (
+      <div ref={triggerRef} onClick={handleToggle}>
+        {trigger}
+      </div>
+      {isOpen && (
         <div
-          className={`fixed z-[99999] min-w-[180px] rounded-xl border border-border bg-white dark:bg-gray-950 shadow-2xl py-1 ${
-            align === "right" ? "right-2" : "left-0"
+          className={`absolute z-[99999] min-w-[160px] rounded-lg border border-border bg-background shadow-lg py-1 mt-1 ${
+            align === "right" ? "right-0" : "left-0"
           }`}
-          style={{
-            top: `${position.top}px`,
-            left: align === "right" ? undefined : `${position.left}px`,
-          }}
           onClick={(e) => e.stopPropagation()}
         >
           {items.map((item, index) => (
@@ -72,20 +61,20 @@ export function Dropdown({ trigger, items, align = "left" }: DropdownProps) {
               style={{
                 display: "flex",
                 width: "100%",
-                padding: "10px 16px",
+                padding: "10px 14px",
                 alignItems: "center",
-                gap: "12px",
+                gap: "10px",
               }}
               className={`text-sm text-left transition-all whitespace-nowrap ${
                 item.disabled
                   ? "text-muted-foreground/50 cursor-not-allowed"
-                  : "text-foreground hover:bg-blue-50 active:bg-blue-100 cursor-pointer"
+                  : item.active
+                    ? "text-foreground bg-accent/10 cursor-pointer"
+                    : "text-foreground hover:bg-accent/5 cursor-pointer"
               }`}
             >
               {item.icon && (
-                <span className="w-4 h-4 text-muted-foreground shrink-0">
-                  {item.icon}
-                </span>
+                <span className="w-4 h-4 shrink-0">{item.icon}</span>
               )}
               {item.label}
             </button>

@@ -123,6 +123,11 @@ export const themes: Record<string, Theme> = {
         max-width: 700px;
         margin: 0 auto;
         padding: 40px 24px;
+        --callout-bg: #383a4a;
+        --callout-accent: #bd93f9;
+        --callout-title: #f8f8f2;
+        --callout-text: #d0d0d0;
+        --tab-header-bg: #1e1f29;
       }
       .preview-content h1 { font-size: 38px; font-weight: 700; color: #f8f8f2; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #bd93f9; margin: 32px 0 16px; }
@@ -132,6 +137,14 @@ export const themes: Record<string, Theme> = {
       .preview-content code { background: #44475a; padding: 2px 6px; border-radius: 4px; color: #50fa7b; }
       .preview-content pre { background: #44475a; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #bd93f9; padding: 16px 20px; margin: 20px 0; color: #6272a4; font-style: italic; }
+      .preview-content table { --border: #44475a; }
+      .preview-content .step-item { background: #383a4a; border-color: #44475a; }
+      .preview-content .card-component { background: #383a4a; border-color: #44475a; }
+      .preview-content .timeline-item::after { background: #44475a; }
+      .preview-content .tab-button { color: #d0d0d0; }
+      .preview-content .accordion-item { background: #383a4a; border-color: #44475a; }
+      .preview-content .accordion-trigger { color: #f8f8f2; }
+      .preview-content .column-item { background: #383a4a; border-color: #44475a; }
     `,
   },
 
@@ -197,6 +210,11 @@ export const themes: Record<string, Theme> = {
         max-width: 700px;
         margin: 0 auto;
         padding: 40px 24px;
+        --callout-bg: #24283b;
+        --callout-accent: #bb9af7;
+        --callout-title: #c0caf5;
+        --callout-text: #a0aec0;
+        --tab-header-bg: #16161e;
       }
       .preview-content h1 { font-size: 36px; font-weight: 700; color: #c0caf5; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #bb9af7; margin: 32px 0 16px; }
@@ -206,6 +224,14 @@ export const themes: Record<string, Theme> = {
       .preview-content code { background: #24283b; padding: 2px 6px; border-radius: 4px; color: #9ece6a; }
       .preview-content pre { background: #24283b; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #bb9af7; padding: 16px 20px; margin: 20px 0; color: #565f89; font-style: italic; }
+      .preview-content table { --border: #24283b; }
+      .preview-content .step-item { background: #24283b; border-color: #2f3549; }
+      .preview-content .card-component { background: #24283b; border-color: #2f3549; }
+      .preview-content .timeline-item::after { background: #24283b; }
+      .preview-content .tab-button { color: #a0aec0; }
+      .preview-content .accordion-item { background: #24283b; border-color: #2f3549; }
+      .preview-content .accordion-trigger { color: #c0caf5; }
+      .preview-content .column-item { background: #24283b; border-color: #2f3549; }
     `,
   },
 
@@ -235,6 +261,11 @@ export const themes: Record<string, Theme> = {
         max-width: 700px;
         margin: 0 auto;
         padding: 40px 24px;
+        --callout-bg: #1a1a1a;
+        --callout-accent: #60a5fa;
+        --callout-title: #ffffff;
+        --callout-text: #d0d0d0;
+        --tab-header-bg: #141414;
       }
       .preview-content h1 { font-size: 40px; font-weight: 700; color: #ffffff; margin: 0 0 20px; }
       .preview-content h2 { font-size: 30px; font-weight: 600; color: #ffffff; margin: 32px 0 16px; }
@@ -244,6 +275,14 @@ export const themes: Record<string, Theme> = {
       .preview-content code { background: #1a1a1a; padding: 2px 6px; border-radius: 4px; color: #fbbf24; }
       .preview-content pre { background: #1a1a1a; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #60a5fa; padding: 16px 20px; margin: 20px 0; color: #a1a1aa; font-style: italic; }
+      .preview-content table { --border: #27272a; }
+      .preview-content .step-item { background: #1a1a1a; border-color: #27272a; }
+      .preview-content .card-component { background: #1a1a1a; border-color: #27272a; }
+      .preview-content .timeline-item::after { background: #27272a; }
+      .preview-content .tab-button { color: #a0a0a0; }
+      .preview-content .accordion-item { background: #1a1a1a; border-color: #27272a; }
+      .preview-content .accordion-trigger { color: #ffffff; }
+      .preview-content .column-item { background: #1a1a1a; border-color: #27272a; }
     `,
   },
 
@@ -457,6 +496,11 @@ export const themes: Record<string, Theme> = {
         max-width: 700px;
         margin: 0 auto;
         padding: 40px 24px;
+        --callout-bg: #3b4252;
+        --callout-accent: #88c0d0;
+        --callout-title: #eceff4;
+        --callout-text: #c0cad8;
+        --tab-header-bg: #262c36;
       }
       .preview-content h1 { font-size: 36px; font-weight: 700; color: #eceff4; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #88c0d0; margin: 32px 0 16px; }
@@ -466,6 +510,14 @@ export const themes: Record<string, Theme> = {
       .preview-content code { background: #3b4252; padding: 2px 6px; border-radius: 4px; color: #81a1c1; }
       .preview-content pre { background: #3b4252; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #88c0d0; padding: 16px 20px; margin: 20px 0; color: #a8b4c4; font-style: italic; }
+      .preview-content table { --border: #3b4252; }
+      .preview-content .step-item { background: #3b4252; border-color: #4c566a; }
+      .preview-content .card-component { background: #3b4252; border-color: #4c566a; }
+      .preview-content .timeline-item::after { background: #3b4252; }
+      .preview-content .tab-button { color: #c0cad8; }
+      .preview-content .accordion-item { background: #3b4252; border-color: #4c566a; }
+      .preview-content .accordion-trigger { color: #eceff4; }
+      .preview-content .column-item { background: #3b4252; border-color: #4c566a; }
     `,
   },
 
@@ -494,6 +546,11 @@ export const themes: Record<string, Theme> = {
         max-width: 700px;
         margin: 0 auto;
         padding: 40px 24px;
+        --callout-bg: #363337;
+        --callout-accent: #ffd866;
+        --callout-title: #fcfcfa;
+        --callout-text: #c0b8c0;
+        --tab-header-bg: #272528;
       }
       .preview-content h1 { font-size: 36px; font-weight: 700; color: #fcfcfa; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #ffd866; margin: 32px 0 16px; }
@@ -503,6 +560,14 @@ export const themes: Record<string, Theme> = {
       .preview-content code { background: #363337; padding: 2px 6px; border-radius: 4px; color: #a9dc76; }
       .preview-content pre { background: #363337; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #ffd866; padding: 16px 20px; margin: 20px 0; color: #727072; font-style: italic; }
+      .preview-content table { --border: #363337; }
+      .preview-content .step-item { background: #363337; border-color: #403840; }
+      .preview-content .card-component { background: #363337; border-color: #403840; }
+      .preview-content .timeline-item::after { background: #363337; }
+      .preview-content .tab-button { color: #c0b8c0; }
+      .preview-content .accordion-item { background: #363337; border-color: #403840; }
+      .preview-content .accordion-trigger { color: #fcfcfa; }
+      .preview-content .column-item { background: #363337; border-color: #403840; }
     `,
   },
 
@@ -540,6 +605,21 @@ export const themes: Record<string, Theme> = {
       .preview-content code { background: #3d3226; padding: 2px 6px; border-radius: 4px; color: #a8c97f; }
       .preview-content pre { background: #3d3226; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
       .preview-content blockquote { border-left: 4px solid #d4a574; padding: 16px 20px; margin: 20px 0; color: #8b7355; font-style: italic; background: #352d20; }
+      .preview-content :root {
+        --callout-bg: #352d20;
+        --callout-accent: #d4a574;
+        --callout-title: #f5e6d3;
+        --callout-text: #c0b090;
+        --tab-header-bg: #241c12;
+      }
+      .preview-content table { --border: #3d3226; }
+      .preview-content .step-item { background: #3d3226; border-color: #4d4236; }
+      .preview-content .card-component { background: #3d3226; border-color: #4d4236; }
+      .preview-content .timeline-item::after { background: #3d3226; }
+      .preview-content .tab-button { color: #c0b090; }
+      .preview-content .accordion-item { background: #3d3226; border-color: #4d4236; }
+      .preview-content .accordion-trigger { color: #f5e6d3; }
+      .preview-content .column-item { background: #3d3226; border-color: #4d4236; }
     `,
   },
 };

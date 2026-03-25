@@ -332,6 +332,15 @@ export default function MarkdownPreview({
           ? getWeChatStyles(
               currentTheme.styles.accent,
               currentTheme.styles.blockquoteBg || "#f8f9fa",
+              currentTheme.category === "dark",
+              {
+                background: currentTheme.styles.background,
+                foreground: currentTheme.styles.foreground,
+                heading: currentTheme.styles.heading,
+                border: currentTheme.styles.border,
+                calloutBg: currentTheme.styles.background,
+                tabHeaderBg: currentTheme.styles.background,
+              },
             )
           : getAllPreviewStyles()}
       </style>

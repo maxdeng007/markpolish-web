@@ -41,6 +41,10 @@ export interface AppSettings {
 
   // UI Preferences
   theme: string;
+
+  // Auto-save Settings
+  autoSave: boolean;
+  autoSaveInterval: number;
 }
 
 const STORAGE_KEY = "markpolish_settings";
@@ -134,6 +138,8 @@ const defaultSettings: AppSettings = {
   imageProviders: defaultImageProviders,
   defaultImageProvider: "modelscope",
   theme: "wechat-classic",
+  autoSave: true,
+  autoSaveInterval: 30,
 };
 
 class SettingsManager {

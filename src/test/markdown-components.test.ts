@@ -92,12 +92,11 @@ Use components!
     expect(components[0].content).toBe("beautiful sunset");
   });
 
-  it("should parse local-image placeholder", () => {
-    const markdown = `[LOCAL: image.jpg]`;
+  it("should parse IMAGE syntax for URL-based images", () => {
+    const markdown = `[IMAGE: https://example.com/image.jpg]`;
     const components = parseCustomComponents(markdown);
     expect(components).toHaveLength(1);
-    expect(components[0].type).toBe("local-image");
-    expect(components[0].content).toBe("image.jpg");
+    expect(components[0].type).toBe("image");
   });
 });
 

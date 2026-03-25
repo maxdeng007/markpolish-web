@@ -510,6 +510,9 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
   }
 
   const accentColor = themeColors?.accent || "#576b95";
+  const borderColor = themeColors?.border || "#e5e5e5";
+  const bgColor = themeColors?.background || "#ffffff";
+  const fgColor = themeColors?.foreground || "#333333";
 
   const stepsHtml = steps
     .map((step) => {
@@ -518,7 +521,7 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
           ? markdownToHtml(step.description.join("\n"))
           : "";
       const descHtml = descContent
-        ? `<div style="font-size: 14px; color: #666; margin-top: 4px;">${descContent}</div>`
+        ? `<div style="font-size: 14px; color: ${fgColor}; margin-top: 4px; opacity: 0.8;">${descContent}</div>`
         : "";
 
       let titleHtml = markdownToHtml(step.title);
@@ -530,8 +533,7 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
         titleHtml = titleHtml.slice(3, -4);
       }
 
-      // Use table-based layout with inline styles for WeCom compatibility
-      return `<table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa;"><tr><td style="width: 40px; padding: 12px; text-align: center; vertical-align: top;"><div style="width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: ${accentColor}; color: white; font-weight: bold; display: inline-block;">${step.number}</div></td><td style="padding: 12px; vertical-align: top;"><div style="font-weight: 600; margin-bottom: 4px;">${titleHtml}</div>${descHtml}</td></tr></table>`;
+      return `<table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid ${borderColor}; border-radius: 8px; background: ${bgColor};"><tr><td style="width: 40px; padding: 12px; text-align: center; vertical-align: top;"><div style="width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: ${accentColor}; color: white; font-weight: bold; display: inline-block;">${step.number}</div></td><td style="padding: 12px; vertical-align: top;"><div style="font-weight: 600; margin-bottom: 4px;">${titleHtml}</div>${descHtml}</td></tr></table>`;
     })
     .join("");
 
