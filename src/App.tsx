@@ -13,6 +13,9 @@ import Sidebar, { type SidebarTab } from "@/components/layout/Sidebar";
 import Editor from "@/components/layout/Editor";
 import Preview from "@/components/layout/Preview";
 import CompactStats from "@/components/CompactStats";
+import MobileToggle from "@/components/MobileToggle";
+import MobileMenu from "@/components/MobileMenu";
+import MobileAIPanel from "@/components/MobileAIPanel";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { shortcuts, setupDefaultShortcuts } from "@/lib/keyboard-shortcuts";
 import { fileOps } from "@/lib/file-operations";
@@ -330,6 +333,22 @@ function App() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
+
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeMobilePanel, setActiveMobilePanel] = useState<
+    "editor" | "preview"
+  >("editor");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileAIPanelOpen, setMobileAIPanelOpen] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlinePreview, setInlinePreview] = useState<string | null>(null);
@@ -826,11 +845,44 @@ function App() {
     });
   };
 
+  const handleMobileNavigate = (panel: string) => {
+    switch (panel) {
+      case "templates":
+        setSidebarTab("templates");
+        break;
+      case "themes":
+        setSidebarTab("themes");
+        break;
+      case "components":
+        setSidebarTab("components");
+        break;
+      case "settings":
+        setSidebarTab("settings");
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleMobileAIAction = (_action: string) => {
+    setSidebarTab("ai");
+  };
+
+  const handleMobileExport = () => {
+    setShowPDFExport(true);
+  };
+
   return (
     <TranslationProvider>
       <ToastProvider>
         <ErrorBoundary>
-          <div className="h-screen flex flex-col bg-background">
+          <div
+            className={
+              isMobile
+                ? "mobile-layout"
+                : "h-screen flex flex-col bg-background"
+            }
+          >
             {/* Header */}
             <Header
               markdown={markdown}
@@ -846,63 +898,136 @@ function App() {
               }
               aiImageStates={aiImageStates}
               onShowPDFExport={() => setShowPDFExport(true)}
+              isMobile={isMobile}
+              onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
             />
 
-            {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden">
-              {/* Sidebar - Left */}
-              <ErrorBoundary>
-                <Sidebar
-                  markdown={markdown}
-                  theme={theme}
-                  activeTab={sidebarTab}
-                  onTabChange={setSidebarTab}
-                  onMarkdownChange={setMarkdown}
-                  onThemeChange={setTheme}
-                  onInsertImage={handleInsertImage}
-                  onOpenSettings={() => setSidebarTab("settings")}
-                  getCursorPosition={getCursorPosition}
-                  onInsertAtLocation={handleInsertAtLocation}
-                  onInsertAllComponents={handleInsertAllComponents}
-                  onApplyTitle={handleApplyTitle}
-                  onPushHistory={() => pushHistory(markdown)}
-                />
-              </ErrorBoundary>
+            {/* Main Content - Desktop: 3-panel, Mobile: single panel */}
+            {isMobile ? (
+              /* Mobile: Editor OR Preview (full width) */
+              <div className="mobile-content">
+                {activeMobilePanel === "editor" ? (
+                  <div className="editor-container active">
+                    <ErrorBoundary>
+                      <Editor
+                        markdown={markdown}
+                        onChange={setMarkdownWithHistory}
+                        ref={textareaRef}
+                        scrollRef={editorScrollRef}
+                        onInlineAction={handleInlineAction}
+                        inlineLoading={inlineLoading}
+                        inlinePreview={inlinePreview}
+                        onApplyInline={handleApplyInline}
+                        onCancelInline={handleCancelInline}
+                        onUndo={handleUndo}
+                        onRedo={handleRedo}
+                        canUndo={canUndo}
+                        canRedo={canRedo}
+                        historyIndex={historyIndex}
+                        historyLength={_history.length}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                ) : (
+                  <div className="preview-container active">
+                    <ErrorBoundary>
+                      <Preview
+                        markdown={markdown}
+                        theme={theme}
+                        previewMode={previewMode}
+                        onPreviewModeChange={setPreviewMode}
+                        aiImageStates={aiImageStates}
+                        onAIImageStatesChange={setAIImageStates}
+                        scrollRef={previewScrollRef}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Desktop: 3-panel layout */
+              <div className="flex-1 flex overflow-hidden">
+                {/* Sidebar - Left */}
+                <ErrorBoundary>
+                  <Sidebar
+                    markdown={markdown}
+                    theme={theme}
+                    activeTab={sidebarTab}
+                    onTabChange={setSidebarTab}
+                    onMarkdownChange={setMarkdown}
+                    onThemeChange={setTheme}
+                    onInsertImage={handleInsertImage}
+                    onOpenSettings={() => setSidebarTab("settings")}
+                    getCursorPosition={getCursorPosition}
+                    onInsertAtLocation={handleInsertAtLocation}
+                    onInsertAllComponents={handleInsertAllComponents}
+                    onApplyTitle={handleApplyTitle}
+                    onPushHistory={() => pushHistory(markdown)}
+                  />
+                </ErrorBoundary>
 
-              {/* Editor - Center */}
-              <ErrorBoundary>
-                <Editor
-                  markdown={markdown}
-                  onChange={setMarkdownWithHistory}
-                  ref={textareaRef}
-                  scrollRef={editorScrollRef}
-                  onInlineAction={handleInlineAction}
-                  inlineLoading={inlineLoading}
-                  inlinePreview={inlinePreview}
-                  onApplyInline={handleApplyInline}
-                  onCancelInline={handleCancelInline}
-                  onUndo={handleUndo}
-                  onRedo={handleRedo}
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                  historyIndex={historyIndex}
-                  historyLength={_history.length}
-                />
-              </ErrorBoundary>
+                {/* Editor - Center */}
+                <ErrorBoundary>
+                  <Editor
+                    markdown={markdown}
+                    onChange={setMarkdownWithHistory}
+                    ref={textareaRef}
+                    scrollRef={editorScrollRef}
+                    onInlineAction={handleInlineAction}
+                    inlineLoading={inlineLoading}
+                    inlinePreview={inlinePreview}
+                    onApplyInline={handleApplyInline}
+                    onCancelInline={handleCancelInline}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    historyIndex={historyIndex}
+                    historyLength={_history.length}
+                  />
+                </ErrorBoundary>
 
-              {/* Preview - Right */}
-              <ErrorBoundary>
-                <Preview
-                  markdown={markdown}
-                  theme={theme}
-                  previewMode={previewMode}
-                  onPreviewModeChange={setPreviewMode}
-                  aiImageStates={aiImageStates}
-                  onAIImageStatesChange={setAIImageStates}
-                  scrollRef={previewScrollRef}
-                />
-              </ErrorBoundary>
-            </div>
+                {/* Preview - Right */}
+                <ErrorBoundary>
+                  <Preview
+                    markdown={markdown}
+                    theme={theme}
+                    previewMode={previewMode}
+                    onPreviewModeChange={setPreviewMode}
+                    aiImageStates={aiImageStates}
+                    onAIImageStatesChange={setAIImageStates}
+                    scrollRef={previewScrollRef}
+                  />
+                </ErrorBoundary>
+              </div>
+            )}
+
+            {/* Mobile Toggle Bar */}
+            {isMobile && (
+              <MobileToggle
+                activePanel={activeMobilePanel}
+                onToggle={setActiveMobilePanel}
+              />
+            )}
+
+            {/* Mobile Menu Overlay */}
+            {isMobile && (
+              <MobileMenu
+                isOpen={mobileMenuOpen}
+                onClose={() => setMobileMenuOpen(false)}
+                onNavigate={handleMobileNavigate}
+                onExport={handleMobileExport}
+              />
+            )}
+
+            {/* Mobile AI Panel */}
+            {isMobile && (
+              <MobileAIPanel
+                isOpen={mobileAIPanelOpen}
+                onClose={() => setMobileAIPanelOpen(false)}
+                onAIAction={handleMobileAIAction}
+              />
+            )}
 
             {/* Compact Stats - Sticky at Bottom */}
             <ErrorBoundary>
