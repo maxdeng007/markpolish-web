@@ -1,9 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useToast } from "@/components/Toast";
 import MobileMenu from "./MobileMenu";
 import MobileTemplatesPanel from "./MobileTemplatesPanel";
 import MobileThemesPanel from "./MobileThemesPanel";
 import MobileStatsPanel from "./MobileStatsPanel";
+import MobileAISettingsSheet from "./MobileAISettingsSheet";
 import {
   callAIStream,
   aiActions,
@@ -45,6 +46,8 @@ export default function MobileMenuHandler({
 }: MobileMenuHandlerProps) {
   const { showToast } = useToast();
   const [mobileAILoading, setMobileAILoading] = useState(false);
+  const [mobileAISettingsOpen, setMobileAISettingsOpen] = useState(false);
+  const pendingAIActionRef = useRef<string | null>(null);
 
   const handleCopyToClipboard = useCallback(
     async (text: string, label: string) => {
@@ -75,7 +78,7 @@ export default function MobileMenuHandler({
       case "ai":
         break;
       case "settings":
-        showToast("Settings available on desktop", "info");
+        setMobileAISettingsOpen(true);
         break;
       default:
         break;
@@ -93,7 +96,8 @@ export default function MobileMenuHandler({
       const provider = settings.textProviders[settings.defaultTextProvider];
 
       if (settings.defaultTextProvider !== "ollama" && !provider?.apiKey) {
-        showToast("Please configure AI provider in Settings", "info");
+        pendingAIActionRef.current = action;
+        setMobileAISettingsOpen(true);
         return;
       }
 
@@ -112,7 +116,6 @@ export default function MobileMenuHandler({
         prompt: (content: string, context?: string) => string;
       };
 
-      // Map mobile action IDs to actual AI actions
       switch (action) {
         case "expand":
           actionObj = aiActions.expandContent;
@@ -197,6 +200,15 @@ ${content}`,
     [markdown, onMarkdownChange, showToast],
   );
 
+  const handleAISettingsSave = useCallback(() => {
+    setMobileAISettingsOpen(false);
+    if (pendingAIActionRef.current) {
+      const pending = pendingAIActionRef.current;
+      pendingAIActionRef.current = null;
+      setTimeout(() => handleMobileAIAction(pending), 100);
+    }
+  }, [handleMobileAIAction]);
+
   return (
     <>
       <MobileMenu
@@ -221,6 +233,14 @@ ${content}`,
         isOpen={mobileStatsOpen}
         onClose={() => setMobileStatsOpen(false)}
         markdown={markdown}
+      />
+      <MobileAISettingsSheet
+        isOpen={mobileAISettingsOpen}
+        onClose={() => {
+          setMobileAISettingsOpen(false);
+          pendingAIActionRef.current = null;
+        }}
+        onSave={handleAISettingsSave}
       />
       {mobileAILoading && (
         <div className="mobile-ai-loading-mask">

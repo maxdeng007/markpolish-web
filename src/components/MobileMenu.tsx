@@ -56,7 +56,7 @@ export default function MobileMenu({
     { id: "components", label: "Components", icon: Grid3X3, expandable: true },
     { id: "stats", label: "Stats", icon: BarChart3 },
     { id: "ai", label: "AI Actions", icon: Sparkles, expandable: true },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "settings", label: "AI Settings", icon: Settings },
   ];
 
   const aiActions = [
