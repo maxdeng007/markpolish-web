@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Megaphone, X, Copy, Check } from "lucide-react";
+import { generateAmplifyVariants } from "@/lib/mock-data";
 
 interface ContentAmplifyPanelProps {
   isOpen: boolean;

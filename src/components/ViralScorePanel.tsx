@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TrendingUp, X, Lightbulb } from "lucide-react";
+import { generateViralScores } from "@/lib/mock-data";
 
 interface ViralScorePanelProps {
   isOpen: boolean;
@@ -86,62 +87,9 @@ export default function ViralScorePanel({
 
     await new Promise((r) => setTimeout(r, 600));
 
-    const mockResult: ViralResult = {
-      totalScore: 68,
-      platformScores: {
-        wechat: 72,
-        xiaohongshu: 65,
-        twitter: 70,
-        linkedin: 61,
-      },
-      breakdown: {
-        hook: {
-          score: 18,
-          verdict: "strong",
-          reason: "Opens with a specific number that creates curiosity",
-        },
-        structure: {
-          score: 15,
-          verdict: "good",
-          reason: "Good paragraph length but could use more visual breaks",
-        },
-        emotion: {
-          score: 16,
-          verdict: "moderate",
-          reason: "Contains some emotional language but could be stronger",
-        },
-        clarity: {
-          score: 19,
-          verdict: "strong",
-          reason: "Clear message with a good call-to-action",
-        },
-      },
-      suggestions: [
-        {
-          element: "hook",
-          issue: "Opening is generic",
-          fix: "Start with a surprising statistic or bold claim in the first 20 characters",
-          example:
-            "Instead of 'Tips for success', try '3 decisions that changed my career in 30 days'",
-        },
-        {
-          element: "structure",
-          issue: "Paragraphs are too long",
-          fix: "Break paragraphs into 3-4 sentence chunks for mobile readers",
-          example: "Each paragraph should be scannable within 5 seconds",
-        },
-        {
-          element: "emotion",
-          issue: "Lacks emotional trigger",
-          fix: "Add a personal story or surprising fact to create connection",
-          example: "Include a moment of vulnerability or a surprising outcome",
-        },
-      ],
-    };
-
     setLoading(null);
-    setResult(mockResult);
-  }, []);
+    setResult(generateViralScores(markdown));
+  }, [markdown]);
 
   useEffect(() => {
     if (!isOpen) {

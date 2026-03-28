@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, TrendingUp, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateViralScores } from "@/lib/mock-data";
 
 interface DesktopViralScorePanelProps {
   isOpen: boolean;
@@ -31,54 +32,6 @@ interface ViralResult {
   }[];
 }
 
-const MOCK_VIRAL: ViralResult = {
-  totalScore: 68,
-  platformScores: { wechat: 72, xiaohongshu: 65, twitter: 70, linkedin: 61 },
-  breakdown: {
-    hook: {
-      score: 18,
-      verdict: "strong",
-      reason: "Opens with a specific number",
-    },
-    structure: {
-      score: 15,
-      verdict: "good",
-      reason: "Good paragraph length but needs more visual breaks",
-    },
-    emotion: {
-      score: 16,
-      verdict: "moderate",
-      reason: "Contains emotional language but could be stronger",
-    },
-    clarity: {
-      score: 19,
-      verdict: "strong",
-      reason: "Clear message with good call-to-action",
-    },
-  },
-  suggestions: [
-    {
-      element: "hook",
-      issue: "Opening is generic",
-      fix: "Start with a surprising statistic or bold claim",
-      example:
-        "Instead of 'Tips for success', try '3 decisions that changed my career'",
-    },
-    {
-      element: "structure",
-      issue: "Paragraphs are too long",
-      fix: "Break into 3-4 sentence chunks for mobile",
-      example: "Each paragraph should be scannable within 5 seconds",
-    },
-    {
-      element: "emotion",
-      issue: "Lacks emotional trigger",
-      fix: "Add a personal story or surprising fact",
-      example: "Include a moment of vulnerability",
-    },
-  ],
-};
-
 export default function DesktopViralScorePanel({
   isOpen,
   onClose,
@@ -97,8 +50,8 @@ export default function DesktopViralScorePanel({
     setDismissedSuggestions(new Set());
     await new Promise((r) => setTimeout(r, 2000));
     setLoading(false);
-    setResult(MOCK_VIRAL);
-  }, []);
+    setResult(generateViralScores(markdown));
+  }, [markdown]);
 
   useEffect(() => {
     if (isOpen) {

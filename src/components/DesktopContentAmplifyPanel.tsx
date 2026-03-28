@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Megaphone, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateAmplifyVariants } from "@/lib/mock-data";
 
 interface DesktopContentAmplifyPanelProps {
   isOpen: boolean;
