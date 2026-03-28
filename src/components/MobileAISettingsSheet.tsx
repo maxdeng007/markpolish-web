@@ -134,18 +134,44 @@ export default function MobileAISettingsSheet({
 
   if (typeof document === "undefined") return null;
 
+  const overlayStyle: React.CSSProperties = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.5)",
+    zIndex: 10020,
+    opacity: isOpen ? 1 : 0,
+    visibility: isOpen ? "visible" : "hidden",
+    pointerEvents: isOpen ? "auto" : "none",
+    transition: "opacity 0.3s ease, visibility 0.3s ease",
+  };
+
+  const sheetStyle: React.CSSProperties = {
+    position: "fixed",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: "85vh",
+    borderTopLeftRadius: "20px",
+    borderTopRightRadius: "20px",
+    zIndex: 10021,
+    background: isDark ? "#1a1a1a" : "#ffffff",
+    transform: isOpen ? "translateY(0)" : "translateY(100%)",
+    transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    boxShadow: "0 -8px 40px rgba(0, 0, 0, 0.15)",
+  };
+
   const sheetContent = (
     <>
-      <div
-        className={`mobile-ai-settings-overlay ${isOpen ? "open" : ""}`}
-        onClick={onClose}
-      />
+      <div style={overlayStyle} onClick={onClose} />
       <div
         ref={sheetRef}
-        className={`mobile-ai-settings-sheet ${isOpen ? "open" : ""}`}
-        style={{
-          background: isDark ? "#1a1a1a" : "var(--background)",
-        }}
+        style={sheetStyle}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
