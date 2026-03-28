@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { X, TrendingUp, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -31,6 +31,54 @@ interface ViralResult {
   }[];
 }
 
+const MOCK_VIRAL: ViralResult = {
+  totalScore: 68,
+  platformScores: { wechat: 72, xiaohongshu: 65, twitter: 70, linkedin: 61 },
+  breakdown: {
+    hook: {
+      score: 18,
+      verdict: "strong",
+      reason: "Opens with a specific number",
+    },
+    structure: {
+      score: 15,
+      verdict: "good",
+      reason: "Good paragraph length but needs more visual breaks",
+    },
+    emotion: {
+      score: 16,
+      verdict: "moderate",
+      reason: "Contains emotional language but could be stronger",
+    },
+    clarity: {
+      score: 19,
+      verdict: "strong",
+      reason: "Clear message with good call-to-action",
+    },
+  },
+  suggestions: [
+    {
+      element: "hook",
+      issue: "Opening is generic",
+      fix: "Start with a surprising statistic or bold claim",
+      example:
+        "Instead of 'Tips for success', try '3 decisions that changed my career'",
+    },
+    {
+      element: "structure",
+      issue: "Paragraphs are too long",
+      fix: "Break into 3-4 sentence chunks for mobile",
+      example: "Each paragraph should be scannable within 5 seconds",
+    },
+    {
+      element: "emotion",
+      issue: "Lacks emotional trigger",
+      fix: "Add a personal story or surprising fact",
+      example: "Include a moment of vulnerability",
+    },
+  ],
+};
+
 export default function DesktopViralScorePanel({
   isOpen,
   onClose,
@@ -42,89 +90,27 @@ export default function DesktopViralScorePanel({
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(
     new Set(),
   );
-  const prevMarkdownRef = useRef<string>("");
-  const isAnalyzingRef = useRef(false);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setResult(null);
-      setLoading(false);
-      setDismissedSuggestions(new Set());
-      prevMarkdownRef.current = "";
-      isAnalyzingRef.current = false;
-      return;
-    }
-
-    if (isAnalyzingRef.current) return;
-
-    isAnalyzingRef.current = true;
+  const runCheck = useCallback(async () => {
     setLoading(true);
     setResult(null);
     setDismissedSuggestions(new Set());
-
-    runCheck().finally(() => {
-      isAnalyzingRef.current = false;
-    });
-  }, [isOpen, markdown]);
-
-  const runCheck = async () => {
-    setLoading(true);
     await new Promise((r) => setTimeout(r, 2000));
-    const mock: ViralResult = {
-      totalScore: 68,
-      platformScores: {
-        wechat: 72,
-        xiaohongshu: 65,
-        twitter: 70,
-        linkedin: 61,
-      },
-      breakdown: {
-        hook: {
-          score: 18,
-          verdict: "strong",
-          reason: "Opens with a specific number",
-        },
-        structure: {
-          score: 15,
-          verdict: "good",
-          reason: "Good paragraph length but needs more visual breaks",
-        },
-        emotion: {
-          score: 16,
-          verdict: "moderate",
-          reason: "Contains emotional language but could be stronger",
-        },
-        clarity: {
-          score: 19,
-          verdict: "strong",
-          reason: "Clear message with good call-to-action",
-        },
-      },
-      suggestions: [
-        {
-          element: "hook",
-          issue: "Opening is generic",
-          fix: "Start with a surprising statistic or bold claim",
-          example:
-            "Instead of 'Tips for success', try '3 decisions that changed my career'",
-        },
-        {
-          element: "structure",
-          issue: "Paragraphs are too long",
-          fix: "Break into 3-4 sentence chunks for mobile",
-          example: "Each paragraph should be scannable within 5 seconds",
-        },
-        {
-          element: "emotion",
-          issue: "Lacks emotional trigger",
-          fix: "Add a personal story or surprising fact",
-          example: "Include a moment of vulnerability",
-        },
-      ],
-    };
     setLoading(false);
-    setResult(mock);
-  };
+    setResult(MOCK_VIRAL);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      runCheck();
+    } else {
+      setResult(null);
+      setLoading(false);
+      setDismissedSuggestions(new Set());
+    }
+  }, [isOpen, markdown, runCheck]);
+
+  if (!isOpen) return null;
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return "text-green-600 dark:text-green-400";
@@ -137,8 +123,6 @@ export default function DesktopViralScorePanel({
     if (score >= 50) return "bg-yellow-50 dark:bg-yellow-950/30";
     return "bg-red-50 dark:bg-red-950/30";
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -210,13 +194,7 @@ export default function DesktopViralScorePanel({
                         </div>
                         <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              score >= 70
-                                ? "bg-green-500"
-                                : score >= 50
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                            }`}
+                            className={`h-full rounded-full transition-all duration-500 ${score >= 70 ? "bg-green-500" : score >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
                             style={{ width: `${score}%` }}
                           />
                         </div>

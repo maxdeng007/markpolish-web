@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { TrendingUp, X, Lightbulb } from "lucide-react";
 
 interface ViralScorePanelProps {
@@ -52,7 +52,6 @@ export default function ViralScorePanel({
   const sheetRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
-  const isAnalyzingRef = useRef(false);
 
   useEffect(() => {
     const checkDark = () => {
@@ -67,28 +66,11 @@ export default function ViralScorePanel({
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setResult(null);
-      setLoading(null);
-      setDismissedSuggestions(new Set());
-      isAnalyzingRef.current = false;
-      return;
-    }
-
-    if (isAnalyzingRef.current) return;
-
-    isAnalyzingRef.current = true;
+  const runViralCheck = useCallback(async () => {
     setLoading({ score: 0, text: "Analyzing hook strength..." });
     setResult(null);
     setDismissedSuggestions(new Set());
 
-    runViralCheck().finally(() => {
-      isAnalyzingRef.current = false;
-    });
-  }, [isOpen, markdown]);
-
-  const runViralCheck = async () => {
     const stages = [
       { score: 15, text: "Analyzing hook strength..." },
       { score: 35, text: "Checking structure..." },
@@ -159,7 +141,17 @@ export default function ViralScorePanel({
 
     setLoading(null);
     setResult(mockResult);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setResult(null);
+      setLoading(null);
+      setDismissedSuggestions(new Set());
+      return;
+    }
+    runViralCheck();
+  }, [isOpen, markdown, runViralCheck]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;

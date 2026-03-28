@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Megaphone, X, Copy, Check } from "lucide-react";
 
 interface ContentAmplifyPanelProps {
@@ -36,7 +36,6 @@ export default function ContentAmplifyPanel({
   const sheetRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
-  const isAnalyzingRef = useRef(false);
 
   useEffect(() => {
     const checkDark = () => {
@@ -51,26 +50,10 @@ export default function ContentAmplifyPanel({
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setResult(null);
-      setLoading(null);
-      isAnalyzingRef.current = false;
-      return;
-    }
-
-    if (isAnalyzingRef.current) return;
-
-    isAnalyzingRef.current = true;
+  const runAmplifyCheck = useCallback(async () => {
     setLoading({ text: "Creating WeChat variant..." });
     setResult(null);
 
-    runAmplifyCheck().finally(() => {
-      isAnalyzingRef.current = false;
-    });
-  }, [isOpen, markdown]);
-
-  const runAmplifyCheck = async () => {
     await new Promise((r) => setTimeout(r, 500));
     setLoading({ text: "Creating RED variant..." });
     await new Promise((r) => setTimeout(r, 400));
@@ -131,7 +114,16 @@ export default function ContentAmplifyPanel({
     setLoading(null);
     setResult(mockResult);
     setActiveTab(0);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setResult(null);
+      setLoading(null);
+      return;
+    }
+    runAmplifyCheck();
+  }, [isOpen, markdown, runAmplifyCheck]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
