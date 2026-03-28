@@ -70,7 +70,7 @@ export default function Sidebar({
   const { t } = useTranslation();
 
   return (
-    <div className="w-80 border-r border-border bg-background overflow-hidden flex flex-col pb-14">
+    <div className="sidebar w-80 border-r border-border bg-background overflow-hidden flex flex-col pb-14">
       {/* Tab Navigation */}
       <Tabs
         value={activeTab}

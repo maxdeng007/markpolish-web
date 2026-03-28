@@ -3,8 +3,11 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
+  useRef,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 
 type ToastType = "success" | "error" | "info";
 
@@ -16,6 +19,7 @@ interface Toast {
 interface ToastContextType {
   toast: Toast | null;
   showToast: (message: string, type?: ToastType) => void;
+  clearToast: () => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -26,13 +30,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = useCallback(
     (message: string, type: ToastType = "success") => {
       setToast({ message, type });
-      setTimeout(() => setToast(null), 2500);
     },
     [],
   );
 
+  const clearToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
   return (
-    <ToastContext.Provider value={{ toast, showToast }}>
+    <ToastContext.Provider value={{ toast, showToast, clearToast }}>
       {children}
     </ToastContext.Provider>
   );
@@ -47,23 +54,68 @@ export function useToast() {
 }
 
 export function ToastContainer() {
-  const { toast } = useToast();
+  const { toast, clearToast } = useToast();
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [isShowing, setIsShowing] = useState(false);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (!toast) return null;
+  useEffect(() => {
+    if (fadeTimerRef.current) {
+      clearTimeout(fadeTimerRef.current);
+      fadeTimerRef.current = null;
+    }
+    if (showTimerRef.current) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
 
-  return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-2 fade-in duration-200">
+    if (toast) {
+      setIsShowing(true);
+      setIsFadingOut(false);
+
+      fadeTimerRef.current = setTimeout(() => {
+        setIsFadingOut(true);
+      }, 2500);
+
+      fadeTimerRef.current = setTimeout(() => {
+        setIsShowing(false);
+        setIsFadingOut(false);
+        clearToast();
+      }, 2800);
+    }
+
+    return () => {
+      if (fadeTimerRef.current) {
+        clearTimeout(fadeTimerRef.current);
+      }
+      if (showTimerRef.current) {
+        clearTimeout(showTimerRef.current);
+      }
+    };
+  }, [toast, clearToast]);
+
+  if (!isShowing) return null;
+
+  return createPortal(
+    <div
+      className={`fixed top-4 left-1/2 -translate-x-1/2 z-[99999] transition-all duration-300 ease-out ${
+        isFadingOut
+          ? "opacity-0 translate-y-[-8px] scale-95"
+          : "opacity-100 translate-y-0 scale-100"
+      }`}
+    >
       <div
-        className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border backdrop-blur-sm ${
-          toast.type === "success"
-            ? "bg-green-50/95 border-green-200 text-green-800"
-            : toast.type === "error"
-              ? "bg-red-50/95 border-red-200 text-red-800"
-              : "bg-blue-50/95 border-blue-200 text-blue-800"
+        className={`flex items-center gap-3 px-5 py-3 rounded-full backdrop-blur-md ${
+          toast?.type === "success"
+            ? "bg-green-500 text-white shadow-[0_8px_30px_rgba(34,197,94,0.4)]"
+            : toast?.type === "error"
+              ? "bg-red-500 text-white shadow-[0_8px_30px_rgba(239,68,68,0.4)]"
+              : "bg-blue-500 text-white shadow-[0_8px_30px_rgba(59,130,246,0.4)]"
         }`}
       >
-        {toast.type === "success" && (
-          <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+        {toast?.type === "success" && (
+          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
             <svg
               className="w-3 h-3 text-white"
               fill="none"
@@ -79,8 +131,8 @@ export function ToastContainer() {
             </svg>
           </div>
         )}
-        {toast.type === "error" && (
-          <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shrink-0">
+        {toast?.type === "error" && (
+          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
             <svg
               className="w-3 h-3 text-white"
               fill="none"
@@ -96,8 +148,8 @@ export function ToastContainer() {
             </svg>
           </div>
         )}
-        {toast.type === "info" && (
-          <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+        {toast?.type === "info" && (
+          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
             <svg
               className="w-3 h-3 text-white"
               fill="none"
@@ -113,8 +165,9 @@ export function ToastContainer() {
             </svg>
           </div>
         )}
-        <span className="text-sm font-medium">{toast.message}</span>
+        <span className="text-sm font-medium">{toast?.message}</span>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

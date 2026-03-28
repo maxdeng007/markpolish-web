@@ -12,6 +12,13 @@ import {
   Redo2,
   Languages,
   MessageCircle,
+  Bold,
+  Italic,
+  Heading2,
+  List,
+  Link,
+  Quote,
+  Code,
 } from "lucide-react";
 import { settingsManager } from "@/lib/settings";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -254,6 +261,36 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
     }
   };
 
+  const insertFormatting = useCallback(
+    (prefix: string, suffix: string = prefix, placeholder: string = "") => {
+      const textarea = document.querySelector(
+        ".editor-textarea",
+      ) as HTMLTextAreaElement;
+      if (!textarea) return;
+
+      const { selectionStart, selectionEnd, value } = textarea;
+      const selectedText = value.substring(selectionStart, selectionEnd);
+      const textToWrap = selectedText || placeholder;
+
+      const newText = prefix + textToWrap + suffix;
+      const before = value.substring(0, selectionStart);
+      const after = value.substring(selectionEnd);
+
+      const newValue = before + newText + after;
+      onChange(newValue);
+
+      setTimeout(() => {
+        textarea.focus();
+        const newCursorPos =
+          selectionStart +
+          prefix.length +
+          (selectedText ? textToWrap.length : placeholder.length);
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      }, 0);
+    },
+    [onChange],
+  );
+
   const showPreview = inlinePreview !== null && inlinePreview !== undefined;
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -286,7 +323,7 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
   return (
     <div
       ref={scrollRef}
-      className="flex-1 flex flex-col border-r border-border pb-11 relative overflow-auto"
+      className="flex-1 flex flex-col border-r border-border relative overflow-auto custom-scrollbar desktop-pb-stats mobile-pb-toggle"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -326,6 +363,67 @@ const Editor = forwardRef<HTMLTextAreaElement, EditorProps>(function Editor(
         >
           {t("common.clear")}
         </button>
+      </div>
+
+      <div className="md:hidden border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-around py-2 px-2 gap-1">
+          <button
+            type="button"
+            onClick={() => insertFormatting("**", "**", "bold text")}
+            className="min-touch-target flex items-center justify-center w-11 h-11 rounded-lg hover:bg-muted transition-colors"
+            title="Bold"
+          >
+            <Bold className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => insertFormatting("*", "*", "italic text")}
+            className="min-touch-target flex items-center justify-center w-11 h-11 rounded-lg hover:bg-muted transition-colors"
+            title="Italic"
+          >
+            <Italic className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => insertFormatting("## ", "", "Heading")}
+            className="min-touch-target flex items-center justify-center w-11 h-11 rounded-lg hover:bg-muted transition-colors"
+            title="Heading"
+          >
+            <Heading2 className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => insertFormatting("- ", "", "list item")}
+            className="min-touch-target flex items-center justify-center w-11 h-11 rounded-lg hover:bg-muted transition-colors"
+            title="List"
+          >
+            <List className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => insertFormatting("[", "](url)", "link text")}
+            className="min-touch-target flex items-center justify-center w-11 h-11 rounded-lg hover:bg-muted transition-colors"
+            title="Link"
+          >
+            <Link className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => insertFormatting("> ", "", "quote")}
+            className="min-touch-target flex items-center justify-center w-11 h-11 rounded-lg hover:bg-muted transition-colors"
+            title="Quote"
+          >
+            <Quote className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => insertFormatting("`", "`", "code")}
+            className="min-touch-target flex items-center justify-center w-11 h-11 rounded-lg hover:bg-muted transition-colors"
+            title="Code"
+          >
+            <Code className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <Textarea

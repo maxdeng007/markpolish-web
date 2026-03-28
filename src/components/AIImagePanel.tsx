@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { aiImageGen } from "@/lib/ai-image-generation";
 import { imageLibrary } from "@/lib/image-system";
 import {
@@ -168,12 +170,11 @@ export default function AIImagePanel({ onInsertImage }: AIImagePanelProps) {
                 ModelScope.cn
               </a>
             </p>
-            <input
+            <Input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={t("images.enterApiKey")}
-              className="w-full px-3 py-2 text-sm border rounded-md"
             />
             <div className="flex gap-2">
               <Button onClick={handleSaveApiKey} className="flex-1" size="sm">
@@ -210,11 +211,11 @@ export default function AIImagePanel({ onInsertImage }: AIImagePanelProps) {
         {/* Prompt Input */}
         <div className="space-y-2 mb-4">
           <label className="text-sm font-medium">{t("images.prompt")}</label>
-          <textarea
+          <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t("images.promptPlaceholder")}
-            className="w-full px-3 py-2 text-sm border rounded-md min-h-[100px] resize-none"
+            className="min-h-[100px] resize-none"
             disabled={isGenerating}
           />
           <p className="text-xs text-muted-foreground">

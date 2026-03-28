@@ -286,14 +286,14 @@ export const darkThemeOverrides = `
   .theme-dark .preview-content .quote-component cite,
   .theme-dark .preview-content .quote-attribution { color: #94a3b8; }
   .theme-dark .preview-content .local-image-caption { background: #16162a; }
-  .theme-dark .preview-content .ai-image-placeholder { background: #1a1a2e; border-color: #3f3f5c; }
-  .theme-dark .preview-content .ai-image-placeholder:hover { border-color: var(--accent, #818cf8); background: #252536; }
-  .theme-dark .preview-content .ai-image-ratio-btn { border-color: #3f3f5c; color: #94a3b8; }
-  .theme-dark .preview-content .ai-image-ratio-btn:hover { border-color: var(--accent, #818cf8); color: var(--accent, #818cf8); }
-  .theme-dark .preview-content .ai-image-ratio-btn.active { background: var(--accent, #818cf8); border-color: var(--accent, #818cf8); }
-  .theme-dark .preview-content .ai-image-generate-btn { background: var(--accent, #818cf8); }
-  .theme-dark .preview-content .ai-image-wrapper { border-color: #3f3f5c; }
-  .theme-dark .preview-content .ai-image-wecom-placeholder { background: #1a1a2e; color: #64748b; }
+  .theme-dark .preview-content .ai-image-placeholder { background: var(--ai-image-bg, #1a1a2e); border-color: var(--ai-image-border, #3f3f5c); }
+  .theme-dark .preview-content .ai-image-placeholder:hover { border-color: var(--accent, #818cf8); background: var(--ai-image-bg, #252536); }
+  .theme-dark .preview-content .ai-image-ratio-btn { border-color: var(--ai-image-border, #3f3f5c); color: var(--ai-image-fg, #94a3b8); }
+  .theme-dark .preview-content .ai-image-ratio-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .theme-dark .preview-content .ai-image-ratio-btn.active { background: var(--accent); border-color: var(--accent); }
+  .theme-dark .preview-content .ai-image-generate-btn { background: var(--accent); }
+  .theme-dark .preview-content .ai-image-wrapper { border-color: var(--ai-image-border, #3f3f5c); }
+  .theme-dark .preview-content .ai-image-wecom-placeholder { background: var(--ai-image-bg, #1a1a2e); color: var(--ai-image-fg, #64748b); }
   .theme-dark .preview-content .accordion-content { background: #1a1a2e; border-color: #2d2d44; }
   .theme-dark .preview-content .callout-component { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
   .theme-dark .preview-content .callout-info { background: linear-gradient(135deg, #1e3a5f 0%, #172554 100%); border-color: #60a5fa; }
