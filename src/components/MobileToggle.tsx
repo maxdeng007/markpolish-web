@@ -11,22 +11,24 @@ export default function MobileToggle({
 }: MobileToggleProps) {
   return (
     <div className="mobile-toggle-bar">
-      <button
-        type="button"
-        className={`mobile-toggle-btn ${activePanel === "editor" ? "active" : ""}`}
-        onClick={() => onToggle("editor")}
-      >
-        <Edit3 size={18} />
-        <span>Edit</span>
-      </button>
-      <button
-        type="button"
-        className={`mobile-toggle-btn ${activePanel === "preview" ? "active" : ""}`}
-        onClick={() => onToggle("preview")}
-      >
-        <Eye size={18} />
-        <span>Preview</span>
-      </button>
+      <div className="mobile-toggle-pill">
+        <button
+          type="button"
+          className={`mobile-toggle-btn ${activePanel === "editor" ? "active" : ""}`}
+          onClick={() => onToggle("editor")}
+        >
+          <Edit3 size={16} />
+          <span>Edit</span>
+        </button>
+        <button
+          type="button"
+          className={`mobile-toggle-btn ${activePanel === "preview" ? "active" : ""}`}
+          onClick={() => onToggle("preview")}
+        >
+          <Eye size={16} />
+          <span>Preview</span>
+        </button>
+      </div>
     </div>
   );
 }

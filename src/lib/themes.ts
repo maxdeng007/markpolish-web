@@ -128,6 +128,10 @@ export const themes: Record<string, Theme> = {
         --callout-title: #f8f8f2;
         --callout-text: #d0d0d0;
         --tab-header-bg: #1e1f29;
+        --accent: #bd93f9;
+        --ai-image-bg: #1e1f29;
+        --ai-image-border: #44475a;
+        --ai-image-fg: #6272a4;
       }
       .preview-content h1 { font-size: 38px; font-weight: 700; color: #f8f8f2; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #bd93f9; margin: 32px 0 16px; }
@@ -215,6 +219,10 @@ export const themes: Record<string, Theme> = {
         --callout-title: #c0caf5;
         --callout-text: #a0aec0;
         --tab-header-bg: #16161e;
+        --accent: #bb9af7;
+        --ai-image-bg: #16161e;
+        --ai-image-border: #24283b;
+        --ai-image-fg: #565f89;
       }
       .preview-content h1 { font-size: 36px; font-weight: 700; color: #c0caf5; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #bb9af7; margin: 32px 0 16px; }
@@ -266,6 +274,10 @@ export const themes: Record<string, Theme> = {
         --callout-title: #ffffff;
         --callout-text: #d0d0d0;
         --tab-header-bg: #141414;
+        --accent: #60a5fa;
+        --ai-image-bg: #141414;
+        --ai-image-border: #27272a;
+        --ai-image-fg: #a1a1aa;
       }
       .preview-content h1 { font-size: 40px; font-weight: 700; color: #ffffff; margin: 0 0 20px; }
       .preview-content h2 { font-size: 30px; font-weight: 600; color: #ffffff; margin: 32px 0 16px; }
@@ -501,6 +513,10 @@ export const themes: Record<string, Theme> = {
         --callout-title: #eceff4;
         --callout-text: #c0cad8;
         --tab-header-bg: #262c36;
+        --accent: #88c0d0;
+        --ai-image-bg: #262c36;
+        --ai-image-border: #3b4252;
+        --ai-image-fg: #a8b4c4;
       }
       .preview-content h1 { font-size: 36px; font-weight: 700; color: #eceff4; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #88c0d0; margin: 32px 0 16px; }
@@ -551,6 +567,10 @@ export const themes: Record<string, Theme> = {
         --callout-title: #fcfcfa;
         --callout-text: #c0b8c0;
         --tab-header-bg: #272528;
+        --accent: #ffd866;
+        --ai-image-bg: #272528;
+        --ai-image-border: #363337;
+        --ai-image-fg: #727072;
       }
       .preview-content h1 { font-size: 36px; font-weight: 700; color: #fcfcfa; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #ffd866; margin: 32px 0 16px; }
@@ -596,6 +616,25 @@ export const themes: Record<string, Theme> = {
         max-width: 700px;
         margin: 0 auto;
         padding: 40px 24px;
+      }
+      .preview-content h1 { font-size: 36px; font-weight: 700; color: #f5e6d3; margin: 0 0 20px; }
+      .preview-content h2 { font-size: 30px; font-weight: 600; color: #d4a574; margin: 32px 0 16px; }
+      .preview-content h3 { font-size: 22px; font-weight: 600; color: #e8b86d; margin: 24px 0 12px; }
+      .preview-content p { font-size: 16px; line-height: 1.8; margin: 16px 0; }
+      .preview-content a { color: #e8b86d; text-decoration: none; }
+      .preview-content code { background: #3d3226; padding: 2px 6px; border-radius: 4px; color: #a8c97f; }
+      .preview-content pre { background: #3d3226; padding: 16px; border-radius: 8px; overflow-x: auto; white-space: pre; }
+      .preview-content blockquote { border-left: 4px solid #d4a574; padding: 16px 20px; margin: 20px 0; color: #8b7355; font-style: italic; background: #352d20; }
+      .preview-content :root {
+        --callout-bg: #352d20;
+        --callout-accent: #d4a574;
+        --callout-title: #f5e6d3;
+        --callout-text: #c0b090;
+        --tab-header-bg: #241c12;
+        --accent: #d4a574;
+        --ai-image-bg: #241c12;
+        --ai-image-border: #3d3226;
+        --ai-image-fg: #8b7355;
       }
       .preview-content h1 { font-size: 36px; font-weight: 700; color: #f5e6d3; margin: 0 0 20px; }
       .preview-content h2 { font-size: 28px; font-weight: 600; color: #d4a574; margin: 32px 0 16px; }

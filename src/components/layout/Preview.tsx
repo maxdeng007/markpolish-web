@@ -56,7 +56,7 @@ const Preview = forwardRef<HTMLDivElement, PreviewProps>(function Preview(
         </div>
         <span className="text-xs text-muted-foreground">{theme}</span>
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-auto">
+      <div ref={scrollRef} className="flex-1 overflow-auto custom-scrollbar">
         <MarkdownPreview
           markdown={markdown}
           theme={theme}

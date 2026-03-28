@@ -14,14 +14,14 @@ import Editor from "@/components/layout/Editor";
 import Preview from "@/components/layout/Preview";
 import CompactStats from "@/components/CompactStats";
 import MobileToggle from "@/components/MobileToggle";
-import MobileMenu from "@/components/MobileMenu";
-import MobileAIPanel from "@/components/MobileAIPanel";
+import MobileMenuHandler from "@/components/MobileMenuHandler";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { shortcuts, setupDefaultShortcuts } from "@/lib/keyboard-shortcuts";
 import { fileOps } from "@/lib/file-operations";
 import { getDefaultTheme } from "@/lib/themes";
 import { Button } from "@/components/ui/button";
 import { ToastProvider, ToastContainer } from "@/components/Toast";
+import { DropdownProvider } from "@/components/ui/DropdownContext";
 import { TranslationProvider, useTranslation } from "@/hooks/useTranslation";
 import { settingsManager } from "@/lib/settings";
 import {
@@ -339,7 +339,9 @@ function App() {
     "editor" | "preview"
   >("editor");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileAIPanelOpen, setMobileAIPanelOpen] = useState(false);
+  const [mobileTemplatesOpen, setMobileTemplatesOpen] = useState(false);
+  const [mobileThemesOpen, setMobileThemesOpen] = useState(false);
+  const [mobileStatsOpen, setMobileStatsOpen] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -371,6 +373,7 @@ function App() {
 
   useEditorScrollSync(editorScrollRef, previewScrollRef, {
     enabled: scrollSync,
+    isMobile,
   });
 
   useEffect(() => {
@@ -845,70 +848,112 @@ function App() {
     });
   };
 
-  const handleMobileNavigate = (panel: string) => {
-    switch (panel) {
-      case "templates":
-        setSidebarTab("templates");
-        break;
-      case "themes":
-        setSidebarTab("themes");
-        break;
-      case "components":
-        setSidebarTab("components");
-        break;
-      case "settings":
-        setSidebarTab("settings");
-        break;
-      default:
-        break;
-    }
+  const handleSelectTemplate = (content: string) => {
+    setMarkdown(content);
   };
 
-  const handleMobileAIAction = (_action: string) => {
-    setSidebarTab("ai");
-  };
-
-  const handleMobileExport = () => {
-    setShowPDFExport(true);
+  const handleSelectTheme = (themeId: string) => {
+    setTheme(themeId);
   };
 
   return (
     <TranslationProvider>
       <ToastProvider>
         <ErrorBoundary>
-          <div
-            className={
-              isMobile
-                ? "mobile-layout"
-                : "h-screen flex flex-col bg-background"
-            }
-          >
-            {/* Header */}
-            <Header
-              markdown={markdown}
-              theme={theme}
-              themeMode={themeMode}
-              onThemeModeChange={setThemeMode}
-              scrollSync={scrollSync}
-              onToggleScrollSync={() => setScrollSync(!scrollSync)}
-              onMarkdownChange={setMarkdown}
-              showShortcutsHelp={showShortcutsHelp}
-              onToggleShortcutsHelp={() =>
-                setShowShortcutsHelp(!showShortcutsHelp)
+          <DropdownProvider>
+            <div
+              className={
+                isMobile
+                  ? "mobile-layout"
+                  : "h-screen flex flex-col bg-background"
               }
-              aiImageStates={aiImageStates}
-              onShowPDFExport={() => setShowPDFExport(true)}
-              isMobile={isMobile}
-              onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
-            />
+            >
+              {/* Header */}
+              <Header
+                markdown={markdown}
+                theme={theme}
+                themeMode={themeMode}
+                onThemeModeChange={setThemeMode}
+                scrollSync={scrollSync}
+                onToggleScrollSync={() => setScrollSync(!scrollSync)}
+                onMarkdownChange={setMarkdown}
+                showShortcutsHelp={showShortcutsHelp}
+                onToggleShortcutsHelp={() =>
+                  setShowShortcutsHelp(!showShortcutsHelp)
+                }
+                aiImageStates={aiImageStates}
+                onShowPDFExport={() => setShowPDFExport(true)}
+                isMobile={isMobile}
+                onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
+              />
 
-            {/* Main Content - Desktop: 3-panel, Mobile: single panel */}
-            {isMobile ? (
-              /* Mobile: Editor OR Preview (full width) */
-              <div className="mobile-content">
-                {activeMobilePanel === "editor" ? (
-                  <div className="editor-container active">
-                    <ErrorBoundary>
+              {/* Main Content - Desktop: 3-panel, Mobile: single panel */}
+              {isMobile ? (
+                /* Mobile: Editor OR Preview (full width) */
+                <div className="mobile-content">
+                  {activeMobilePanel === "editor" ? (
+                    <div className="editor-container active">
+                      <ErrorBoundary>
+                        <Editor
+                          markdown={markdown}
+                          onChange={setMarkdownWithHistory}
+                          ref={textareaRef}
+                          scrollRef={editorScrollRef}
+                          onInlineAction={handleInlineAction}
+                          inlineLoading={inlineLoading}
+                          inlinePreview={inlinePreview}
+                          onApplyInline={handleApplyInline}
+                          onCancelInline={handleCancelInline}
+                          onUndo={handleUndo}
+                          onRedo={handleRedo}
+                          canUndo={canUndo}
+                          canRedo={canRedo}
+                          historyIndex={historyIndex}
+                          historyLength={_history.length}
+                        />
+                      </ErrorBoundary>
+                    </div>
+                  ) : (
+                    <div className="preview-container active">
+                      <ErrorBoundary>
+                        <Preview
+                          markdown={markdown}
+                          theme={theme}
+                          previewMode={previewMode}
+                          onPreviewModeChange={setPreviewMode}
+                          aiImageStates={aiImageStates}
+                          onAIImageStatesChange={setAIImageStates}
+                          scrollRef={previewScrollRef}
+                        />
+                      </ErrorBoundary>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Desktop: 3-panel layout */
+                <div className="flex-1 flex overflow-hidden">
+                  {/* Sidebar - Left */}
+                  <ErrorBoundary>
+                    <Sidebar
+                      markdown={markdown}
+                      theme={theme}
+                      activeTab={sidebarTab}
+                      onTabChange={setSidebarTab}
+                      onMarkdownChange={setMarkdown}
+                      onThemeChange={setTheme}
+                      onInsertImage={handleInsertImage}
+                      onOpenSettings={() => setSidebarTab("settings")}
+                      getCursorPosition={getCursorPosition}
+                      onInsertAtLocation={handleInsertAtLocation}
+                      onInsertAllComponents={handleInsertAllComponents}
+                      onApplyTitle={handleApplyTitle}
+                      onPushHistory={() => pushHistory(markdown)}
+                    />
+                  </ErrorBoundary>
+
+                  {/* Editor - Center */}
+                  <ErrorBoundary>
+                    <div className="editor-container flex-1 flex flex-col overflow-hidden">
                       <Editor
                         markdown={markdown}
                         onChange={setMarkdownWithHistory}
@@ -926,11 +971,12 @@ function App() {
                         historyIndex={historyIndex}
                         historyLength={_history.length}
                       />
-                    </ErrorBoundary>
-                  </div>
-                ) : (
-                  <div className="preview-container active">
-                    <ErrorBoundary>
+                    </div>
+                  </ErrorBoundary>
+
+                  {/* Preview - Right */}
+                  <ErrorBoundary>
+                    <div className="preview-container flex-1 flex flex-col overflow-hidden bg-muted/30">
                       <Preview
                         markdown={markdown}
                         theme={theme}
@@ -940,127 +986,71 @@ function App() {
                         onAIImageStatesChange={setAIImageStates}
                         scrollRef={previewScrollRef}
                       />
-                    </ErrorBoundary>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Desktop: 3-panel layout */
-              <div className="flex-1 flex overflow-hidden">
-                {/* Sidebar - Left */}
-                <ErrorBoundary>
-                  <Sidebar
-                    markdown={markdown}
-                    theme={theme}
-                    activeTab={sidebarTab}
-                    onTabChange={setSidebarTab}
-                    onMarkdownChange={setMarkdown}
-                    onThemeChange={setTheme}
-                    onInsertImage={handleInsertImage}
-                    onOpenSettings={() => setSidebarTab("settings")}
-                    getCursorPosition={getCursorPosition}
-                    onInsertAtLocation={handleInsertAtLocation}
-                    onInsertAllComponents={handleInsertAllComponents}
-                    onApplyTitle={handleApplyTitle}
-                    onPushHistory={() => pushHistory(markdown)}
-                  />
-                </ErrorBoundary>
+                    </div>
+                  </ErrorBoundary>
+                </div>
+              )}
 
-                {/* Editor - Center */}
-                <ErrorBoundary>
-                  <Editor
-                    markdown={markdown}
-                    onChange={setMarkdownWithHistory}
-                    ref={textareaRef}
-                    scrollRef={editorScrollRef}
-                    onInlineAction={handleInlineAction}
-                    inlineLoading={inlineLoading}
-                    inlinePreview={inlinePreview}
-                    onApplyInline={handleApplyInline}
-                    onCancelInline={handleCancelInline}
-                    onUndo={handleUndo}
-                    onRedo={handleRedo}
-                    canUndo={canUndo}
-                    canRedo={canRedo}
-                    historyIndex={historyIndex}
-                    historyLength={_history.length}
-                  />
-                </ErrorBoundary>
+              {/* Mobile Toggle Bar */}
+              {isMobile && (
+                <MobileToggle
+                  activePanel={activeMobilePanel}
+                  onToggle={setActiveMobilePanel}
+                />
+              )}
 
-                {/* Preview - Right */}
-                <ErrorBoundary>
-                  <Preview
-                    markdown={markdown}
-                    theme={theme}
-                    previewMode={previewMode}
-                    onPreviewModeChange={setPreviewMode}
-                    aiImageStates={aiImageStates}
-                    onAIImageStatesChange={setAIImageStates}
-                    scrollRef={previewScrollRef}
-                  />
-                </ErrorBoundary>
-              </div>
-            )}
-
-            {/* Mobile Toggle Bar */}
-            {isMobile && (
-              <MobileToggle
-                activePanel={activeMobilePanel}
-                onToggle={setActiveMobilePanel}
-              />
-            )}
-
-            {/* Mobile Menu Overlay */}
-            {isMobile && (
-              <MobileMenu
-                isOpen={mobileMenuOpen}
-                onClose={() => setMobileMenuOpen(false)}
-                onNavigate={handleMobileNavigate}
-                onExport={handleMobileExport}
-              />
-            )}
-
-            {/* Mobile AI Panel */}
-            {isMobile && (
-              <MobileAIPanel
-                isOpen={mobileAIPanelOpen}
-                onClose={() => setMobileAIPanelOpen(false)}
-                onAIAction={handleMobileAIAction}
-              />
-            )}
-
-            {/* Compact Stats - Sticky at Bottom */}
-            <ErrorBoundary>
-              <CompactStats markdown={markdown} />
-            </ErrorBoundary>
-
-            {/* Keyboard Shortcuts Help Modal */}
-            {showShortcutsHelp && (
-              <KeyboardShortcutsModal
-                onClose={() => setShowShortcutsHelp(false)}
-              />
-            )}
-
-            {/* Lazy loaded PDF Export Modal */}
-            {showPDFExport && (
-              <Suspense
-                fallback={
-                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    Loading...
-                  </div>
-                }
-              >
-                <PDFExportModal
+              {/* Mobile Menu Handler */}
+              {isMobile && (
+                <MobileMenuHandler
+                  mobileMenuOpen={mobileMenuOpen}
+                  setMobileMenuOpen={setMobileMenuOpen}
+                  mobileTemplatesOpen={mobileTemplatesOpen}
+                  setMobileTemplatesOpen={setMobileTemplatesOpen}
+                  mobileThemesOpen={mobileThemesOpen}
+                  setMobileThemesOpen={setMobileThemesOpen}
+                  mobileStatsOpen={mobileStatsOpen}
+                  setMobileStatsOpen={setMobileStatsOpen}
                   markdown={markdown}
                   theme={theme}
-                  aiImageStates={aiImageStates}
-                  onClose={() => setShowPDFExport(false)}
+                  onSelectTemplate={handleSelectTemplate}
+                  onSelectTheme={handleSelectTheme}
+                  onMarkdownChange={setMarkdownWithHistory}
                 />
-              </Suspense>
-            )}
+              )}
 
-            <ToastContainer />
-          </div>
+              {/* Compact Stats - Sticky at Bottom */}
+              <ErrorBoundary>
+                <CompactStats markdown={markdown} />
+              </ErrorBoundary>
+
+              {/* Keyboard Shortcuts Help Modal */}
+              {showShortcutsHelp && (
+                <KeyboardShortcutsModal
+                  onClose={() => setShowShortcutsHelp(false)}
+                />
+              )}
+
+              {/* Lazy loaded PDF Export Modal */}
+              {showPDFExport && (
+                <Suspense
+                  fallback={
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                      Loading...
+                    </div>
+                  }
+                >
+                  <PDFExportModal
+                    markdown={markdown}
+                    theme={theme}
+                    aiImageStates={aiImageStates}
+                    onClose={() => setShowPDFExport(false)}
+                  />
+                </Suspense>
+              )}
+
+              <ToastContainer />
+            </div>
+          </DropdownProvider>
         </ErrorBoundary>
       </ToastProvider>
     </TranslationProvider>

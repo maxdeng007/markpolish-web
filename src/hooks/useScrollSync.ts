@@ -3,9 +3,9 @@ import { useEffect, useRef, useCallback } from "react";
 export function useEditorScrollSync(
   editorContainerRef: React.RefObject<HTMLElement | null>,
   previewContainerRef: React.RefObject<HTMLElement | null>,
-  options: { enabled: boolean },
+  options: { enabled: boolean; isMobile?: boolean },
 ) {
-  const { enabled } = options;
+  const { enabled, isMobile } = options;
   const isScrollingRef = useRef<"editor" | "preview" | null>(null);
 
   const syncEditorToPreview = useCallback(() => {
@@ -75,6 +75,8 @@ export function useEditorScrollSync(
       previewContainer.removeEventListener("scroll", syncPreviewToEditor);
     };
   }, [
+    enabled,
+    isMobile,
     syncEditorToPreview,
     syncPreviewToEditor,
     editorContainerRef,
