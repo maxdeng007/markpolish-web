@@ -43,6 +43,8 @@ interface SidebarProps {
   onInsertAllComponents?: (suggestions: Suggestion[]) => void;
   onApplyTitle?: (title: string) => void;
   onPushHistory?: () => void;
+  onOpenViralScore?: () => void;
+  onOpenContentAmplify?: () => void;
 }
 
 interface Suggestion {
@@ -66,6 +68,8 @@ export default function Sidebar({
   onInsertAllComponents,
   onApplyTitle,
   onPushHistory,
+  onOpenViralScore,
+  onOpenContentAmplify,
 }: SidebarProps) {
   const { t } = useTranslation();
 
@@ -129,6 +133,8 @@ export default function Sidebar({
               onInsertAllComponents={onInsertAllComponents}
               onApplyTitle={onApplyTitle}
               onPushHistory={onPushHistory}
+              onOpenViralScore={onOpenViralScore}
+              onOpenContentAmplify={onOpenContentAmplify}
             />
           </TabsContent>
 

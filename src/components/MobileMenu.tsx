@@ -65,6 +65,8 @@ export default function MobileMenu({
     { id: "summarize", label: t("ai.summarize"), icon: "📋" },
     { id: "translate", label: t("ai.translate"), icon: "🌐" },
     { id: "tone", label: t("ai.tone"), icon: "🎯" },
+    { id: "viralScore", label: "Viral Score", icon: "📊" },
+    { id: "amplify", label: "Amplify", icon: "📢" },
   ];
 
   const componentItems = [

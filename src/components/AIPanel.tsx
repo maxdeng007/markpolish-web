@@ -734,6 +734,8 @@ interface AIPanelProps {
   onInsertAllComponents?: (suggestions: Suggestion[]) => void;
   onApplyTitle?: (title: string) => void;
   onPushHistory?: () => void;
+  onOpenViralScore?: () => void;
+  onOpenContentAmplify?: () => void;
 }
 
 export default function AIPanel({
@@ -744,6 +746,8 @@ export default function AIPanel({
   onInsertAllComponents,
   onApplyTitle,
   onPushHistory,
+  onOpenViralScore,
+  onOpenContentAmplify,
 }: AIPanelProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -976,6 +980,10 @@ export default function AIPanel({
           setStreamingPreview(null);
           showToast(t("toasts.configRequired"), "error");
         }
+      } else if (actionId === "viralCheck") {
+        onOpenViralScore?.();
+      } else if (actionId === "amplifyContent") {
+        onOpenContentAmplify?.();
       } else {
         setStreamingPreview({
           action: t(`ai.${actionId}` as any),
@@ -1332,6 +1340,34 @@ export default function AIPanel({
                       <span className="text-lg">{action.icon}</span>
                     )}
                     <span>{t(`ai.${action.id}` as any)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Analyze Category */}
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
+              Analyze
+            </div>
+            <div className="space-y-2">
+              {["viralCheck", "amplifyContent"].map((actionId) => {
+                const action = aiActions[actionId];
+                return (
+                  <button
+                    key={action.id}
+                    title={action.description}
+                    onClick={() => handleAction(action.id)}
+                    disabled={loading || !isConfigured()}
+                    className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium transition-all duration-200 bg-gradient-to-r ${action.gradient} ${action.hoverGradient} shadow-lg ${action.shadowColor} hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <span className="text-lg">{action.icon}</span>
+                    )}
+                    <span>{action.name}</span>
                   </button>
                 );
               })}

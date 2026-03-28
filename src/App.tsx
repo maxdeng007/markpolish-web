@@ -16,6 +16,8 @@ import CompactStats from "@/components/CompactStats";
 import MobileToggle from "@/components/MobileToggle";
 import MobileMenuHandler from "@/components/MobileMenuHandler";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import DesktopViralScorePanel from "@/components/DesktopViralScorePanel";
+import DesktopContentAmplifyPanel from "@/components/DesktopContentAmplifyPanel";
 import { shortcuts, setupDefaultShortcuts } from "@/lib/keyboard-shortcuts";
 import { fileOps } from "@/lib/file-operations";
 import { getDefaultTheme } from "@/lib/themes";
@@ -342,6 +344,8 @@ function App() {
   const [mobileTemplatesOpen, setMobileTemplatesOpen] = useState(false);
   const [mobileThemesOpen, setMobileThemesOpen] = useState(false);
   const [mobileStatsOpen, setMobileStatsOpen] = useState(false);
+  const [viralScoreOpen, setViralScoreOpen] = useState(false);
+  const [contentAmplifyOpen, setContentAmplifyOpen] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -948,6 +952,8 @@ function App() {
                       onInsertAllComponents={handleInsertAllComponents}
                       onApplyTitle={handleApplyTitle}
                       onPushHistory={() => pushHistory(markdown)}
+                      onOpenViralScore={() => setViralScoreOpen(true)}
+                      onOpenContentAmplify={() => setContentAmplifyOpen(true)}
                     />
                   </ErrorBoundary>
 
@@ -1049,6 +1055,24 @@ function App() {
               )}
 
               <ToastContainer />
+
+              {/* Desktop Viral Score Panel */}
+              <DesktopViralScorePanel
+                isOpen={viralScoreOpen}
+                onClose={() => setViralScoreOpen(false)}
+                markdown={markdown}
+                onApplySuggestion={(improvedContent) => {
+                  setMarkdownWithHistory(improvedContent);
+                  setViralScoreOpen(false);
+                }}
+              />
+
+              {/* Desktop Content Amplify Panel */}
+              <DesktopContentAmplifyPanel
+                isOpen={contentAmplifyOpen}
+                onClose={() => setContentAmplifyOpen(false)}
+                markdown={markdown}
+              />
             </div>
           </DropdownProvider>
         </ErrorBoundary>

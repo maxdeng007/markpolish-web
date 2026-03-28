@@ -340,6 +340,102 @@ Return ONLY the rewritten content, no explanations.
 Original content:
 ${content}`,
   },
+
+  viralCheck: {
+    id: "viralCheck",
+    name: "Viral Score",
+    description: "Check viral potential",
+    icon: "📊",
+    gradient: "from-orange-400 to-amber-500",
+    hoverGradient: "hover:from-orange-500 hover:to-amber-600",
+    shadowColor: "shadow-amber-500/25",
+    prompt: (content: string) => `${getLanguageHint(content)}
+
+Analyze this content for viral potential on Chinese social media (WeChat, Xiaohongshu) and Western platforms (Twitter/X, LinkedIn).
+
+Scoring criteria (0-100 total):
+1. HOOK STRENGTH (0-25): Does the opening create curiosity, surprise, or urgency in the first 20 characters?
+2. STRUCTURE (0-25): Short paragraphs (3-4 sentences), lists, visual breaks, scannable?
+3. EMOTIONAL TRIGGER (0-25): Does it evoke emotion — surprise, delight, anger, urgency, inspiration?
+4. CLARITY & ACTION (0-25): Clear message, strong CTA or engaging question at the end?
+
+Return as a JSON object (no markdown, no code blocks, just pure JSON):
+{
+  "totalScore": 0-100,
+  "platformScores": { "wechat": 0-100, "xiaohongshu": 0-100, "twitter": 0-100, "linkedin": 0-100 },
+  "breakdown": {
+    "hook": { "score": 0-25, "verdict": "strong|weak|missing", "reason": "brief reason" },
+    "structure": { "score": 0-25, "verdict": "string", "reason": "brief reason" },
+    "emotion": { "score": 0-25, "verdict": "string", "reason": "brief reason" },
+    "clarity": { "score": 0-25, "verdict": "string", "reason": "brief reason" }
+  },
+  "suggestions": [
+    { "element": "hook|structure|emotion|clarity", "issue": "specific problem", "fix": "specific actionable fix", "example": "example of improvement" }
+  ]
+}
+
+Content to analyze:
+${content}`,
+  },
+
+  amplifyContent: {
+    id: "amplifyContent",
+    name: "Content Amplifier",
+    description: "Adapt for multiple platforms",
+    icon: "📣",
+    gradient: "from-cyan-400 to-blue-500",
+    hoverGradient: "hover:from-cyan-500 hover:to-blue-600",
+    shadowColor: "shadow-blue-500/25",
+    prompt: (content: string) => `${getLanguageHint(content)}
+
+You are a content adaptation expert. Transform the following content for 5 different social media platforms.
+
+Detect the language of the input. If Chinese, output Chinese. If English, output English.
+
+Return as a JSON array (no markdown, no code blocks, just pure JSON):
+{
+  "variants": [
+    {
+      "platform": "wechat",
+      "platformName": "WeChat Article",
+      "content": "adapted content for WeChat — conversational, warm, 800-2000 chars, minimal emojis, CTA at end",
+      "length": "around 1000 characters",
+      "emojiCount": "3-5"
+    },
+    {
+      "platform": "xiaohongshu",
+      "platformName": "RED (Xiaohongshu)",
+      "content": "adapted content for Xiaohongshu — personal, relatable, 300-600 chars, heavy emojis (8-15), hashtags at end",
+      "length": "around 400 characters",
+      "emojiCount": "8-15"
+    },
+    {
+      "platform": "zhihu",
+      "platformName": "Zhihu",
+      "content": "adapted content for Zhihu — educational, authoritative, 500-1500 chars, minimal emojis, # topics",
+      "length": "around 800 characters",
+      "emojiCount": "0-2"
+    },
+    {
+      "platform": "twitter",
+      "platformName": "Twitter/X",
+      "content": "adapted content for Twitter — punchy, hook-first, under 280 chars, 1-3 emojis",
+      "length": "under 280 characters",
+      "emojiCount": "1-3"
+    },
+    {
+      "platform": "linkedin",
+      "platformName": "LinkedIn",
+      "content": "adapted content for LinkedIn — professional, insights-focused, under 300 chars, 0-1 emoji, professional CTA",
+      "length": "under 300 characters",
+      "emojiCount": "0-1"
+    }
+  ]
+}
+
+Original content:
+${content}`,
+  },
 };
 
 // Real AI API calls

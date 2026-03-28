@@ -5,6 +5,8 @@ import MobileTemplatesPanel from "./MobileTemplatesPanel";
 import MobileThemesPanel from "./MobileThemesPanel";
 import MobileStatsPanel from "./MobileStatsPanel";
 import MobileAISettingsSheet from "./MobileAISettingsSheet";
+import ViralScorePanel from "./ViralScorePanel";
+import ContentAmplifyPanel from "./ContentAmplifyPanel";
 import {
   callAIStream,
   aiActions,
@@ -47,6 +49,8 @@ export default function MobileMenuHandler({
   const { showToast } = useToast();
   const [mobileAILoading, setMobileAILoading] = useState(false);
   const [mobileAISettingsOpen, setMobileAISettingsOpen] = useState(false);
+  const [viralScoreOpen, setViralScoreOpen] = useState(false);
+  const [contentAmplifyOpen, setContentAmplifyOpen] = useState(false);
   const pendingAIActionRef = useRef<string | null>(null);
 
   const handleCopyToClipboard = useCallback(
@@ -165,6 +169,12 @@ Content:
 ${content}`,
           };
           break;
+        case "viralScore":
+          setViralScoreOpen(true);
+          return;
+        case "amplify":
+          setContentAmplifyOpen(true);
+          return;
         case "title":
         default:
           showToast(
@@ -235,6 +245,20 @@ ${content}`,
             setTimeout(() => handleMobileAIAction(pending), 100);
           }
         }}
+      />
+      <ViralScorePanel
+        isOpen={viralScoreOpen}
+        onClose={() => setViralScoreOpen(false)}
+        markdown={markdown}
+        onApplySuggestion={(improvedContent) => {
+          onMarkdownChange(improvedContent);
+          setViralScoreOpen(false);
+        }}
+      />
+      <ContentAmplifyPanel
+        isOpen={contentAmplifyOpen}
+        onClose={() => setContentAmplifyOpen(false)}
+        markdown={markdown}
       />
       {mobileAILoading && (
         <div className="mobile-ai-loading-mask">
