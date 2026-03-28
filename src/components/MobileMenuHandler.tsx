@@ -200,15 +200,6 @@ ${content}`,
     [markdown, onMarkdownChange, showToast],
   );
 
-  const handleAISettingsSave = useCallback(() => {
-    setMobileAISettingsOpen(false);
-    if (pendingAIActionRef.current) {
-      const pending = pendingAIActionRef.current;
-      pendingAIActionRef.current = null;
-      setTimeout(() => handleMobileAIAction(pending), 100);
-    }
-  }, [handleMobileAIAction]);
-
   return (
     <>
       <MobileMenu
@@ -238,9 +229,12 @@ ${content}`,
         isOpen={mobileAISettingsOpen}
         onClose={() => {
           setMobileAISettingsOpen(false);
-          pendingAIActionRef.current = null;
+          if (pendingAIActionRef.current) {
+            const pending = pendingAIActionRef.current;
+            pendingAIActionRef.current = null;
+            setTimeout(() => handleMobileAIAction(pending), 100);
+          }
         }}
-        onSave={handleAISettingsSave}
       />
       {mobileAILoading && (
         <div className="mobile-ai-loading-mask">

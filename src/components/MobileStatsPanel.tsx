@@ -1,140 +1,11 @@
 import { createPortal } from "react-dom";
-import { useState, useEffect } from "react";
-import { X, BarChart3, FileText, Clock, Hash } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { BarChart3, FileText, Clock, Hash } from "lucide-react";
 
 interface MobileStatsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   markdown: string;
-}
-
-export default function MobileStatsPanel({
-  isOpen,
-  onClose,
-  markdown,
-}: MobileStatsPanelProps) {
-  const [isDark, setIsDark] = useState(false);
-  const stats = calculateStats(markdown);
-
-  useEffect(() => {
-    const checkDark = () => {
-      setIsDark(document.documentElement.classList.contains("dark"));
-    };
-    checkDark();
-    const observer = new MutationObserver(checkDark);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  const overlayStyle: React.CSSProperties = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.5)",
-    zIndex: 10013,
-    opacity: isOpen ? 1 : 0,
-    visibility: isOpen ? "visible" : "hidden",
-    pointerEvents: isOpen ? "auto" : "none",
-    transition: "opacity 0.3s ease, visibility 0.3s ease",
-  };
-
-  const contentStyle: React.CSSProperties = {
-    position: "fixed",
-    top: "50%",
-    left: "50%",
-    transform: isOpen ? "translate(-50%, -50%)" : "translate(-50%, -40%)",
-    width: "92%",
-    maxWidth: "360px",
-    background: isDark ? "#1a1a1a" : "#ffffff",
-    borderRadius: "16px",
-    overflow: "hidden",
-    opacity: isOpen ? 1 : 0,
-    transition: "opacity 0.3s ease, transform 0.3s ease",
-  };
-
-  const panelContent = (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={contentStyle} onClick={(e) => e.stopPropagation()}>
-        <div className="mobile-panel-header">
-          <span className="mobile-panel-title">
-            <BarChart3
-              size={18}
-              style={{ marginRight: 8, display: "inline" }}
-            />
-            Document Statistics
-          </span>
-          <button
-            type="button"
-            className="mobile-panel-close"
-            onClick={onClose}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="mobile-stats-body">
-          <div className="mobile-stats-grid">
-            <div className="mobile-stat-card">
-              <FileText size={24} className="mobile-stat-icon" />
-              <div className="mobile-stat-value">{stats.words}</div>
-              <div className="mobile-stat-label">Words</div>
-            </div>
-            <div className="mobile-stat-card">
-              <Hash size={24} className="mobile-stat-icon" />
-              <div className="mobile-stat-value">{stats.characters}</div>
-              <div className="mobile-stat-label">Characters</div>
-            </div>
-            <div className="mobile-stat-card">
-              <Clock size={24} className="mobile-stat-icon" />
-              <div className="mobile-stat-value">{stats.readingTime}</div>
-              <div className="mobile-stat-label">Min Read</div>
-            </div>
-            <div className="mobile-stat-card">
-              <FileText size={24} className="mobile-stat-icon" />
-              <div className="mobile-stat-value">{stats.lines}</div>
-              <div className="mobile-stat-label">Lines</div>
-            </div>
-          </div>
-          <div className="mobile-stats-detail">
-            <div className="mobile-stats-row">
-              <span>Headings</span>
-              <span>{stats.headings}</span>
-            </div>
-            <div className="mobile-stats-row">
-              <span>Paragraphs</span>
-              <span>{stats.paragraphs}</span>
-            </div>
-            <div className="mobile-stats-row">
-              <span>Lists</span>
-              <span>{stats.listItems}</span>
-            </div>
-            <div className="mobile-stats-row">
-              <span>Images</span>
-              <span>{stats.images}</span>
-            </div>
-            <div className="mobile-stats-row">
-              <span>Links</span>
-              <span>{stats.links}</span>
-            </div>
-            <div className="mobile-stats-row">
-              <span>Code Blocks</span>
-              <span>{stats.codeBlocks}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  return createPortal(panelContent, document.body);
 }
 
 function calculateStats(markdown: string) {
@@ -173,4 +44,236 @@ function calculateStats(markdown: string) {
     links,
     codeBlocks,
   };
+}
+
+export default function MobileStatsPanel({
+  isOpen,
+  onClose,
+  markdown,
+}: MobileStatsPanelProps) {
+  const [isDark, setIsDark] = useState(false);
+  const stats = calculateStats(markdown);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    const checkDark = () => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    };
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    setIsDragging(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+    if (deltaY <= 0) {
+      setIsDragging(false);
+      return;
+    }
+    setIsDragging(true);
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = `translateY(${deltaY}px)`;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = "";
+    }
+    if (isDragging && deltaY > 80) {
+      onClose();
+    }
+    setIsDragging(false);
+  };
+
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const bg = isDark ? "#1a1a1a" : "#ffffff";
+  const border = isDark ? "#333" : "#e5e7eb";
+  const textColor = isDark ? "#ffffff" : "#111";
+  const mutedColor = isDark ? "#888" : "#6b7280";
+  const cardBg = isDark ? "#2a2a2a" : "#f5f5f5";
+
+  const overlayStyle: React.CSSProperties = {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: isDark ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.5)",
+    zIndex: 10020,
+    opacity: isOpen ? 1 : 0,
+    visibility: isOpen ? "visible" : "hidden",
+    pointerEvents: isOpen ? "auto" : "none",
+    transition: "opacity 0.3s ease, visibility 0.3s ease",
+  };
+
+  const sheetStyle: React.CSSProperties = {
+    position: "fixed",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: "85vh",
+    borderTopLeftRadius: "20px",
+    borderTopRightRadius: "20px",
+    zIndex: 10021,
+    background: bg,
+    transform: isOpen ? "translateY(0)" : "translateY(100%)",
+    transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    boxShadow: "0 -8px 40px rgba(0, 0, 0, 0.15)",
+  };
+
+  const panelContent = (
+    <>
+      <div style={overlayStyle} onClick={onClose} />
+      <div
+        ref={sheetRef}
+        style={sheetStyle}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            padding: "12px 0 4px",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "4px",
+              borderRadius: "2px",
+              background: border,
+            }}
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "4px 20px 12px",
+            flexShrink: 0,
+          }}
+        >
+          <BarChart3 size={20} style={{ color: "#3b82f6" }} />
+          <span style={{ fontSize: "18px", fontWeight: 600, color: textColor }}>
+            Document Statistics
+          </span>
+        </div>
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "0 20px 24px",
+            overscrollBehavior: "contain",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: "12px",
+              marginBottom: "20px",
+            }}
+          >
+            {[
+              { icon: FileText, value: stats.words, label: "Words" },
+              { icon: Hash, value: stats.characters, label: "Chars" },
+              { icon: Clock, value: stats.readingTime, label: "Min Read" },
+              { icon: FileText, value: stats.lines, label: "Lines" },
+            ].map(({ icon: Icon, value, label }) => (
+              <div
+                key={label}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "12px 8px",
+                  background: cardBg,
+                  borderRadius: "12px",
+                }}
+              >
+                <Icon size={20} style={{ color: "#3b82f6" }} />
+                <span
+                  style={{
+                    fontSize: "20px",
+                    fontWeight: 700,
+                    color: textColor,
+                  }}
+                >
+                  {value}
+                </span>
+                <span style={{ fontSize: "11px", color: mutedColor }}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div
+            style={{
+              borderTop: `1px solid ${border}`,
+              paddingTop: "16px",
+            }}
+          >
+            {[
+              ["Headings", stats.headings],
+              ["Paragraphs", stats.paragraphs],
+              ["Lists", stats.listItems],
+              ["Images", stats.images],
+              ["Links", stats.links],
+              ["Code Blocks", stats.codeBlocks],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "10px 0",
+                  borderBottom: `1px solid ${border}`,
+                }}
+              >
+                <span style={{ fontSize: "14px", color: mutedColor }}>
+                  {label}
+                </span>
+                <span
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: textColor,
+                  }}
+                >
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  return createPortal(panelContent, document.body);
 }
