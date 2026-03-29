@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TrendingUp, X, Lightbulb } from "lucide-react";
-import { generateViralScores } from "@/lib/mock-data";
+import { generateViralScores, smartReplace } from "@/lib/mock-data";
 
 interface ViralScorePanelProps {
   isOpen: boolean;
@@ -576,7 +576,13 @@ export default function ViralScorePanel({
                           <button
                             type="button"
                             onClick={() => {
-                              onApplySuggestion(suggestion.example);
+                              onApplySuggestion(
+                                smartReplace(
+                                  markdown,
+                                  suggestion.element,
+                                  suggestion.example,
+                                ),
+                              );
                               const newDismissed = new Set(
                                 dismissedSuggestions,
                               );

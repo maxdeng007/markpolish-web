@@ -218,3 +218,62 @@ export function generateAmplifyVariants(markdown: string) {
     ],
   };
 }
+
+export function smartReplace(
+  markdown: string,
+  element: string,
+  example: string,
+): string {
+  switch (element) {
+    case "hook": {
+      const firstParaEnd = markdown.indexOf("\n\n");
+      if (firstParaEnd === -1) {
+        return example + "\n\n" + markdown;
+      }
+      return example + "\n\n" + markdown.substring(firstParaEnd + 2);
+    }
+    case "structure": {
+      const lines = markdown.split("\n");
+      let inCodeBlock = false;
+      let inserted = false;
+      const result: string[] = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.startsWith("```")) inCodeBlock = !inCodeBlock;
+        if (
+          !inCodeBlock &&
+          !inserted &&
+          line.trim() &&
+          !line.startsWith("#") &&
+          line.trim().length > 80
+        ) {
+          result.push(line);
+          result.push(example);
+          inserted = true;
+        } else {
+          result.push(line);
+        }
+      }
+      if (!inserted) {
+        const insertAt = Math.floor(lines.length * 0.4);
+        lines.splice(insertAt, 0, "", example);
+        return lines.join("\n");
+      }
+      return result.join("\n");
+    }
+    case "emotion": {
+      const lastParaStart = markdown.lastIndexOf("\n\n");
+      if (lastParaStart === -1) {
+        return markdown + "\n\n" + example;
+      }
+      return (
+        markdown.substring(0, lastParaStart) +
+        "\n\n" +
+        example +
+        markdown.substring(lastParaStart + 2)
+      );
+    }
+    default:
+      return markdown;
+  }
+}

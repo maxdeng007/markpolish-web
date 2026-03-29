@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, TrendingUp, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { generateViralScores } from "@/lib/mock-data";
+import { generateViralScores, smartReplace } from "@/lib/mock-data";
 
 interface DesktopViralScorePanelProps {
   isOpen: boolean;
@@ -223,7 +223,9 @@ export default function DesktopViralScorePanel({
                           </button>
                           <button
                             onClick={() => {
-                              onApplySuggestion(s.example);
+                              onApplySuggestion(
+                                smartReplace(markdown, s.element, s.example),
+                              );
                               const next = new Set(dismissedSuggestions);
                               next.add(i);
                               setDismissedSuggestions(next);
