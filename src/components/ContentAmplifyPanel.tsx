@@ -67,55 +67,12 @@ export default function ContentAmplifyPanel({
 
     await new Promise((r) => setTimeout(r, 400));
 
-    const mockResult: AmplifyResult = {
-      variants: [
-        {
-          platform: "wechat",
-          platformName: "WeChat Article",
-          content:
-            "我发现了一个让工作效率提升3倍的秘密...\n\n很多人每天都在忙，但到头来发现根本没做什么有价值的事。\n\n今天分享3个我亲身实践过的方法：\n\n1. 先做最重要的那件事\n每天早上第一件事，先把最难的任务搞定。后面的事会顺其自然。\n\n2. 设定明确的时间边界\n不要让工作侵占生活，也不要让生活影响工作。设定边界，才能持续。\n\n3. 定期复盘\n每周花30分钟回顾：这周做了什么？哪些做得好？哪些可以改进？\n\n你的效率秘诀是什么？评论区聊聊 👇",
-          length: "around 1000 chars",
-          emojiCount: "2 emojis",
-        },
-        {
-          platform: "xiaohongshu",
-          platformName: "RED (Xiaohongshu)",
-          content:
-            "3个习惯让我效率翻倍！✨\n\n以前我也是那种天天加班但没产出的人😢\n\n后来试了这3招真的绝了！👇\n\n① 早起先做最难的事 超有用！\n② 设定工作边界 下班不焦虑🙌\n③ 每周复盘 进步看得见✨\n\n#效率提升 #自我成长 #职场干货 #时间管理",
-          length: "around 400 chars",
-          emojiCount: "9 emojis",
-        },
-        {
-          platform: "zhihu",
-          platformName: "Zhihu",
-          content:
-            "# 提升工作效率的3个核心习惯\n\n职场中，效率决定竞争力。以下是经过实践验证的3个习惯：\n\n**1. 优先级驱动的工作法**\n每天首先完成最重要的任务，而非紧急的任务。这确保核心目标持续推进。\n\n**2. 时间边界的主动管理**\n明确区分工作时间和个人时间，避免相互侵蚀，提高每段时间的质量。\n\n**3. 周期性复盘机制**\n通过周复盘发现问题、总结经验，形成持续改进的闭环。\n\n#职场发展 #效率工具 #个人成长",
-          length: "around 600 chars",
-          emojiCount: "1 emoji",
-        },
-        {
-          platform: "twitter",
-          platformName: "Twitter/X",
-          content:
-            "3 decisions that 10x'd my productivity:\n\n1. Do the hard thing FIRST\n2. Set strict time boundaries\n3. Weekly reviews\n\nThe power of compound improvement is underrated.",
-          length: "under 280 chars",
-          emojiCount: "1 emoji",
-        },
-        {
-          platform: "linkedin",
-          platformName: "LinkedIn",
-          content:
-            "3 evidence-based habits that dramatically improved my productivity:\n\n1. Prioritize most important task first\n2. Set clear time boundaries\n3. Weekly reflection and adjustment\n\nThese compound significantly over time. What productivity habits have worked best for you? 👇",
-          length: "under 300 chars",
-          emojiCount: "0 emojis",
-        },
-      ],
-    };
+    const mockResult = generateAmplifyVariants(markdown);
 
     setLoading(null);
     setResult(mockResult);
     setActiveTab(0);
-  }, []);
+  }, [markdown]);
 
   useEffect(() => {
     if (!isOpen) {
