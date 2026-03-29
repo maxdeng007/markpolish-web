@@ -37,6 +37,82 @@ export default function MobileMenu({
   const [componentsExpanded, setComponentsExpanded] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
+  const menuItems = [
+    { id: "templates", label: t("mobileMenu.templates"), icon: FileText },
+    { id: "themes", label: t("mobileMenu.themes"), icon: Palette },
+    {
+      id: "components",
+      label: t("mobileMenu.components"),
+      icon: Grid3X3,
+      expandable: true,
+    },
+    { id: "stats", label: t("mobileMenu.stats"), icon: BarChart3 },
+    {
+      id: "ai",
+      label: t("mobileMenu.aiActions"),
+      icon: Sparkles,
+      expandable: true,
+    },
+    { id: "settings", label: t("mobileMenu.aiSettings"), icon: Settings },
+  ];
+
+  const componentItems = [
+    {
+      id: "hero",
+      label: t("mobileMenu.hero"),
+      icon: Layout,
+      template: componentTemplates.hero,
+    },
+    {
+      id: "col-2",
+      label: t("mobileMenu.col2"),
+      icon: Layout,
+      template: componentTemplates["col-2"],
+    },
+    {
+      id: "col-3",
+      label: t("mobileMenu.col3"),
+      icon: Layout,
+      template: componentTemplates["col-3"],
+    },
+    {
+      id: "steps",
+      label: t("mobileMenu.steps"),
+      icon: Layout,
+      template: componentTemplates.steps,
+    },
+    {
+      id: "timeline",
+      label: t("mobileMenu.timeline"),
+      icon: Layout,
+      template: componentTemplates.timeline,
+    },
+    {
+      id: "card",
+      label: t("mobileMenu.card"),
+      icon: Layout,
+      template: componentTemplates.card,
+    },
+    {
+      id: "video",
+      label: t("mobileMenu.video"),
+      icon: Video,
+      template: '\n\n<video src="" controls></video>\n\n',
+    },
+    {
+      id: "callout",
+      label: t("mobileMenu.callout"),
+      icon: AlertCircle,
+      template: componentTemplates.callout,
+    },
+    {
+      id: "quote",
+      label: t("mobileMenu.quote"),
+      icon: Type,
+      template: componentTemplates.quote,
+    },
+  ];
+
   useEffect(() => {
     const checkDark = () => {
       setIsDark(document.documentElement.classList.contains("dark"));
@@ -50,80 +126,14 @@ export default function MobileMenu({
     return () => observer.disconnect();
   }, []);
 
-  const menuItems = [
-    { id: "templates", label: "Templates", icon: FileText },
-    { id: "themes", label: "Themes", icon: Palette },
-    { id: "components", label: "Components", icon: Grid3X3, expandable: true },
-    { id: "stats", label: "Stats", icon: BarChart3 },
-    { id: "ai", label: "AI Actions", icon: Sparkles, expandable: true },
-    { id: "settings", label: "AI Settings", icon: Settings },
-  ];
-
   const aiActions = [
     { id: "expand", label: t("ai.expandContent"), icon: "📈" },
     { id: "polish", label: t("ai.polish"), icon: "✨" },
     { id: "summarize", label: t("ai.summarize"), icon: "📋" },
     { id: "translate", label: t("ai.translate"), icon: "🌐" },
     { id: "tone", label: t("ai.tone"), icon: "🎯" },
-    { id: "viralScore", label: "Viral Score", icon: "📊" },
-    { id: "amplify", label: "Amplify", icon: "📢" },
-  ];
-
-  const componentItems = [
-    {
-      id: "hero",
-      label: "Hero",
-      icon: Layout,
-      template: componentTemplates.hero,
-    },
-    {
-      id: "col-2",
-      label: "Columns (2)",
-      icon: Layout,
-      template: componentTemplates["col-2"],
-    },
-    {
-      id: "col-3",
-      label: "Columns (3)",
-      icon: Layout,
-      template: componentTemplates["col-3"],
-    },
-    {
-      id: "steps",
-      label: "Steps",
-      icon: Layout,
-      template: componentTemplates.steps,
-    },
-    {
-      id: "timeline",
-      label: "Timeline",
-      icon: Layout,
-      template: componentTemplates.timeline,
-    },
-    {
-      id: "card",
-      label: "Card",
-      icon: Layout,
-      template: componentTemplates.card,
-    },
-    {
-      id: "video",
-      label: "Video",
-      icon: Video,
-      template: '\n\n<video src="" controls></video>\n\n',
-    },
-    {
-      id: "callout",
-      label: "Callout",
-      icon: AlertCircle,
-      template: componentTemplates.callout,
-    },
-    {
-      id: "quote",
-      label: "Quote",
-      icon: Type,
-      template: componentTemplates.quote,
-    },
+    { id: "viralScore", label: t("viralScore.title"), icon: "📊" },
+    { id: "amplify", label: t("contentAmplify.title"), icon: "📢" },
   ];
 
   const handleItemClick = (itemId: string) => {
@@ -193,7 +203,7 @@ export default function MobileMenu({
       <div style={overlayStyle} onClick={onClose} />
       <div style={panelStyle}>
         <div className="mobile-menu-header">
-          <span className="mobile-menu-title">Menu</span>
+          <span className="mobile-menu-title">{t("mobileMenu.menu")}</span>
           <button type="button" className="mobile-menu-close" onClick={onClose}>
             <X size={20} />
           </button>

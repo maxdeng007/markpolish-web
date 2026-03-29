@@ -1,4 +1,5 @@
 import { Edit3, Eye } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface MobileToggleProps {
   activePanel: "editor" | "preview";
@@ -9,6 +10,7 @@ export default function MobileToggle({
   activePanel,
   onToggle,
 }: MobileToggleProps) {
+  const { t } = useTranslation();
   return (
     <div className="mobile-toggle-bar">
       <div className="mobile-toggle-pill">
@@ -18,7 +20,7 @@ export default function MobileToggle({
           onClick={() => onToggle("editor")}
         >
           <Edit3 size={16} />
-          <span>Edit</span>
+          <span>{t("header.edit")}</span>
         </button>
         <button
           type="button"
@@ -26,7 +28,7 @@ export default function MobileToggle({
           onClick={() => onToggle("preview")}
         >
           <Eye size={16} />
-          <span>Preview</span>
+          <span>{t("header.preview")}</span>
         </button>
       </div>
     </div>

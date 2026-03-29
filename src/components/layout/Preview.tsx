@@ -1,6 +1,8 @@
 import { forwardRef } from "react";
 import MarkdownPreview, { AIImageState } from "@/components/MarkdownPreview";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
+import { getTheme } from "@/lib/themes";
 
 interface PreviewProps {
   markdown: string;
@@ -24,11 +26,12 @@ const Preview = forwardRef<HTMLDivElement, PreviewProps>(function Preview(
   },
   _ref,
 ) {
+  const { t } = useTranslation();
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-muted/30">
       <div className="border-b border-border px-4 py-2 bg-muted/50 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium">Preview</h3>
+          <h3 className="text-sm font-medium">{t("header.preview")}</h3>
           <div className="flex rounded-md bg-muted p-0.5">
             <button
               onClick={() => onPreviewModeChange("full")}
@@ -39,7 +42,7 @@ const Preview = forwardRef<HTMLDivElement, PreviewProps>(function Preview(
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              Full
+              {t("header.fullPreview")}
             </button>
             <button
               onClick={() => onPreviewModeChange("wecom")}
@@ -50,11 +53,13 @@ const Preview = forwardRef<HTMLDivElement, PreviewProps>(function Preview(
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              WeCom
+              {t("header.wecomPreview")}
             </button>
           </div>
         </div>
-        <span className="text-xs text-muted-foreground">{theme}</span>
+        <span className="text-xs text-muted-foreground">
+          {t(getTheme(theme)?.nameKey || theme)}
+        </span>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-auto custom-scrollbar">
         <MarkdownPreview

@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Megaphone, X, Copy, Check } from "lucide-react";
 import { generateAmplifyVariants } from "@/lib/mock-data";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ContentAmplifyPanelProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export default function ContentAmplifyPanel({
   onClose,
   markdown,
 }: ContentAmplifyPanelProps) {
+  const { t } = useTranslation();
   const [result, setResult] = useState<AmplifyResult | null>(null);
   const [loading, setLoading] = useState<LoadingState | null>(null);
   const [isDark, setIsDark] = useState(false);
@@ -225,7 +227,7 @@ export default function ContentAmplifyPanel({
             <span
               style={{ fontSize: "18px", fontWeight: 600, color: textColor }}
             >
-              Content Amplifier
+              {t("contentAmplify.title")}
             </span>
           </div>
           <button
@@ -416,13 +418,15 @@ export default function ContentAmplifyPanel({
                     {copiedIndex === activeTab ? (
                       <>
                         <Check size={18} />
-                        Copied!
+                        {t("contentAmplify.copied")}
                       </>
                     ) : (
                       <>
                         <Copy size={18} />
-                        Copy for{" "}
-                        {result.variants[activeTab].platformName.split(" ")[0]}
+                        {t("contentAmplify.copyFor").replace(
+                          "{platform}",
+                          result.variants[activeTab].platformName.split(" ")[0],
+                        )}
                       </>
                     )}
                   </button>

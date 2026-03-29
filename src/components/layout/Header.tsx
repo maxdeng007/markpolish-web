@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Menu,
   MoreHorizontal,
+  Languages,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dropdown } from "@/components/ui/dropdown";
@@ -62,7 +63,7 @@ export default function Header({
   isMobile,
   onToggleMobileMenu,
 }: HeaderProps) {
-  const { t } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const { showToast } = useToast();
 
   const cycleThemeMode = () => {
@@ -178,7 +179,7 @@ export default function Header({
               trigger={
                 <Button variant="default" className="gap-1 text-xs h-9 px-3">
                   <Download className="w-4 h-4" />
-                  Export
+                  {t("header.export")}
                   <ChevronDown className="w-3 h-3 opacity-70" />
                 </Button>
               }
@@ -206,6 +207,11 @@ export default function Header({
                   label: t("header.themeDark"),
                   icon: <Moon className="w-4 h-4 shrink-0" />,
                   onClick: () => onThemeModeChange("dark"),
+                },
+                {
+                  label: language === "en" ? "切换到中文" : "Switch to English",
+                  icon: <Languages className="w-4 h-4 shrink-0" />,
+                  onClick: () => setLanguage(language === "en" ? "zh" : "en"),
                 },
                 { label: "", isDivider: true },
                 {

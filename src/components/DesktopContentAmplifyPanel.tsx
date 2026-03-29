@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Megaphone, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateAmplifyVariants } from "@/lib/mock-data";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface DesktopContentAmplifyPanelProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function DesktopContentAmplifyPanel({
   onClose,
   markdown,
 }: DesktopContentAmplifyPanelProps) {
+  const { t } = useTranslation();
   const [result, setResult] = useState<AmplifyResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -82,7 +84,9 @@ export default function DesktopContentAmplifyPanel({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <Megaphone className="w-5 h-5 text-cyan-500" />
-            <h2 className="text-lg font-semibold">Content Amplifier</h2>
+            <h2 className="text-lg font-semibold">
+              {t("contentAmplify.title")}
+            </h2>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -94,7 +98,7 @@ export default function DesktopContentAmplifyPanel({
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <div className="w-12 h-12 rounded-full border-4 border-muted border-t-cyan-500 animate-spin" />
               <p className="text-sm text-muted-foreground">
-                Creating platform variants...
+                {t("contentAmplify.creating")}
               </p>
             </div>
           )}
@@ -154,17 +158,17 @@ export default function DesktopContentAmplifyPanel({
                       {copiedIndex === activeTab ? (
                         <>
                           <Check className="w-4 h-4" />
-                          Copied!
+                          {t("contentAmplify.copied")}
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
-                          Copy for{" "}
-                          {
+                          {t("contentAmplify.copyFor").replace(
+                            "{platform}",
                             result.variants[activeTab].platformName.split(
                               " ",
-                            )[0]
-                          }
+                            )[0],
+                          )}
                         </>
                       )}
                     </button>

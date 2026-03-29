@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { settingsManager } from "@/lib/settings";
 import { aiProviders, fetchProviderModels } from "@/lib/ai-providers";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface MobileAISettingsSheetProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface CustomDropdownProps {
   onChange: (value: string) => void;
   isDark: boolean;
   loading?: boolean;
+  loadingText?: string;
   flipAbove?: boolean;
 }
 
@@ -31,6 +33,7 @@ function CustomDropdown({
   onChange,
   isDark,
   loading,
+  loadingText = "Loading...",
   flipAbove,
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -78,7 +81,7 @@ function CustomDropdown({
         }}
       >
         <span style={{ flex: 1, textAlign: "left" }}>
-          {loading ? "Loading..." : selectedOption?.label || value}
+          {loading ? loadingText : selectedOption?.label || value}
         </span>
         <ChevronDown
           size={16}
@@ -164,6 +167,7 @@ export default function MobileAISettingsSheet({
   isOpen,
   onClose,
 }: MobileAISettingsSheetProps) {
+  const { t, language } = useTranslation();
   const [selectedProvider, setSelectedProvider] = useState("openai");
   const [apiKey, setApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("gpt-4o-mini");
@@ -406,7 +410,7 @@ export default function MobileAISettingsSheet({
         >
           <Settings size={20} style={{ color: "#3b82f6" }} />
           <span style={{ fontSize: "18px", fontWeight: 600, color: textColor }}>
-            AI Settings
+            {t("sidebar.aiSettings")}
           </span>
         </div>
 
@@ -429,13 +433,14 @@ export default function MobileAISettingsSheet({
                 marginBottom: "6px",
               }}
             >
-              Provider
+              {t("ai.provider")}
             </label>
             <CustomDropdown
               value={selectedProvider}
               options={providerOptions}
               onChange={handleProviderChange}
               isDark={isDark}
+              loadingText={t("common.loading")}
             />
           </div>
 
@@ -450,7 +455,7 @@ export default function MobileAISettingsSheet({
                   marginBottom: "6px",
                 }}
               >
-                Base URL
+                {t("settings.baseUrl")}
               </label>
               <div
                 style={{
@@ -502,7 +507,7 @@ export default function MobileAISettingsSheet({
                     size={16}
                     className={testingOllama ? "animate-spin" : ""}
                   />
-                  Test
+                  {t("settings.test")}
                 </button>
               </div>
               {ollamaStatus !== "idle" && (
@@ -534,8 +539,8 @@ export default function MobileAISettingsSheet({
                   }}
                 >
                   {ollamaStatus === "connected"
-                    ? "✓ Connected"
-                    : "✗ Connection failed"}
+                    ? `✓ ${t("settings.connected")}`
+                    : `✗ ${t("settings.connectionFailed")}`}
                 </div>
               )}
             </div>
@@ -551,14 +556,14 @@ export default function MobileAISettingsSheet({
                     marginBottom: "6px",
                   }}
                 >
-                  API Key
+                  {t("settings.apiKey")}
                 </label>
                 <div style={{ position: "relative" }}>
                   <input
                     type={showApiKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => handleApiKeyChange(e.target.value)}
-                    placeholder={`Enter your ${aiProviders[selectedProvider]?.name || "AI"} API key`}
+                    placeholder={`${language === "zh" ? "输入" : "Enter"} ${aiProviders[selectedProvider]?.name || "AI"} ${language === "zh" ? "API 密钥" : "API key"}`}
                     autoComplete="off"
                     spellCheck={false}
                     style={{
@@ -611,7 +616,7 @@ export default function MobileAISettingsSheet({
                   marginBottom: "6px",
                 }}
               >
-                Model
+                {t("ai.model")}
               </label>
               <CustomDropdown
                 value={selectedModel}
@@ -619,6 +624,7 @@ export default function MobileAISettingsSheet({
                 onChange={handleModelChange}
                 isDark={isDark}
                 loading={loadingModels}
+                loadingText={t("common.loading")}
                 flipAbove
               />
             </div>
@@ -634,7 +640,7 @@ export default function MobileAISettingsSheet({
               padding: "8px 0 4px",
             }}
           >
-            🔒 Keys stored locally on device only
+            🔒 {t("settings.keysStoredLocally")}
           </div>
         </div>
       </div>

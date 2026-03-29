@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TrendingUp, X, Lightbulb } from "lucide-react";
 import { generateViralScores, smartReplace } from "@/lib/mock-data";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ViralScorePanelProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export default function ViralScorePanel({
   markdown,
   onApplySuggestion,
 }: ViralScorePanelProps) {
+  const { t } = useTranslation();
   const [result, setResult] = useState<ViralResult | null>(null);
   const [loading, setLoading] = useState<LoadingState | null>(null);
   const [isDark, setIsDark] = useState(false);
@@ -227,7 +229,7 @@ export default function ViralScorePanel({
             <span
               style={{ fontSize: "18px", fontWeight: 600, color: textColor }}
             >
-              Viral Score
+              {t("viralScore.title")}
             </span>
           </div>
           <button
@@ -322,10 +324,10 @@ export default function ViralScorePanel({
                 </div>
                 <span style={{ fontSize: "14px", color: mutedColor }}>
                   {result.totalScore >= 70
-                    ? "Strong viral potential! 🎉"
+                    ? t("viralScore.viralPotential.strong")
                     : result.totalScore >= 50
-                      ? "Decent score — a few tweaks could help"
-                      : "Room for improvement — check suggestions below"}
+                      ? t("viralScore.viralPotential.decent")
+                      : t("viralScore.viralPotential.low")}
                 </span>
               </div>
 
@@ -338,7 +340,7 @@ export default function ViralScorePanel({
                     marginBottom: "12px",
                   }}
                 >
-                  Platform Scores
+                  {t("viralScore.platformScores")}
                 </h4>
                 <div
                   style={{
@@ -358,10 +360,7 @@ export default function ViralScorePanel({
                           }}
                         >
                           <span style={{ fontSize: "13px", color: mutedColor }}>
-                            {platform === "xiaohongshu"
-                              ? "RED"
-                              : platform.charAt(0).toUpperCase() +
-                                platform.slice(1)}
+                            {t(`viralScore.platform.${platform}`)}
                           </span>
                           <span
                             style={{
@@ -406,7 +405,7 @@ export default function ViralScorePanel({
                     marginBottom: "12px",
                   }}
                 >
-                  Analysis
+                  {t("viralScore.analysis")}
                 </h4>
                 <div
                   style={{
@@ -437,12 +436,12 @@ export default function ViralScorePanel({
                           }}
                         >
                           {key === "hook"
-                            ? "🎣 Hook"
+                            ? `🎣 ${t("viralScore.hook")}`
                             : key === "structure"
-                              ? "📝 Structure"
+                              ? `📝 ${t("viralScore.structure")}`
                               : key === "emotion"
-                                ? "💡 Emotion"
-                                : "🎯 Clarity"}
+                                ? `💡 ${t("viralScore.emotion")}`
+                                : `🎯 ${t("viralScore.clarity")}`}
                         </span>
                         <p
                           style={{
@@ -477,7 +476,7 @@ export default function ViralScorePanel({
                     marginBottom: "12px",
                   }}
                 >
-                  💡 Suggestions
+                  💡 {t("viralScore.suggestions")}
                 </h4>
                 <div
                   style={{
@@ -571,7 +570,7 @@ export default function ViralScorePanel({
                               cursor: "pointer",
                             }}
                           >
-                            Dismiss
+                            {t("viralScore.dismiss")}
                           </button>
                           <button
                             type="button"
@@ -601,7 +600,7 @@ export default function ViralScorePanel({
                               cursor: "pointer",
                             }}
                           >
-                            Apply
+                            {t("viralScore.apply")}
                           </button>
                         </div>
                       </div>

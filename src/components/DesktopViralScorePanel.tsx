@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { X, TrendingUp, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateViralScores, smartReplace } from "@/lib/mock-data";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface DesktopViralScorePanelProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export default function DesktopViralScorePanel({
   markdown,
   onApplySuggestion,
 }: DesktopViralScorePanelProps) {
+  const { t } = useTranslation();
   const [result, setResult] = useState<ViralResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(
@@ -83,7 +85,7 @@ export default function DesktopViralScorePanel({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <TrendingUp className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-semibold">Viral Score</h2>
+            <h2 className="text-lg font-semibold">{t("viralScore.title")}</h2>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -95,7 +97,7 @@ export default function DesktopViralScorePanel({
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <div className="w-12 h-12 rounded-full border-4 border-muted border-t-amber-500 animate-spin" />
               <p className="text-sm text-muted-foreground">
-                Analyzing content...
+                {t("viralScore.analyzing")}
               </p>
             </div>
           )}
@@ -122,22 +124,24 @@ export default function DesktopViralScorePanel({
                 </div>
                 <p className="text-sm text-muted-foreground text-center max-w-xs">
                   {result.totalScore >= 70
-                    ? "Strong viral potential!"
+                    ? t("viralScore.viralPotential.strong")
                     : result.totalScore >= 50
-                      ? "Decent score — a few tweaks could help"
-                      : "Room for improvement"}
+                      ? t("viralScore.viralPotential.decent")
+                      : t("viralScore.viralPotential.low")}
                 </p>
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold mb-3">Platform Scores</h3>
+                <h3 className="text-sm font-semibold mb-3">
+                  {t("viralScore.platformScores")}
+                </h3>
                 <div className="space-y-3">
                   {Object.entries(result.platformScores).map(
                     ([platform, score]) => (
                       <div key={platform}>
                         <div className="flex justify-between mb-1">
                           <span className="text-sm text-muted-foreground capitalize">
-                            {platform === "xiaohongshu" ? "RED" : platform}
+                            {t(`viralScore.platform.${platform}`)}
                           </span>
                           <span
                             className={`text-sm font-bold ${getScoreColor(score)}`}
@@ -158,7 +162,9 @@ export default function DesktopViralScorePanel({
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold mb-3">Analysis</h3>
+                <h3 className="text-sm font-semibold mb-3">
+                  {t("viralScore.analysis")}
+                </h3>
                 <div className="space-y-2">
                   {Object.entries(result.breakdown).map(([key, item]) => (
                     <div
@@ -168,12 +174,12 @@ export default function DesktopViralScorePanel({
                       <div>
                         <p className="text-sm font-medium capitalize">
                           {key === "hook"
-                            ? "🎣 Hook"
+                            ? `🎣 ${t("viralScore.hook")}`
                             : key === "structure"
-                              ? "📝 Structure"
+                              ? `📝 ${t("viralScore.structure")}`
                               : key === "emotion"
-                                ? "💡 Emotion"
-                                : "🎯 Clarity"}
+                                ? `💡 ${t("viralScore.emotion")}`
+                                : `🎯 ${t("viralScore.clarity")}`}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {item.reason}
@@ -190,7 +196,9 @@ export default function DesktopViralScorePanel({
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold mb-3">Suggestions</h3>
+                <h3 className="text-sm font-semibold mb-3">
+                  {t("viralScore.suggestions")}
+                </h3>
                 <div className="space-y-3">
                   {result.suggestions.map((s, i) =>
                     dismissedSuggestions.has(i) ? null : (
@@ -219,7 +227,7 @@ export default function DesktopViralScorePanel({
                             }}
                             className="flex-1 px-3 py-1.5 text-xs border border-border rounded-md hover:bg-muted transition-colors"
                           >
-                            Dismiss
+                            {t("viralScore.dismiss")}
                           </button>
                           <button
                             onClick={() => {
@@ -232,7 +240,7 @@ export default function DesktopViralScorePanel({
                             }}
                             className="flex-1 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity"
                           >
-                            Apply
+                            {t("viralScore.apply")}
                           </button>
                         </div>
                       </div>

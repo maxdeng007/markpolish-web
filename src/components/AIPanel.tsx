@@ -1349,7 +1349,7 @@ export default function AIPanel({
           {/* Analyze Category */}
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
-              Analyze
+              {t("ai.analyze")}
             </div>
             <div className="space-y-2">
               {["viralCheck", "amplifyContent"].map((actionId) => {
@@ -1367,7 +1367,13 @@ export default function AIPanel({
                     ) : (
                       <span className="text-lg">{action.icon}</span>
                     )}
-                    <span>{action.name}</span>
+                    <span>
+                      {actionId === "viralCheck"
+                        ? t("viralScore.title")
+                        : actionId === "amplifyContent"
+                          ? t("contentAmplify.title")
+                          : action.name}
+                    </span>
                   </button>
                 );
               })}
