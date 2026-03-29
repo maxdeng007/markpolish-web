@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useState, useEffect, useRef } from "react";
 import { BarChart3, FileText, Clock, Hash } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface MobileStatsPanelProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ export default function MobileStatsPanel({
   markdown,
 }: MobileStatsPanelProps) {
   const [isDark, setIsDark] = useState(false);
+  const { t } = useTranslation();
   const stats = calculateStats(markdown);
   const sheetRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
@@ -178,7 +180,7 @@ export default function MobileStatsPanel({
         >
           <BarChart3 size={20} style={{ color: "#3b82f6" }} />
           <span style={{ fontSize: "18px", fontWeight: 600, color: textColor }}>
-            Document Statistics
+            {t("stats.title")}
           </span>
         </div>
         <div
@@ -198,9 +200,17 @@ export default function MobileStatsPanel({
             }}
           >
             {[
-              { icon: FileText, value: stats.words, label: "Words" },
-              { icon: Hash, value: stats.characters, label: "Chars" },
-              { icon: Clock, value: stats.readingTime, label: "Min Read" },
+              { icon: FileText, value: stats.words, label: t("stats.words") },
+              {
+                icon: Hash,
+                value: stats.characters,
+                label: t("stats.characters"),
+              },
+              {
+                icon: Clock,
+                value: stats.readingTime,
+                label: t("stats.minRead"),
+              },
               { icon: FileText, value: stats.lines, label: "Lines" },
             ].map(({ icon: Icon, value, label }) => (
               <div
@@ -238,12 +248,12 @@ export default function MobileStatsPanel({
             }}
           >
             {[
-              ["Headings", stats.headings],
-              ["Paragraphs", stats.paragraphs],
-              ["Lists", stats.listItems],
-              ["Images", stats.images],
-              ["Links", stats.links],
-              ["Code Blocks", stats.codeBlocks],
+              [t("stats.headings"), stats.headings],
+              [t("stats.paragraphs"), stats.paragraphs],
+              [t("stats.lists"), stats.listItems],
+              [t("stats.images"), stats.images],
+              [t("stats.links"), stats.links],
+              [t("stats.codeBlocks"), stats.codeBlocks],
             ].map(([label, value]) => (
               <div
                 key={label}

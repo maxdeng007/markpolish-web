@@ -167,7 +167,7 @@ export default function MobileAISettingsSheet({
   isOpen,
   onClose,
 }: MobileAISettingsSheetProps) {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const [selectedProvider, setSelectedProvider] = useState("openai");
   const [apiKey, setApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("gpt-4o-mini");
@@ -563,7 +563,9 @@ export default function MobileAISettingsSheet({
                     type={showApiKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => handleApiKeyChange(e.target.value)}
-                    placeholder={`${language === "zh" ? "输入" : "Enter"} ${aiProviders[selectedProvider]?.name || "AI"} ${language === "zh" ? "API 密钥" : "API key"}`}
+                    placeholder={t("settings.enterApiKey", {
+                      name: aiProviders[selectedProvider]?.name || "AI",
+                    })}
                     autoComplete="off"
                     spellCheck={false}
                     style={{

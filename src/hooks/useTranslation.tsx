@@ -19,7 +19,7 @@ const translations = { en, zh };
 interface TranslationContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string>) => string;
 }
 
 const TranslationContext = createContext<TranslationContextType | null>(null);
@@ -57,9 +57,15 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string): string => {
+    (key: string, params?: Record<string, string>): string => {
       const currentTranslations = translations[language];
-      return getNestedValue(currentTranslations, key);
+      let value = getNestedValue(currentTranslations, key);
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          value = value.replace(new RegExp(`\\{${k}\\}`, "g"), v);
+        });
+      }
+      return value;
     },
     [language],
   );

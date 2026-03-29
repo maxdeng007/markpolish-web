@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { TrendingUp, X, Lightbulb } from "lucide-react";
 import { generateViralScores, smartReplace } from "@/lib/mock-data";
 import { useTranslation } from "@/hooks/useTranslation";
+import { settingsManager } from "@/lib/settings";
+import { callAIStream, aiActions } from "@/lib/ai-providers";
 
 interface ViralScorePanelProps {
   isOpen: boolean;
@@ -70,27 +72,45 @@ export default function ViralScorePanel({
   }, []);
 
   const runViralCheck = useCallback(async () => {
-    setLoading({ score: 0, text: "Analyzing hook strength..." });
+    setLoading({ score: 0, text: "Analyzing..." });
     setResult(null);
     setDismissedSuggestions(new Set());
 
-    const stages = [
-      { score: 15, text: "Analyzing hook strength..." },
-      { score: 35, text: "Checking structure..." },
-      { score: 60, text: "Measuring emotional triggers..." },
-      { score: 80, text: "Evaluating clarity & CTA..." },
-      { score: 95, text: "Finalizing analysis..." },
-    ];
+    const settings = settingsManager.getSettings();
+    const config = {
+      provider: settings.defaultTextProvider,
+      model: settings.defaultTextModel,
+      apiKey:
+        settings.textProviders[settings.defaultTextProvider]?.apiKey || "",
+      baseUrl: settings.textProviders[settings.defaultTextProvider]?.baseUrl,
+    };
+    const action = aiActions.viralCheck;
 
-    for (const stage of stages) {
-      await new Promise((r) => setTimeout(r, 400));
-      setLoading({ score: stage.score, text: stage.text });
+    let fullText = "";
+    try {
+      await callAIStream(config, action, markdown, undefined, (chunk) => {
+        fullText += chunk;
+      });
+      const cleaned = fullText
+        .replace(/^```json\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      if (
+        parsed &&
+        typeof parsed.totalScore === "number" &&
+        Array.isArray(parsed.suggestions)
+      ) {
+        setResult(parsed);
+      } else {
+        setResult(generateViralScores(markdown));
+      }
+    } catch (error) {
+      console.error("Viral check failed:", error);
+      setResult(generateViralScores(markdown));
+    } finally {
+      setLoading(null);
     }
-
-    await new Promise((r) => setTimeout(r, 600));
-
-    setLoading(null);
-    setResult(generateViralScores(markdown));
   }, [markdown]);
 
   useEffect(() => {

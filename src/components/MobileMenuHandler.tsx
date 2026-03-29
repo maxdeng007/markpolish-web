@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useToast } from "@/components/Toast";
+import { useTranslation } from "@/hooks/useTranslation";
 import MobileMenu from "./MobileMenu";
 import MobileTemplatesPanel from "./MobileTemplatesPanel";
 import MobileThemesPanel from "./MobileThemesPanel";
@@ -47,6 +48,7 @@ export default function MobileMenuHandler({
   onMarkdownChange,
 }: MobileMenuHandlerProps) {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [mobileAILoading, setMobileAILoading] = useState(false);
   const [mobileAISettingsOpen, setMobileAISettingsOpen] = useState(false);
   const [viralScoreOpen, setViralScoreOpen] = useState(false);
@@ -130,7 +132,7 @@ export default function MobileMenuHandler({
         case "summarize":
           actionObj = {
             id: "summarize",
-            name: "Summarize",
+            name: t("ai.summarize"),
             description: "Summarize content",
             icon: "📋",
             prompt: (content: string) => `${langHint}
@@ -144,7 +146,7 @@ ${content}`,
         case "translate":
           actionObj = {
             id: "translate",
-            name: "Translate",
+            name: t("ai.translate"),
             description: "Translate content",
             icon: "🌐",
             prompt: (content: string) => `${langHint}
@@ -264,7 +266,7 @@ ${content}`,
         <div className="mobile-ai-loading-mask">
           <div className="mobile-ai-loading-content">
             <div className="mobile-ai-loading-spinner" />
-            <span>Processing with AI...</span>
+            <span>{t("mobileMenu.processing")}</span>
           </div>
         </div>
       )}

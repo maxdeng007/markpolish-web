@@ -3,6 +3,8 @@ import { X, TrendingUp, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateViralScores, smartReplace } from "@/lib/mock-data";
 import { useTranslation } from "@/hooks/useTranslation";
+import { settingsManager } from "@/lib/settings";
+import { callAIStream, aiActions } from "@/lib/ai-providers";
 
 interface DesktopViralScorePanelProps {
   isOpen: boolean;
@@ -50,9 +52,42 @@ export default function DesktopViralScorePanel({
     setLoading(true);
     setResult(null);
     setDismissedSuggestions(new Set());
-    await new Promise((r) => setTimeout(r, 2000));
-    setLoading(false);
-    setResult(generateViralScores(markdown));
+
+    const settings = settingsManager.getSettings();
+    const config = {
+      provider: settings.defaultTextProvider,
+      model: settings.defaultTextModel,
+      apiKey:
+        settings.textProviders[settings.defaultTextProvider]?.apiKey || "",
+      baseUrl: settings.textProviders[settings.defaultTextProvider]?.baseUrl,
+    };
+    const action = aiActions.viralCheck;
+
+    let fullText = "";
+    try {
+      await callAIStream(config, action, markdown, undefined, (chunk) => {
+        fullText += chunk;
+      });
+      const cleaned = fullText
+        .replace(/^```json\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      if (
+        parsed &&
+        typeof parsed.totalScore === "number" &&
+        Array.isArray(parsed.suggestions)
+      ) {
+        setResult(parsed);
+      } else {
+        setResult(generateViralScores(markdown));
+      }
+    } catch (error) {
+      console.error("Viral check failed:", error);
+      setResult(generateViralScores(markdown));
+    } finally {
+      setLoading(false);
+    }
   }, [markdown]);
 
   useEffect(() => {

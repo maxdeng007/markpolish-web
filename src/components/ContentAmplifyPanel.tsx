@@ -3,6 +3,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Megaphone, X, Copy, Check } from "lucide-react";
 import { generateAmplifyVariants } from "@/lib/mock-data";
 import { useTranslation } from "@/hooks/useTranslation";
+import { settingsManager } from "@/lib/settings";
+import { callAIStream, aiActions } from "@/lib/ai-providers";
 
 interface ContentAmplifyPanelProps {
   isOpen: boolean;
@@ -54,25 +56,42 @@ export default function ContentAmplifyPanel({
   }, []);
 
   const runAmplifyCheck = useCallback(async () => {
-    setLoading({ text: "Creating WeChat variant..." });
+    setLoading({ text: "Creating platform variants..." });
     setResult(null);
 
-    await new Promise((r) => setTimeout(r, 500));
-    setLoading({ text: "Creating RED variant..." });
-    await new Promise((r) => setTimeout(r, 400));
-    setLoading({ text: "Creating Zhihu variant..." });
-    await new Promise((r) => setTimeout(r, 400));
-    setLoading({ text: "Creating Twitter variant..." });
-    await new Promise((r) => setTimeout(r, 300));
-    setLoading({ text: "Creating LinkedIn variant..." });
-    await new Promise((r) => setTimeout(r, 300));
+    const settings = settingsManager.getSettings();
+    const config = {
+      provider: settings.defaultTextProvider,
+      model: settings.defaultTextModel,
+      apiKey:
+        settings.textProviders[settings.defaultTextProvider]?.apiKey || "",
+      baseUrl: settings.textProviders[settings.defaultTextProvider]?.baseUrl,
+    };
+    const action = aiActions.amplifyContent;
 
-    await new Promise((r) => setTimeout(r, 400));
-
-    const mockResult = generateAmplifyVariants(markdown);
-
-    setLoading(null);
-    setResult(mockResult);
+    let fullText = "";
+    try {
+      await callAIStream(config, action, markdown, undefined, (chunk) => {
+        fullText += chunk;
+      });
+      const cleaned = fullText
+        .replace(/^```json\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        setResult({ variants: parsed });
+      } else if (parsed?.variants && Array.isArray(parsed.variants)) {
+        setResult(parsed);
+      } else {
+        setResult(generateAmplifyVariants(markdown));
+      }
+    } catch (error) {
+      console.error("Content amplify failed:", error);
+      setResult(generateAmplifyVariants(markdown));
+    } finally {
+      setLoading(null);
+    }
     setActiveTab(0);
   }, [markdown]);
 

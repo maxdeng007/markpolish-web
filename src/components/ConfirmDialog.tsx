@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, X } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -16,13 +17,16 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   variant = "info",
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
+  const resolvedConfirmText = confirmText ?? t("common.confirm");
+  const resolvedCancelText = cancelText ?? t("common.cancel");
 
   useEffect(() => {
     if (open) {
@@ -99,13 +103,13 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="flex-1 px-4 py-2.5 text-sm font-medium text-foreground bg-background border border-border rounded-lg hover:bg-muted hover:border-muted-foreground/30 transition-all"
           >
-            {cancelText}
+            {resolvedCancelText}
           </button>
           <button
             onClick={onConfirm}
             className={`flex-1 px-4 py-2.5 text-sm font-semibold rounded-lg transition-all ${styles.confirmBtn}`}
           >
-            {confirmText}
+            {resolvedConfirmText}
           </button>
         </div>
       </div>

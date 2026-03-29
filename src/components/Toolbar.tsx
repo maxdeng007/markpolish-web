@@ -53,7 +53,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("\n# ", "", "Heading 1")}
-        title="Heading 1"
+        title={t("toolbar.heading1")}
       >
         <Heading1 className="w-4 h-4" />
       </Button>
@@ -62,7 +62,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("\n## ", "", "Heading 2")}
-        title="Heading 2"
+        title={t("toolbar.heading2")}
       >
         <Heading2 className="w-4 h-4" />
       </Button>
@@ -71,7 +71,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("\n- ", "", "List item")}
-        title="Bullet List"
+        title={t("toolbar.bulletList")}
       >
         <List className="w-4 h-4" />
       </Button>
@@ -80,7 +80,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("\n1. ", "", "List item")}
-        title="Numbered List"
+        title={t("toolbar.numberedList")}
       >
         <ListOrdered className="w-4 h-4" />
       </Button>
@@ -89,7 +89,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("[", "](url)", "link text")}
-        title="Link"
+        title={t("toolbar.link")}
       >
         <Link className="w-4 h-4" />
       </Button>
@@ -98,7 +98,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("![", "](image-url)", "alt text")}
-        title="Image"
+        title={t("toolbar.image")}
       >
         <Image className="w-4 h-4" />
       </Button>
@@ -107,7 +107,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("\n```\n", "\n```\n", "code")}
-        title="Code Block"
+        title={t("toolbar.codeBlock")}
       >
         <Code className="w-4 h-4" />
       </Button>
@@ -116,7 +116,7 @@ export default function Toolbar({ markdown, setMarkdown }: ToolbarProps) {
         variant="ghost"
         size="icon"
         onClick={() => insertText("\n> ", "", "quote")}
-        title="Quote"
+        title={t("toolbar.quote")}
       >
         <Quote className="w-4 h-4" />
       </Button>

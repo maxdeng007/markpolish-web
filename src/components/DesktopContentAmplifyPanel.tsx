@@ -3,6 +3,8 @@ import { Megaphone, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateAmplifyVariants } from "@/lib/mock-data";
 import { useTranslation } from "@/hooks/useTranslation";
+import { settingsManager } from "@/lib/settings";
+import { callAIStream, aiActions } from "@/lib/ai-providers";
 
 interface DesktopContentAmplifyPanelProps {
   isOpen: boolean;
@@ -51,9 +53,40 @@ export default function DesktopContentAmplifyPanel({
     setLoading(true);
     setResult(null);
     setActiveTab(0);
-    await new Promise((r) => setTimeout(r, 2000));
-    setLoading(false);
-    setResult(generateAmplifyVariants(markdown));
+
+    const settings = settingsManager.getSettings();
+    const config = {
+      provider: settings.defaultTextProvider,
+      model: settings.defaultTextModel,
+      apiKey:
+        settings.textProviders[settings.defaultTextProvider]?.apiKey || "",
+      baseUrl: settings.textProviders[settings.defaultTextProvider]?.baseUrl,
+    };
+    const action = aiActions.amplifyContent;
+
+    let fullText = "";
+    try {
+      await callAIStream(config, action, markdown, undefined, (chunk) => {
+        fullText += chunk;
+      });
+      const cleaned = fullText
+        .replace(/^```json\s*/i, "")
+        .replace(/\s*```$/i, "")
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        setResult({ variants: parsed });
+      } else if (parsed?.variants && Array.isArray(parsed.variants)) {
+        setResult(parsed);
+      } else {
+        setResult(generateAmplifyVariants(markdown));
+      }
+    } catch (error) {
+      console.error("Content amplify failed:", error);
+      setResult(generateAmplifyVariants(markdown));
+    } finally {
+      setLoading(false);
+    }
   }, [markdown]);
 
   useEffect(() => {
