@@ -15,6 +15,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface MobileAISettingsSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  onSettingsSaved?: () => void;
 }
 
 interface CustomDropdownProps {
@@ -166,6 +167,7 @@ function CustomDropdown({
 export default function MobileAISettingsSheet({
   isOpen,
   onClose,
+  onSettingsSaved,
 }: MobileAISettingsSheetProps) {
   const { t } = useTranslation();
   const [selectedProvider, setSelectedProvider] = useState("openai");
@@ -177,7 +179,9 @@ export default function MobileAISettingsSheet({
   const [ollamaStatus, setOllamaStatus] = useState<
     "idle" | "connected" | "failed"
   >("idle");
-  const [isDark, setIsDark] = useState(false);
+
+  const getIsDark = () => document.documentElement.classList.contains("dark");
+  const [isDark, setIsDark] = useState(getIsDark);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -187,9 +191,8 @@ export default function MobileAISettingsSheet({
 
   useEffect(() => {
     const checkDark = () => {
-      setIsDark(document.documentElement.classList.contains("dark"));
+      setIsDark(getIsDark());
     };
-    checkDark();
     const observer = new MutationObserver(checkDark);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -276,6 +279,7 @@ export default function MobileAISettingsSheet({
   const handleApiKeyChange = (key: string) => {
     setApiKey(key);
     settingsManager.setTextProviderApiKey(selectedProvider, key);
+    onSettingsSaved?.();
   };
 
   const handleOllamaUrlChange = (url: string) => {
@@ -358,13 +362,13 @@ export default function MobileAISettingsSheet({
     borderTopLeftRadius: "20px",
     borderTopRightRadius: "20px",
     zIndex: 10021,
-    background: isDark ? "#1a1a1a" : "#ffffff",
     transform: isOpen ? "translateY(0)" : "translateY(100%)",
     transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
     boxShadow: "0 -8px 40px rgba(0, 0, 0, 0.15)",
+    background: isDark ? "hsl(222.2 84% 4.9%)" : "hsl(0 0% 100%)",
   };
 
   const border = isDark ? "#333" : "#e5e7eb";
@@ -376,6 +380,7 @@ export default function MobileAISettingsSheet({
       <div style={overlayStyle} onClick={onClose} />
       <div
         ref={sheetRef}
+        className="mobile-ai-settings-sheet open"
         style={sheetStyle}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -410,7 +415,7 @@ export default function MobileAISettingsSheet({
         >
           <Settings size={20} style={{ color: "#3b82f6" }} />
           <span style={{ fontSize: "18px", fontWeight: 600, color: textColor }}>
-            {t("sidebar.aiSettings")}
+            {t("mobileMenu.aiSettings")}
           </span>
         </div>
 

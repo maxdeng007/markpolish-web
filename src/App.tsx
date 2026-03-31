@@ -14,7 +14,10 @@ import Editor from "@/components/layout/Editor";
 import Preview from "@/components/layout/Preview";
 import CompactStats from "@/components/CompactStats";
 import MobileToggle from "@/components/MobileToggle";
-import MobileMenuHandler from "@/components/MobileMenuHandler";
+import MobileMenuHandler, {
+  type MobileMenuHandlerRef,
+} from "@/components/MobileMenuHandler";
+import TabletTabBar from "@/components/TabletTabBar";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DesktopViralScorePanel from "@/components/DesktopViralScorePanel";
 import DesktopContentAmplifyPanel from "@/components/DesktopContentAmplifyPanel";
@@ -335,26 +338,51 @@ function App() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
+  const mobileMenuHandlerRef = useRef<MobileMenuHandlerRef | null>(null);
+  const [tabletPendingAIAction, setTabletPendingAIAction] = useState<
+    string | null
+  >(null);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isTabletPortrait, setIsTabletPortrait] = useState(false);
+  const [isTabletLandscape, setIsTabletLandscape] = useState(false);
   const [activeMobilePanel, setActiveMobilePanel] = useState<
+    "editor" | "preview"
+  >("editor");
+  const [activeTabletPanel, setActiveTabletPanel] = useState<
     "editor" | "preview"
   >("editor");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileTemplatesOpen, setMobileTemplatesOpen] = useState(false);
   const [mobileThemesOpen, setMobileThemesOpen] = useState(false);
   const [mobileStatsOpen, setMobileStatsOpen] = useState(false);
+  const [mobileAISettingsOpen, setMobileAISettingsOpen] = useState(false);
   const [viralScoreOpen, setViralScoreOpen] = useState(false);
   const [contentAmplifyOpen, setContentAmplifyOpen] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+    const checkDeviceType = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 768);
+      setIsTabletPortrait(width >= 768 && width < 900);
+      setIsTabletLandscape(width >= 900 && width < 1024);
     };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    checkDeviceType();
+    window.addEventListener("resize", checkDeviceType);
+    window.addEventListener("orientationchange", () => {
+      setTimeout(checkDeviceType, 100);
+    });
+    return () => {
+      window.removeEventListener("resize", checkDeviceType);
+    };
   }, []);
+
+  useEffect(() => {
+    if (tabletPendingAIAction && mobileMenuHandlerRef.current) {
+      mobileMenuHandlerRef.current.triggerAIAction(tabletPendingAIAction);
+      setTabletPendingAIAction(null);
+    }
+  }, [tabletPendingAIAction]);
 
   const [inlineLoading, setInlineLoading] = useState(false);
   const [inlinePreview, setInlinePreview] = useState<string | null>(null);
@@ -891,11 +919,38 @@ function App() {
                 onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
               />
 
-              {/* Main Content - Desktop: 3-panel, Mobile: single panel */}
-              {isMobile ? (
-                /* Mobile: Editor OR Preview (full width) */
+              {/* Tablet Tab Bar */}
+              {(isTabletPortrait || isTabletLandscape) && (
+                <TabletTabBar
+                  onOpenTemplates={() => setMobileTemplatesOpen(true)}
+                  onOpenThemes={() => setMobileThemesOpen(true)}
+                  onOpenStats={() => setMobileStatsOpen(true)}
+                  onOpenAISettings={() => setMobileAISettingsOpen(true)}
+                  onAIAction={(action) => {
+                    if (action === "viralScore") {
+                      setViralScoreOpen(true);
+                    } else if (action === "amplify") {
+                      setContentAmplifyOpen(true);
+                    } else {
+                      setTabletPendingAIAction(action);
+                    }
+                  }}
+                  onCopyToClipboard={async (text: string, label: string) => {
+                    try {
+                      await navigator.clipboard.writeText(text);
+                      alert(`${label} copied!`);
+                    } catch {
+                      console.error("Failed to copy");
+                    }
+                  }}
+                />
+              )}
+
+              {/* Main Content - Desktop: 3-panel, Mobile/Tablet: single panel */}
+              {isMobile || isTabletPortrait || isTabletLandscape ? (
                 <div className="mobile-content">
-                  {activeMobilePanel === "editor" ? (
+                  {(isMobile ? activeMobilePanel : activeTabletPanel) ===
+                  "editor" ? (
                     <div className="editor-container active">
                       <ErrorBoundary>
                         <Editor
@@ -997,17 +1052,23 @@ function App() {
                 </div>
               )}
 
-              {/* Mobile Toggle Bar */}
-              {isMobile && (
+              {(isMobile || isTabletPortrait || isTabletLandscape) && (
                 <MobileToggle
-                  activePanel={activeMobilePanel}
-                  onToggle={setActiveMobilePanel}
+                  activePanel={isMobile ? activeMobilePanel : activeTabletPanel}
+                  onToggle={(panel) => {
+                    if (isMobile) {
+                      setActiveMobilePanel(panel);
+                    } else {
+                      setActiveTabletPanel(panel);
+                    }
+                  }}
                 />
               )}
 
-              {/* Mobile Menu Handler */}
-              {isMobile && (
+              {/* Mobile Menu Handler - Render before TabletTabBar so ref is available */}
+              {(isMobile || isTabletPortrait || isTabletLandscape) && (
                 <MobileMenuHandler
+                  ref={mobileMenuHandlerRef}
                   mobileMenuOpen={mobileMenuOpen}
                   setMobileMenuOpen={setMobileMenuOpen}
                   mobileTemplatesOpen={mobileTemplatesOpen}
@@ -1016,6 +1077,8 @@ function App() {
                   setMobileThemesOpen={setMobileThemesOpen}
                   mobileStatsOpen={mobileStatsOpen}
                   setMobileStatsOpen={setMobileStatsOpen}
+                  mobileAISettingsOpen={mobileAISettingsOpen}
+                  setMobileAISettingsOpen={setMobileAISettingsOpen}
                   markdown={markdown}
                   theme={theme}
                   onSelectTemplate={handleSelectTemplate}

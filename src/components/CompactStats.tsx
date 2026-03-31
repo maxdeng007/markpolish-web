@@ -21,7 +21,7 @@ export default function CompactStats({ markdown }: CompactStatsProps) {
   const readability = analyzeReadability(markdown);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-4 py-2 flex items-center justify-between hover:bg-muted/50 transition-colors"

@@ -1,4 +1,10 @@
-import { useState, useCallback, useRef } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { useToast } from "@/components/Toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import MobileMenu from "./MobileMenu";
@@ -25,6 +31,8 @@ interface MobileMenuHandlerProps {
   setMobileThemesOpen: (open: boolean) => void;
   mobileStatsOpen: boolean;
   setMobileStatsOpen: (open: boolean) => void;
+  mobileAISettingsOpen: boolean;
+  setMobileAISettingsOpen: (open: boolean) => void;
   markdown: string;
   theme: string;
   onSelectTemplate: (content: string) => void;
@@ -32,25 +40,36 @@ interface MobileMenuHandlerProps {
   onMarkdownChange: (markdown: string) => void;
 }
 
-export default function MobileMenuHandler({
-  mobileMenuOpen,
-  setMobileMenuOpen,
-  mobileTemplatesOpen,
-  setMobileTemplatesOpen,
-  mobileThemesOpen,
-  setMobileThemesOpen,
-  mobileStatsOpen,
-  setMobileStatsOpen,
-  markdown,
-  theme,
-  onSelectTemplate,
-  onSelectTheme,
-  onMarkdownChange,
-}: MobileMenuHandlerProps) {
+export interface MobileMenuHandlerRef {
+  triggerAIAction: (action: string) => void;
+}
+
+const MobileMenuHandler = forwardRef<
+  MobileMenuHandlerRef,
+  MobileMenuHandlerProps
+>(function MobileMenuHandler(
+  {
+    mobileMenuOpen,
+    setMobileMenuOpen,
+    mobileTemplatesOpen,
+    setMobileTemplatesOpen,
+    mobileThemesOpen,
+    setMobileThemesOpen,
+    mobileStatsOpen,
+    setMobileStatsOpen,
+    mobileAISettingsOpen,
+    setMobileAISettingsOpen,
+    markdown,
+    theme,
+    onSelectTemplate,
+    onSelectTheme,
+    onMarkdownChange,
+  },
+  ref,
+) {
   const { showToast } = useToast();
   const { t } = useTranslation();
   const [mobileAILoading, setMobileAILoading] = useState(false);
-  const [mobileAISettingsOpen, setMobileAISettingsOpen] = useState(false);
   const [viralScoreOpen, setViralScoreOpen] = useState(false);
   const [contentAmplifyOpen, setContentAmplifyOpen] = useState(false);
   const pendingAIActionRef = useRef<string | null>(null);
@@ -212,6 +231,16 @@ ${content}`,
     [markdown, onMarkdownChange, showToast],
   );
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      triggerAIAction: (action: string) => {
+        handleMobileAIAction(action);
+      },
+    }),
+    [handleMobileAIAction],
+  );
+
   return (
     <>
       <MobileMenu
@@ -240,7 +269,10 @@ ${content}`,
       <MobileAISettingsSheet
         isOpen={mobileAISettingsOpen}
         onClose={() => {
+          pendingAIActionRef.current = null;
           setMobileAISettingsOpen(false);
+        }}
+        onSettingsSaved={() => {
           if (pendingAIActionRef.current) {
             const pending = pendingAIActionRef.current;
             pendingAIActionRef.current = null;
@@ -272,4 +304,6 @@ ${content}`,
       )}
     </>
   );
-}
+});
+
+export default MobileMenuHandler;

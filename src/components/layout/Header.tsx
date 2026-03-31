@@ -45,6 +45,7 @@ interface HeaderProps {
   >;
   onShowPDFExport: () => void;
   isMobile?: boolean;
+  isPreviewMode?: boolean;
   onToggleMobileMenu?: () => void;
 }
 
@@ -61,6 +62,7 @@ export default function Header({
   aiImageStates,
   onShowPDFExport,
   isMobile,
+  isPreviewMode,
   onToggleMobileMenu,
 }: HeaderProps) {
   const { t, language, setLanguage } = useTranslation();
@@ -144,7 +146,7 @@ export default function Header({
       className={`${isMobile ? "sticky top-0 z-[200] bg-background" : "relative z-[100]"} border-b border-border px-4 py-3 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60`}
     >
       <div className="flex items-center gap-3">
-        {isMobile && (
+        {isMobile && !isPreviewMode && (
           <button
             type="button"
             className="mobile-menu-btn"
@@ -174,53 +176,58 @@ export default function Header({
       >
         {isMobile ? (
           <>
-            <Dropdown
-              id="mobile-export"
-              trigger={
-                <Button variant="default" className="gap-1 text-xs h-9 px-3">
-                  <Download className="w-4 h-4" />
-                  {t("header.export")}
-                  <ChevronDown className="w-3 h-3 opacity-70" />
-                </Button>
-              }
-              items={exportItems}
-            />
-            <Dropdown
-              id="mobile-more"
-              trigger={
-                <Button variant="outline" size="icon" className="w-9 h-9">
-                  <MoreHorizontal className="w-5 h-5" />
-                </Button>
-              }
-              items={[
-                {
-                  label: t("header.themeSystem"),
-                  icon: <Monitor className="w-4 h-4 shrink-0" />,
-                  onClick: () => onThemeModeChange("system"),
-                },
-                {
-                  label: t("header.themeLight"),
-                  icon: <Sun className="w-4 h-4 shrink-0" />,
-                  onClick: () => onThemeModeChange("light"),
-                },
-                {
-                  label: t("header.themeDark"),
-                  icon: <Moon className="w-4 h-4 shrink-0" />,
-                  onClick: () => onThemeModeChange("dark"),
-                },
-                {
-                  label: language === "en" ? "切换到中文" : "Switch to English",
-                  icon: <Languages className="w-4 h-4 shrink-0" />,
-                  onClick: () => setLanguage(language === "en" ? "zh" : "en"),
-                },
-                { label: "", isDivider: true },
-                {
-                  label: t("keyboard.title"),
-                  icon: <Keyboard className="w-4 h-4 shrink-0" />,
-                  onClick: onToggleShortcutsHelp,
-                },
-              ]}
-            />
+            {!isPreviewMode && (
+              <Dropdown
+                id="mobile-export"
+                trigger={
+                  <Button variant="default" className="gap-1 text-xs h-9 px-3">
+                    <Download className="w-4 h-4" />
+                    {t("header.export")}
+                    <ChevronDown className="w-3 h-3 opacity-70" />
+                  </Button>
+                }
+                items={exportItems}
+              />
+            )}
+            {!isPreviewMode && (
+              <Dropdown
+                id="mobile-more"
+                trigger={
+                  <Button variant="outline" size="icon" className="w-9 h-9">
+                    <MoreHorizontal className="w-5 h-5" />
+                  </Button>
+                }
+                items={[
+                  {
+                    label: t("header.themeSystem"),
+                    icon: <Monitor className="w-4 h-4 shrink-0" />,
+                    onClick: () => onThemeModeChange("system"),
+                  },
+                  {
+                    label: t("header.themeLight"),
+                    icon: <Sun className="w-4 h-4 shrink-0" />,
+                    onClick: () => onThemeModeChange("light"),
+                  },
+                  {
+                    label: t("header.themeDark"),
+                    icon: <Moon className="w-4 h-4 shrink-0" />,
+                    onClick: () => onThemeModeChange("dark"),
+                  },
+                  {
+                    label:
+                      language === "en" ? "切换到中文" : "Switch to English",
+                    icon: <Languages className="w-4 h-4 shrink-0" />,
+                    onClick: () => setLanguage(language === "en" ? "zh" : "en"),
+                  },
+                  { label: "", isDivider: true },
+                  {
+                    label: t("keyboard.title"),
+                    icon: <Keyboard className="w-4 h-4 shrink-0" />,
+                    onClick: onToggleShortcutsHelp,
+                  },
+                ]}
+              />
+            )}
           </>
         ) : (
           <>

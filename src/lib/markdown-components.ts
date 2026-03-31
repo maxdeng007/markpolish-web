@@ -57,20 +57,20 @@ function convertTableRows(rows: string[]): string {
       .map((cell) => cell.trim());
 
   const headerCells = cells(rows[0]);
-  const thead = `<thead><tr>${headerCells.map((c) => `<th>${c}</th>`).join("")}</tr></thead>`;
+  const thead = `<thead><tr>${headerCells.map((c) => `<th style="border: 1px solid #e5e5e5; padding: 10px 12px; text-align: left; background: #f8f8fa; font-weight: 600; color: #1a1a2e;">${c}</th>`).join("")}</tr></thead>`;
 
   const bodyRows = rows.slice(1);
   const tbody =
     bodyRows.length > 0
       ? `<tbody>${bodyRows
-          .map((row) => {
+          .map((row, idx) => {
             const rowCells = cells(row);
-            return `<tr>${rowCells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+            return `<tr>${rowCells.map((c) => `<td style="border: 1px solid #e5e5e5; padding: 10px 12px; text-align: left; background: ${idx % 2 === 0 ? "#ffffff" : "#f8f8f8"};">${c}</td>`).join("")}</tr>`;
           })
           .join("")}</tbody>`
       : "";
 
-  return `<table>${thead}${tbody}</table>`;
+  return `<table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">${thead}${tbody}</table>`;
 }
 
 function parseListItems(
@@ -480,7 +480,7 @@ function renderColumns(content: string, cols: number): string {
   return `<div class="columns-component">${itemsHtml}</div>`;
 }
 
-function renderSteps(content: string, themeColors?: ThemeColors): string {
+function renderSteps(content: string, _themeColors?: ThemeColors): string {
   const lines = content.split("\n");
   const steps: Array<{ number: number; title: string; description: string[] }> =
     [];
@@ -510,9 +510,6 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
     steps.push(currentStep);
   }
 
-  const accentColor = themeColors?.accent || "#576b95";
-  const fgColor = themeColors?.foreground || "#333333";
-
   const stepsHtml = steps
     .map((step) => {
       const descContent =
@@ -520,7 +517,7 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
           ? markdownToHtml(step.description.join("\n"))
           : "";
       const descHtml = descContent
-        ? `<div style="font-size: 14px; color: ${fgColor}; margin-top: 4px; opacity: 0.8;">${descContent}</div>`
+        ? `<div class="step-desc">${descContent}</div>`
         : "";
 
       let titleHtml = markdownToHtml(step.title);
@@ -532,16 +529,15 @@ function renderSteps(content: string, themeColors?: ThemeColors): string {
         titleHtml = titleHtml.slice(3, -4);
       }
 
-      return `<table style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 12px; border-radius: 8px; overflow: hidden;"><tr><td style="width: 50px; padding: 14px; text-align: center; vertical-align: top;"><div style="width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; background: ${accentColor}; color: white; font-weight: bold; display: inline-block;">${step.number}</div></td><td style="padding: 14px; vertical-align: top;"><div style="font-weight: 600; margin-bottom: 4px;">${titleHtml}</div>${descHtml}</td></tr></table>`;
+      return `<div class="step-item"><div class="step-number">${step.number}</div><div class="step-content"><div class="step-title">${titleHtml}</div>${descHtml}</div></div>`;
     })
     .join("");
 
   return `<div class="steps-component">${stepsHtml}</div>`;
 }
 
-function renderTimeline(content: string, themeColors?: ThemeColors): string {
+function renderTimeline(content: string, _themeColors?: ThemeColors): string {
   const items = content.split(/\n\s*-{3,}\s*\n/);
-  const accentColor = themeColors?.accent || "#576b95";
 
   const itemsHtml = items
     .map((item) => {
@@ -556,12 +552,11 @@ function renderTimeline(content: string, themeColors?: ThemeColors): string {
         finalTitleHtml = titleHtml.slice(3, -4);
       }
 
-      // Use inline styles for WeCom compatibility - simple border-left design
-      return `<div style="margin-bottom: 16px; padding-left: 16px; border-left: 3px solid ${accentColor};"><div style="font-weight: 600; margin-bottom: 4px;">${finalTitleHtml}</div>${bodyHtml ? `<div style="font-size: 14px; color: #666;">${bodyHtml}</div>` : ""}</div>`;
+      return `<div class="timeline-item"><div class="timeline-title">${finalTitleHtml}</div>${bodyHtml ? `<div class="timeline-body">${bodyHtml}</div>` : ""}</div>`;
     })
     .join("");
 
-  return `<div style="margin: 16px 0;">${itemsHtml}</div>`;
+  return `<div class="timeline-component">${itemsHtml}</div>`;
 }
 
 function renderCard(content: string, themeColors?: ThemeColors): string {

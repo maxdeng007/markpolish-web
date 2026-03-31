@@ -78,7 +78,7 @@ export default function MobileTemplatesPanel({
     return null;
   }
 
-  const bg = isDark ? "#1a1a1a" : "#ffffff";
+  const bg = isDark ? "hsl(222.2 84% 4.9%)" : "hsl(0 0% 100%)";
   const border = isDark ? "#333" : "#e5e7eb";
   const textColor = isDark ? "#ffffff" : "#111";
 

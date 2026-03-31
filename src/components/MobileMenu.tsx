@@ -23,6 +23,7 @@ interface MobileMenuProps {
   onNavigate: (panel: string) => void;
   onAIAction: (action: string) => void;
   onCopyToClipboard?: (text: string, label: string) => void;
+  defaultAiExpanded?: boolean;
 }
 
 export default function MobileMenu({
@@ -31,11 +32,20 @@ export default function MobileMenu({
   onNavigate,
   onAIAction,
   onCopyToClipboard,
+  defaultAiExpanded,
 }: MobileMenuProps) {
   const { t } = useTranslation();
-  const [aiExpanded, setAiExpanded] = useState(false);
+  const [aiExpanded, setAiExpanded] = useState(defaultAiExpanded || false);
   const [componentsExpanded, setComponentsExpanded] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+
+  const getIsDark = () => document.documentElement.classList.contains("dark");
+  const [isDark, setIsDark] = useState(getIsDark);
+
+  useEffect(() => {
+    if (defaultAiExpanded) {
+      setAiExpanded(true);
+    }
+  }, [defaultAiExpanded]);
 
   const menuItems = [
     { id: "templates", label: t("mobileMenu.templates"), icon: FileText },
@@ -115,9 +125,8 @@ export default function MobileMenu({
 
   useEffect(() => {
     const checkDark = () => {
-      setIsDark(document.documentElement.classList.contains("dark"));
+      setIsDark(getIsDark());
     };
-    checkDark();
     const observer = new MutationObserver(checkDark);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -189,7 +198,6 @@ export default function MobileMenu({
     bottom: 0,
     width: "280px",
     maxWidth: "85vw",
-    background: isDark ? "#1a1a1a" : "#ffffff",
     zIndex: 10011,
     transform: isOpen ? "translateX(0)" : "translateX(-100%)",
     transition: "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
@@ -201,7 +209,10 @@ export default function MobileMenu({
   const menuContent = (
     <>
       <div style={overlayStyle} onClick={onClose} />
-      <div style={panelStyle}>
+      <div
+        className={`mobile-menu-panel ${isOpen ? "open" : ""}`}
+        style={panelStyle}
+      >
         <div className="mobile-menu-header">
           <span className="mobile-menu-title">{t("mobileMenu.menu")}</span>
           <button type="button" className="mobile-menu-close" onClick={onClose}>

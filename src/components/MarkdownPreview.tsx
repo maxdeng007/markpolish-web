@@ -347,7 +347,6 @@ export default function MarkdownPreview({
       <div
         ref={previewRef}
         className="preview-content"
-        style={{ paddingBottom: "120px" }}
         dangerouslySetInnerHTML={{ __html: processedMarkdown }}
       />
     </div>

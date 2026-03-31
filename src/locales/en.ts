@@ -632,6 +632,13 @@ export const en = {
       linkedin: "LinkedIn",
     },
   },
+  tabletTabBar: {
+    edit: "Edit",
+    preview: "Preview",
+    templates: "Templates",
+    themes: "Themes",
+    aiSettings: "AI Settings",
+  },
 };
 
 export type Translations = typeof en;

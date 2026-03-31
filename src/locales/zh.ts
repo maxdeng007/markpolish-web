@@ -617,11 +617,11 @@ export const zh: Translations = {
   },
   contentAmplify: {
     title: "内容放大器",
-    creating: "正在生成平台适配版本...",
-    copyFor: "复制用于{platform}",
-    copied: "已复制！",
+    creating: "正在创建平台变体...",
+    copyFor: "复制到 {platform}",
+    copied: "已复制!",
     chars: "字符",
-    emojis: "个表情",
+    emojis: "表情",
     platform: {
       wechat: "微信文章",
       xiaohongshu: "小红书",
@@ -629,5 +629,12 @@ export const zh: Translations = {
       twitter: "Twitter/X",
       linkedin: "领英",
     },
+  },
+  tabletTabBar: {
+    edit: "编辑",
+    preview: "预览",
+    templates: "模板",
+    themes: "主题",
+    aiSettings: "AI 设置",
   },
 };

@@ -188,16 +188,16 @@ export const componentStyles = `
   }
   .preview-content .step-item:hover { border-color: var(--accent, #6366f1); box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
   .preview-content .step-number {
-    width: 26px; height: 26px; min-width: 26px;
+    width: 28px; height: 28px; min-width: 28px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 600; font-size: 12px; color: #fff;
+    font-weight: 600; font-size: 13px; color: #fff;
     background: var(--accent, #6366f1);
-    flex-shrink: 0; text-align: center;
+    flex-shrink: 0; margin-top: 0;
   }
   .preview-content .step-content { flex: 1; min-width: 0; }
   .preview-content .step-title { font-weight: 600; font-size: 0.95em; color: var(--heading, #1a1a2e); }
-  .preview-content .step-desc { font-size: 0.9em; color: var(--foreground, #666); margin-top: 4px; line-height: 1.6; }
+  .preview-content .step-desc { font-size: 0.9em; color: var(--foreground, #666); margin-top: 4px; line-height: 1.4; }
 
   .preview-content .timeline-component { margin: 32px 0; padding-left: 24px; border-left: 2px solid var(--border, #e5e5e5); }
   .preview-content .timeline-item { margin-bottom: 24px; padding-left: 20px; position: relative; }
