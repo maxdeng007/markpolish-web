@@ -157,9 +157,11 @@ export default function Header({
           </button>
         )}
         <div className={isMobile ? "w-8 h-8" : "w-10 h-10"}>
-          <div className="flex items-center justify-center w-full h-full rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-            <Sparkles className={isMobile ? "w-5 h-5" : "w-6 h-6"} />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="w-full h-full object-contain rounded-lg"
+          />
         </div>
         {!isMobile && (
           <div>

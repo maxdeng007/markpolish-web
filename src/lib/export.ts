@@ -289,17 +289,17 @@ export async function exportForWeChat(
     
     body {
       margin: 0;
-      padding: 20px;
+      padding: 0;
       font-family: -apple-system-font, "Helvetica Neue", sans-serif;
+      background: ${theme.styles.background};
     }
     .preview-container {
-      max-width: 800px;
-      margin: 0 auto;
+      width: 100%;
     }
     .preview-content {
       ${theme.styles.background !== "#ffffff" ? `background: ${theme.styles.background};` : ""}
       ${theme.styles.foreground !== "#333333" ? `color: ${theme.styles.foreground};` : ""}
-      padding: 20px;
+      padding: 16px;
     }
     
     /* Theme CSS */
