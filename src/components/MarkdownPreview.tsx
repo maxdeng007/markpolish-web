@@ -79,7 +79,7 @@ export default function MarkdownPreview({
       }
     });
     onAIImageStatesChange(newState);
-  }, [markdown]);
+  }, [markdown, aiImageStates, onAIImageStatesChange]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -308,7 +308,7 @@ export default function MarkdownPreview({
     } catch (error) {
       console.debug("AI image update skipped:", error);
     }
-  }, [aiImageStates, previewMode]);
+  }, [aiImageStates, previewMode, markdown]);
 
   const themeStyles = currentTheme.styles;
 
