@@ -1,11 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useRef,
-  Suspense,
-  lazy,
-  useCallback,
-} from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { useAutoSave } from "@/components/hooks/useAutoSave";
 import Header from "@/components/layout/Header";
@@ -40,9 +33,6 @@ import {
   FormattingWrapper,
 } from "@/lib/utils";
 import { useEditorScrollSync } from "@/hooks/useScrollSync";
-
-// Lazy load PDF Export Button for better bundle size
-const PDFExportModal = lazy(() => import("@/components/PDFExportModal"));
 
 const defaultMarkdown = `# MarkPolish Complete Test Document
 
@@ -330,7 +320,6 @@ function App() {
     >
   >({});
   const [previewMode, setPreviewMode] = useState<"full" | "wecom">("full");
-  const [showPDFExport, setShowPDFExport] = useState(false);
   const [scrollSync, setScrollSync] = useState(true);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("ai");
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
@@ -914,7 +903,6 @@ function App() {
                   setShowShortcutsHelp(!showShortcutsHelp)
                 }
                 aiImageStates={aiImageStates}
-                onShowPDFExport={() => setShowPDFExport(true)}
                 isMobile={isMobile}
                 onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
               />
@@ -1097,24 +1085,6 @@ function App() {
                 <KeyboardShortcutsModal
                   onClose={() => setShowShortcutsHelp(false)}
                 />
-              )}
-
-              {/* Lazy loaded PDF Export Modal */}
-              {showPDFExport && (
-                <Suspense
-                  fallback={
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                      Loading...
-                    </div>
-                  }
-                >
-                  <PDFExportModal
-                    markdown={markdown}
-                    theme={theme}
-                    aiImageStates={aiImageStates}
-                    onClose={() => setShowPDFExport(false)}
-                  />
-                </Suspense>
               )}
 
               <ToastContainer />

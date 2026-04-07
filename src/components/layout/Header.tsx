@@ -10,7 +10,6 @@ import {
   FileText,
   Sparkles,
   Keyboard,
-  FileDown,
   ChevronDown,
   Menu,
   MoreHorizontal,
@@ -43,7 +42,6 @@ interface HeaderProps {
       status: "idle" | "generating" | "done" | "error";
     }
   >;
-  onShowPDFExport: () => void;
   isMobile?: boolean;
   isPreviewMode?: boolean;
   onToggleMobileMenu?: () => void;
@@ -60,7 +58,6 @@ export default function Header({
   showShortcutsHelp: _showShortcutsHelp,
   onToggleShortcutsHelp,
   aiImageStates,
-  onShowPDFExport,
   isMobile,
   isPreviewMode,
   onToggleMobileMenu,
@@ -128,11 +125,6 @@ export default function Header({
       label: "HTML",
       icon: <FileText className="w-4 h-4 shrink-0" />,
       onClick: handleExportHTML,
-    },
-    {
-      label: "PDF",
-      icon: <FileDown className="w-4 h-4 shrink-0" />,
-      onClick: onShowPDFExport,
     },
     {
       label: "Markdown (.md)",
