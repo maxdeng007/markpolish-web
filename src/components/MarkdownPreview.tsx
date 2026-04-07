@@ -314,7 +314,7 @@ export default function MarkdownPreview({
 
   return (
     <div
-      className={`markdown-preview ${currentTheme.category === "dark" ? "theme-dark" : ""}`}
+      className={`markdown-preview pb-14 ${currentTheme.category === "dark" ? "theme-dark" : ""}`}
       style={
         {
           "--accent": themeStyles.accent,
