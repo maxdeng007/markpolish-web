@@ -899,73 +899,148 @@ export async function exportToPDF(
     const html2canvas = (await import("html2canvas")).default;
     const jsPDF = (await import("jspdf")).jsPDF;
 
-    // Clone the element
-    const clone = element.cloneNode(true) as HTMLElement;
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const margin = 20;
 
-    // Get all styles
+    const contentWidth = element.offsetWidth;
+
     const styleTags = element.querySelectorAll("style");
     let allStyles = "";
     styleTags.forEach((style) => {
       allStyles += style.textContent || "";
     });
 
-    const styleEl = document.createElement("style");
-    styleEl.textContent = allStyles;
-    clone.insertBefore(styleEl, clone.firstChild);
-
-    clone.style.cssText = `
-      ${element.style.cssText}
-      max-height: none !important;
-      overflow: visible !important;
-      height: auto !important;
-    `;
-
-    const container = document.createElement("div");
-    container.style.position = "absolute";
-    container.style.left = "0";
-    container.style.top = "0";
-    container.style.width = element.offsetWidth + "px";
-    container.appendChild(clone);
-    document.body.appendChild(container);
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const canvas = await html2canvas(clone, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: element.style.background || "#ffffff",
-    });
-
-    document.body.removeChild(container);
-
-    // Simple approach: use offset positioning
     const pdf = new jsPDF({
       orientation: "portrait",
       unit: "pt",
       format: "a4",
     });
 
-    // A4 at 72 DPI
-    const pageWidth = 595.28;
-    const pageHeight = 841.89;
+    const renderClone = element.cloneNode(true) as HTMLElement;
+    const renderStyleEl = document.createElement("style");
+    renderStyleEl.textContent = allStyles;
+    renderClone.insertBefore(renderStyleEl, renderClone.firstChild);
 
-    // Convert canvas to image
-    const imgData = canvas.toDataURL("image/png");
+    renderClone.style.cssText = `
+      ${element.style.cssText}
+      max-height: none !important;
+      overflow: visible !important;
+      height: auto !important;
+      width: ${contentWidth}px !important;
+    `;
 
-    // Calculate total PDF height
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * pageWidth) / canvas.width;
+    const measureContainer = document.createElement("div");
+    measureContainer.style.position = "absolute";
+    measureContainer.style.left = "-9999px";
+    measureContainer.style.top = "0";
+    measureContainer.style.width = contentWidth + "px";
+    measureContainer.appendChild(renderClone);
+    document.body.appendChild(measureContainer);
 
-    const totalPages = Math.ceil(imgHeight / pageHeight);
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-    for (let i = 0; i < totalPages; i++) {
+    const totalHeight = measureContainer.scrollHeight;
+    const availableHeight = pageHeight - margin * 2;
+
+    const blockElements = renderClone.querySelectorAll(
+      "h1, h2, h3, h4, h5, h6, p, div, table, pre, ul, ol, blockquote, .hero-component, .card-component, .steps-component, .timeline-component, .callout-component, .tabs-component, .accordion-component, .columns-flex, .columns-table, .ai-image-wrapper, .ai-image-placeholder, .image-wrapper, .video-component, .quote-component",
+    );
+
+    const elements: Array<{ offsetTop: number; offsetHeight: number }> = [];
+    blockElements.forEach((el) => {
+      if (el instanceof HTMLElement) {
+        const h = el.offsetHeight;
+        if (h > 0) {
+          elements.push({ offsetTop: el.offsetTop, offsetHeight: h });
+        }
+      }
+    });
+
+    elements.sort((a, b) => a.offsetTop - b.offsetTop);
+
+    const pageBreaks: number[] = [0];
+    let currentPageHeight = 0;
+
+    for (const elem of elements) {
+      if (
+        currentPageHeight + elem.offsetHeight > availableHeight &&
+        currentPageHeight > 0
+      ) {
+        pageBreaks.push(elem.offsetTop);
+        currentPageHeight = elem.offsetHeight;
+      } else {
+        currentPageHeight += elem.offsetHeight;
+      }
+    }
+
+    pageBreaks.push(totalHeight);
+
+    document.body.removeChild(measureContainer);
+
+    for (let i = 0; i < pageBreaks.length - 1; i++) {
+      const startY = pageBreaks[i];
+      const endY = pageBreaks[i + 1];
+      const pageContentHeight = endY - startY;
+
+      const pageClone = element.cloneNode(true) as HTMLElement;
+      const pageStyleEl = document.createElement("style");
+      pageStyleEl.textContent = allStyles;
+      pageClone.insertBefore(pageStyleEl, pageClone.firstChild);
+
+      pageClone.style.cssText = `
+        ${element.style.cssText}
+        max-height: none !important;
+        overflow: visible !important;
+        height: auto !important;
+        width: ${contentWidth}px !important;
+      `;
+
+      const captureContainer = document.createElement("div");
+      captureContainer.style.position = "absolute";
+      captureContainer.style.left = "0";
+      captureContainer.style.top = "0";
+      captureContainer.style.width = contentWidth + "px";
+      captureContainer.style.height = pageContentHeight + "px";
+      captureContainer.style.overflow = "hidden";
+
+      pageClone.style.position = "absolute";
+      pageClone.style.left = "0";
+      pageClone.style.top = -startY + "px";
+      pageClone.style.width = contentWidth + "px";
+
+      captureContainer.appendChild(pageClone);
+      document.body.appendChild(captureContainer);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      const canvas = await html2canvas(pageClone, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: element.style.background || "#ffffff",
+        width: contentWidth,
+        height: pageContentHeight,
+      });
+
+      document.body.removeChild(captureContainer);
+
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
       if (i > 0) {
         pdf.addPage();
       }
-      // Offset to show the correct portion of the image on each page
-      const yOffset = -i * pageHeight;
-      pdf.addImage(imgData, "PNG", 0, yOffset, imgWidth, imgHeight);
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        0,
+        0,
+        imgWidth,
+        Math.min(imgHeight, pageHeight),
+      );
     }
 
     pdf.save(filename);
